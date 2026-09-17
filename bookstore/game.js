@@ -25,7 +25,33 @@
   const RESTOCK_COST = 1;        // coins spent per book restocked
   const WALK_SPEED = 55;         // picture units per second
   const SAVE_KEY = 'saltyJellyfish.stageOne';
+  const LIFETIME_KEY = 'saltyJellyfish.lifetime';   // counters across every shop on this device
   const DEFAULT_SHOP_NAME = 'The Salty Jellyfish';   // used if the player leaves the name blank
+
+  // The calendar. Short for now; both numbers can grow later.
+  const DAY_MS = 3 * 60 * 1000;          // a day lasts three minutes of play
+  const DAYS_PER_SEASON = 10;
+  const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
+  // A gentle wash of colour over the scene for each season (colour, opacity outside, opacity inside).
+  const SEASON_TINT = {
+    Spring: ['#ffffff', 0, 0],
+    Summer: ['#f6d9a8', 0.10, 0.05],
+    Autumn: ['#d9a441', 0.14, 0.06],
+    Winter: ['#8b9cc9', 0.16, 0.08]
+  };
+  // Journal lines for a new day, by season.
+  const DAY_LINES = {
+    Spring: ['Hydrangeas thinking about it.', 'Fog until ten, then glorious.', 'First tourists of the year, blinking.', 'Peepers loud in the marsh tonight.'],
+    Summer: ['Tourists. So many tourists.', 'Band concert on the green tonight.', 'Sand in the till again.', 'Sold out of beach reads by noon.'],
+    Autumn: ['Cranberry bogs going red.', 'The light is gold and everyone is calm.', 'Half the shops shuttered for the season. Not us.', 'Sweater weather. Reading weather.'],
+    Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbour froze at the edges.', 'Wind off the water. Kettle on.']
+  };
+  const SEASON_LINES = {
+    Spring: 'Spring arrived. The town shook itself off.',
+    Summer: 'Summer arrived, and with it the whole eastern seaboard.',
+    Autumn: 'Autumn arrived. The tourists left. The books stayed.',
+    Winter: 'Winter arrived. Fog rolled in and settled on the shelves.'
+  };
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
@@ -172,6 +198,7 @@
   //   state.building  : 'lfl' | 'garden-shed' | 'container' | 'garage'
   //   state.location  : which backdrop the building sits in
   //   state.view      : 'outside' or 'inside' (inside exists from stage three on)
+  //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day) }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.sold      : lifetime books sold
@@ -195,7 +222,29 @@
   function freshState(shopName, location) {
     const books = [];
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [] };
+    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock() };
+  }
+  function freshClock() { return { year: 1, season: 0, day: 1, ms: 0 }; }
+  const seasonName = () => SEASONS[state.clock.season];
+  const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
+
+  // ---- Lifetime counters: every shop ever opened on this device ----
+  function loadLifetime() {
+    try {
+      const data = JSON.parse(localStorage.getItem(LIFETIME_KEY) || 'null');
+      if (data && typeof data === 'object') return data;
+    } catch (e) { /* fall through */ }
+    return { firstPlayed: null, shopsOpened: 0, booksSold: 0, coinsEarned: 0, daysPlayed: 0, bestShopSold: 0, bestShopName: '', furthestStage: 1, upgrades: 0 };
+  }
+  // Change the counters with a small function, then save them. Failures are ignored:
+  // the counters are for fun and the game must never stop over them.
+  function bumpLifetime(change) {
+    try {
+      const life = loadLifetime();
+      if (!life.firstPlayed) life.firstPlayed = new Date().toISOString();
+      change(life);
+      localStorage.setItem(LIFETIME_KEY, JSON.stringify(life));
+    } catch (e) { /* counters are optional */ }
   }
 
   // =========================================================
@@ -232,7 +281,8 @@
     $('start-button').addEventListener('click', () => {
       const name = $('shop-name').value.trim() || DEFAULT_SHOP_NAME;
       state = freshState(name, chosenLocation);
-      addLog(`Opened ${name} today. ${capacity()} books. High hopes.`);
+      addLog(`Opened ${name} today. ${capacity()} books. High hopes. Spring, Year 1.`);
+      bumpLifetime(life => { life.shopsOpened += 1; });
       save();
       startGame();
     });
@@ -254,6 +304,7 @@
     setStageText();
     drawScene();
     drawHud();
+    drawDate();
     drawLog();
     drawGoal();
     customers = [];
@@ -274,6 +325,7 @@
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books, state.building, state.view);
     fitSign(svg.querySelector('.box-sign'), state.shopName, state.building);
+    applySeasonTint();
     // The step-inside / step-outside button only exists for buildings with an interior.
     const toggle = $('view-toggle');
     toggle.classList.toggle('hidden', !building().interior);
@@ -339,6 +391,48 @@
 
   function drawLog() {
     $('log').innerHTML = state.log.map(line => `<li>${line}</li>`).join('');
+  }
+
+  // The date line above the HUD and the thin bar that fills through the day.
+  function drawDate() {
+    $('hud-date').textContent = dateText();
+    $('day-bar').style.width = Math.min(100, (state.clock.ms / DAY_MS) * 100) + '%';
+  }
+  function applySeasonTint() {
+    const tint = $('scene').querySelector('svg .season-tint');
+    if (!tint) return;
+    const [color, outside, inside] = SEASON_TINT[seasonName()];
+    tint.setAttribute('fill', color);
+    tint.setAttribute('opacity', state.view === 'inside' ? inside : outside);
+  }
+
+  // Called by the game loop as time passes. Rolls the day, season and year over.
+  let lastClockSave = 0;
+  function advanceClock(dtMs, now) {
+    const c = state.clock;
+    c.ms += dtMs;
+    let changed = false;
+    while (c.ms >= DAY_MS) {
+      c.ms -= DAY_MS;
+      c.day += 1;
+      changed = true;
+      bumpLifetime(life => { life.daysPlayed += 1; });
+      if (c.day > DAYS_PER_SEASON) {
+        c.day = 1;
+        c.season = (c.season + 1) % SEASONS.length;
+        if (c.season === 0) {
+          c.year += 1;
+          addLog(`Year ${c.year}. Still here. Still open.`);
+        }
+        addLog(SEASON_LINES[seasonName()]);
+        applySeasonTint();
+      } else {
+        addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
+      }
+    }
+    if (changed) { drawLog(); save(); lastClockSave = now; }
+    else if (now - lastClockSave > 15000) { save(); lastClockSave = now; }   // keep the clock roughly current
+    drawDate();
   }
 
   function drawGoal() {
@@ -457,6 +551,7 @@
     if (!running) return;
     const dt = Math.min(0.1, (now - lastFrame) / 1000);   // seconds since last frame, capped
     lastFrame = now;
+    advanceClock(dt * 1000, now);
 
     if (now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
       spawnCustomer();
@@ -507,6 +602,11 @@
       state.books[randomFrom(stocked)] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
+      bumpLifetime(life => {
+        life.booksSold += 1;
+        life.coinsEarned += SELL_PRICE;
+        if (state.sold > life.bestShopSold) { life.bestShopSold = state.sold; life.bestShopName = state.shopName; }
+      });
       const book = randomFrom(ALL_BOOKS);
       addLog(`${c.look.desc}. Bought <em>${book.title}</em> by ${book.author}. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
       floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, `+${SELL_PRICE}`, '#a5443a');
@@ -587,6 +687,7 @@
     state.books = books;
     state.view = 'outside';
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
+    bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
 
     customers = [];                       // the old crowd stays behind
@@ -653,6 +754,7 @@
       // Saves from before buildings existed: they were all stage-one libraries.
       if (!data.stage) { data.stage = 1; data.building = 'lfl'; }
       if (!data.view) data.view = data.stage >= 3 ? 'inside' : 'outside';
+      if (!data.clock) data.clock = freshClock();
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;

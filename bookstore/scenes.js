@@ -1194,6 +1194,7 @@ const Scenes = (function () {
       <g class="books"></g>
       <g class="front">${building.front()}</g>
       <g class="customers"></g>
+      <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       <g class="effects"></g>
     </svg>`;
   }
@@ -1205,6 +1206,7 @@ const Scenes = (function () {
       <g class="books"></g>
       <g class="front">${interiorFront(style, building.sign.size)}</g>
       <g class="customers"></g>
+      <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       <g class="effects"></g>
     </svg>`;
   }

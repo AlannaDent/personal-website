@@ -109,6 +109,29 @@
 .hint { color: var(--ink-soft); font-size: 0.9rem; margin: 0.5rem 0 0; }
 
 /* ---- Game screen ---- */
+.dateline {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+  font-family: Georgia, serif;
+  color: var(--teal-dark);
+  font-size: 1.05rem;
+}
+.day-progress {
+  flex: 1;
+  height: 6px;
+  background: #efe8da;
+  border-radius: 999px;
+  overflow: hidden;
+}
+#day-bar {
+  height: 100%;
+  width: 0;
+  background: var(--mustard);
+  transition: width 0.5s linear;
+}
+
 .hud {
   display: flex;
   flex-wrap: wrap;
