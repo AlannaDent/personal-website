@@ -33,4 +33,6 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
 ## Project notes
 - Started: 16 September 2026.
 - Website content and technology choices: to be decided (start simple, e.g. plain HTML/CSS).
-- Git identity to use here: Alanna Dent <55811081+AlannaDent@users.noreply.github.com> (set locally, not globally).
+- Git identity to use here (set locally, not globally): Alanna Dent
+  <55811081+AlannaDent@users.noreply.github.com>. This is GitHub's no-reply address, so
+  public commits show my name but not my real email.
