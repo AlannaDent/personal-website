@@ -549,7 +549,7 @@ const Scenes = (function () {
     blurb: 'Retired from lawnmower duty. Sage paint, shingle roof, doors that stick a little.',
     location: 'park',
     capacity: 100,
-    paint: '#9aa88f',
+    paint: '#aaa99d',
     shelves: [278, 306, 334, 362, 390].map(bottom => ({ bottom, firstX: 332, step: 6.9, width: 5.4, count: 20, minH: 18, varH: 7 })),
     sign: { size: 10, small: 8 },
     stops: { left: 262, right: 538 },
@@ -557,16 +557,19 @@ const Scenes = (function () {
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
       s += `<rect x="300" y="226" width="200" height="174" fill="${color}" stroke="#4f5a48" stroke-width="1.5"/>`;
-      s += hLines(300, 500, 240, 396, 14, 0.08);
+      s += vLines(310, 496, 228, 398, 11, 0.09);
       s += `<g fill="#fff" opacity="0.14"><rect x="306" y="232" width="3" height="120"/><rect x="490" y="240" width="2" height="140"/></g>`;
       s += `<g fill="#000" opacity="0.07"><rect x="300" y="380" width="200" height="20"/><rect x="470" y="230" width="8" height="170"/></g>`;
       // interior and shelf boards
       s += `<rect x="330" y="250" width="140" height="140" fill="#4a3f36"/>`;
       this.shelves.forEach(sh => { s += `<rect x="330" y="${sh.bottom}" width="140" height="2.5" fill="#8a7460"/>`; });
       // roof with shingle rows
-      s += `<polygon points="288,230 400,166 512,230" fill="#6a6a66" stroke="#4a4946" stroke-width="1.5"/>`;
-      s += `<g stroke="#4a4946" stroke-width="1" opacity="0.35"><line x1="316" y1="214" x2="484" y2="214"/><line x1="340" y1="200" x2="460" y2="200"/><line x1="364" y1="186" x2="436" y2="186"/></g>`;
-      s += `<rect x="388" y="196" width="24" height="20" fill="#dfe8ea" stroke="#4f5a48" stroke-width="1.5"/><line x1="400" y1="196" x2="400" y2="216" stroke="#4f5a48"/>`;
+      s += `<polygon points="288,230 400,166 512,230" fill="#3f3a36" stroke="#2b2a28" stroke-width="1.5"/>`;
+      s += `<g stroke="#6a6a66" stroke-width="1" opacity="0.5"><line x1="316" y1="214" x2="484" y2="214"/><line x1="340" y1="200" x2="460" y2="200"/><line x1="364" y1="186" x2="436" y2="186"/></g>`;
+      // gable window with board shutters and a flower box
+      s += `<rect x="388" y="194" width="24" height="22" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="2"/><line x1="400" y1="194" x2="400" y2="216" stroke="#f4f1e8"/><line x1="388" y1="205" x2="412" y2="205" stroke="#f4f1e8"/>`;
+      s += `<g fill="#e9e6dc" stroke="#8a8a80" stroke-width="0.8"><rect x="378" y="194" width="8" height="22"/><rect x="414" y="194" width="8" height="22"/></g><g stroke="#8a8a80" stroke-width="1"><line x1="378" y1="194" x2="386" y2="216"/><line x1="414" y1="216" x2="422" y2="194"/></g>`;
+      s += `<rect x="384" y="216" width="32" height="6" fill="#e9e6dc" stroke="#8a8a80" stroke-width="0.8"/>` + flower(390, 214, '#d98c9c') + flower(400, 213, '#b6413a') + flower(410, 214, '#ffffff');
       // pots and a rake outside
       s += `<path d="M268 400 l4 -22 h18 l4 22 z" fill="#b8734f"/><g fill="#6f9556"><circle cx="275" cy="372" r="7"/><circle cx="285" cy="370" r="8"/><circle cx="280" cy="364" r="6"/></g>`;
       s += `<line x1="520" y1="400" x2="508" y2="290" stroke="#8b6f4e" stroke-width="3"/><path d="M500 292 h16 l2 -10 h-20 z" fill="#6a6a66"/>`;
@@ -574,8 +577,9 @@ const Scenes = (function () {
     },
     front() {
       // open doors either side of the opening, then the sign over the doors
-      let s = `<g fill="#8a9a80" stroke="#4f5a48" stroke-width="1.5"><rect x="300" y="250" width="28" height="140"/><rect x="472" y="250" width="28" height="140"/></g>`;
-      s += hLines(300, 328, 262, 380, 14, 0.12) + hLines(472, 500, 262, 380, 14, 0.12);
+      let s = `<g fill="#bdbcb0" stroke="#6a6a60" stroke-width="1.5"><rect x="300" y="250" width="28" height="140"/><rect x="472" y="250" width="28" height="140"/></g>`;
+      s += vLines(306, 326, 252, 388, 7, 0.1) + vLines(478, 498, 252, 388, 7, 0.1);
+      s += `<g stroke="#6a6a60" stroke-width="1.5" opacity="0.7"><line x1="302" y1="252" x2="326" y2="388"/><line x1="498" y1="252" x2="474" y2="388"/></g>`;
       s += `<g fill="#2f2f2f"><rect x="322" y="316" width="3" height="10"/><rect x="475" y="316" width="3" height="10"/></g>`;
       s += `<rect x="330" y="250" width="140" height="140" fill="none" stroke="#3e352e" stroke-width="2"/>`;
       s += signBoard(345, 232, 110, 16, this.sign.size);
@@ -592,7 +596,7 @@ const Scenes = (function () {
     blurb: 'Crossed three oceans. Now crossing genres. The rust is decorative.',
     location: 'beach',
     capacity: 100,
-    paint: '#6f8a8a',
+    paint: '#7f9a78',
     shelves: [300, 330, 360, 390].map(bottom => ({ bottom, firstX: 312, step: 7.9, width: 6.2, count: 25, minH: 20, varH: 8 })),
     sign: { size: 11, small: 8.5 },
     stops: { left: 242, right: 578 },
@@ -601,7 +605,12 @@ const Scenes = (function () {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
       s += `<rect x="280" y="250" width="260" height="150" fill="${color}" stroke="#3f4f4f" stroke-width="1.5"/>`;
       s += vLines(290, 530, 252, 398, 10, 0.1);
-      s += `<g fill="#4f6262"><rect x="280" y="250" width="9" height="150"/><rect x="531" y="250" width="9" height="150"/></g>`;
+      s += `<g fill="#5a7055"><rect x="280" y="250" width="9" height="150"/><rect x="531" y="250" width="9" height="150"/></g>`;
+      // the cut-out side panel, propped up as an awning over the opening
+      s += `<polygon points="304,270 516,270 542,232 278,232" fill="${color}" stroke="#3f4f3f" stroke-width="1.5"/>`;
+      s += `<polygon points="304,270 516,270 542,232 278,232" fill="#000" opacity="0.12"/>`;
+      s += `<g stroke="#000" stroke-width="1" opacity="0.12">${[290, 320, 350, 380, 410, 440, 470, 500].map(x => `<line x1="${x + 12}" y1="270" x2="${x + 2}" y2="232"/>`).join('')}</g>`;
+      s += `<g stroke="#2f3a3a" stroke-width="3"><line x1="316" y1="270" x2="330" y2="300"/><line x1="504" y1="270" x2="490" y2="300"/></g>`;
       // rust
       s += `<g fill="#a55e3a" opacity="0.55"><ellipse cx="300" cy="382" rx="24" ry="11"/><ellipse cx="522" cy="268" rx="16" ry="9"/><ellipse cx="292" cy="262" rx="10" ry="7"/><path d="M516 300 q6 20 2 40 q-3 20 4 58 h-8 q-4 -40 -1 -58 q3 -20 -3 -40 z"/></g>`;
       s += `<g fill="#7a3f22" opacity="0.35"><ellipse cx="296" cy="386" rx="12" ry="5"/><ellipse cx="526" cy="266" rx="7" ry="4"/></g>`;
@@ -931,21 +940,28 @@ const Scenes = (function () {
       <rect x="22" y="300" width="68" height="72" fill="#c9c3b6"/>
       <g fill="#6f9556"><circle cx="40" cy="250" r="14"/><circle cx="72" cy="240" r="16"/></g>
       <polygon points="14,190 -30,176 -30,386 14,372" fill="#3f4f7a"/><circle cx="-4" cy="284" r="2.5" fill="#d9a441"/>`,
-    right: () => shutteredWindow(716, 190, 60, 90, '#f4f1e8', '#4a5a8a') + `<rect x="708" y="280" width="76" height="7" fill="#4a5a8a"/>` + flower(722, 278, '#d98c9c') + flower(746, 276, '#ffffff') + flower(768, 278, '#d98c9c'),
-    lamp: () => hangingLamp(400, '#4a5a8a', 0),
-    props: () => `<rect x="0" y="20" width="800" height="8" fill="#4a5a8a" opacity="0.5"/>`
+    // a gothic arched window with tracery
+    right: () => `<path d="M712 290 v-80 a34 34 0 0 1 68 0 v80 z" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="4"/><g stroke="#f4f1e8" stroke-width="2" fill="none"><line x1="746" y1="176" x2="746" y2="290"/><line x1="712" y1="240" x2="780" y2="240"/><path d="M722 214 a24 24 0 0 1 48 0"/><path d="M722 214 q12 -14 24 0 q12 -14 24 0"/></g><rect x="706" y="290" width="80" height="7" fill="#4a5a8a"/>`,
+    // nautical cage lanterns
+    lamp: () => [300, 500].map(x => `<line x1="${x}" y1="0" x2="${x}" y2="40" stroke="#8a6a3a" stroke-width="2"/><rect x="${x - 8}" y="38" width="16" height="6" fill="#d9a441"/><ellipse cx="${x}" cy="62" rx="14" ry="18" fill="#f2e6b8" stroke="#8a6a3a" stroke-width="2"/><g stroke="#8a6a3a" stroke-width="1.5" fill="none"><ellipse cx="${x}" cy="62" rx="7" ry="18"/><line x1="${x - 14}" y1="62" x2="${x + 14}" y2="62"/></g><rect x="${x - 6}" y="78" width="12" height="5" fill="#d9a441"/>`).join(''),
+    // blue-and-white striped rug
+    props: () => `<rect x="0" y="20" width="800" height="8" fill="#4a5a8a" opacity="0.5"/><g fill="none" stroke="#f4f1e8" stroke-width="3" opacity="0.8"><ellipse cx="340" cy="412" rx="95" ry="10"/><ellipse cx="340" cy="412" rx="70" ry="6"/><ellipse cx="340" cy="412" rx="45" ry="3"/></g>`
   };
 
   INTERIORS['cape-cod'] = {
     wall: '#f6f3ea', trim: '#1f3b33', bookcase: '#1f3b33', shelfBoard: '#2f5a4a',
-    rugColor: '#b6413a', rugStripe: '#e9e2cf', counterWood: '#1f3b33', counterTop: '#a8865c',
+    rugColor: '#5d5a54', rugStripe: '#e9e2cf', counterWood: '#1f3b33', counterTop: '#a8865c',
+    texture: () => `<rect x="0" y="0" width="800" height="110" fill="#f4f1e8"/>` + vLines(4, 800, 0, 110, 14, 0.05) + vLines(2, 800, 110, 366, 9, 0.03),
     floor: () => floorPlanks('#a8865c', '#8a6a48'),
-    ceiling: () => `<g fill="#e9e4d6" stroke="#cfc6b4" stroke-width="1"><rect x="0" y="24" width="800" height="12"/><rect x="0" y="66" width="800" height="12"/></g>`,
-    left: () => shutteredWindow(30, 190, 64, 96, '#1f3b33', '#f4f1e8') + `<rect x="22" y="286" width="80" height="7" fill="#f4f1e8"/>` + flower(40, 284, '#e8c46a') + flower(62, 282, '#d98c9c') + flower(86, 284, '#ffffff'),
+    // the vaulted plank ceiling with white beams
+    ceiling: () => `<g fill="#e9e4d6" stroke="#cfc6b4" stroke-width="1"><rect x="0" y="104" width="800" height="10"/><polygon points="0,110 400,0 800,110 800,98 400,-12 0,98"/><rect x="394" y="0" width="12" height="110"/></g>`,
+    // a big window with a woven shade, and a fiddle-leaf fig
+    left: () => `<rect x="22" y="150" width="78" height="130" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="4"/><g stroke="#f4f1e8" stroke-width="2"><line x1="61" y1="150" x2="61" y2="280"/><line x1="22" y1="215" x2="100" y2="215"/></g><rect x="20" y="148" width="82" height="46" fill="#c9a97a"/>` + hLines(20, 102, 154, 190, 5, 0.15) + `<rect x="30" y="372" width="26" height="0"/><path d="M36 372 l3 -30 h20 l3 30 z" fill="#b8734f"/><line x1="49" y1="342" x2="49" y2="290" stroke="#4f7a4a" stroke-width="2"/><g fill="#6a955f"><ellipse cx="36" cy="300" rx="12" ry="8" transform="rotate(-30 36 300)"/><ellipse cx="62" cy="296" rx="12" ry="8" transform="rotate(30 62 296)"/><ellipse cx="46" cy="318" rx="12" ry="8" transform="rotate(-20 46 318)"/><ellipse cx="58" cy="326" rx="11" ry="7" transform="rotate(25 58 326)"/></g>`,
     right: () => fireplace(690, '#a86b5f', '#f4f1e8'),
-    lamp: () => `<rect x="392" y="60" width="16" height="22" fill="#2b2a28"/><rect x="395" y="64" width="10" height="14" fill="#f2e6b8"/><line x1="400" y1="36" x2="400" y2="60" stroke="#2b2a28" stroke-width="2"/>`,
+    // a rattan pendant, petals of woven straw around a glass globe
+    lamp: () => `<line x1="400" y1="0" x2="400" y2="44" stroke="#8a7a5a" stroke-width="2"/><g fill="#d9b98a" stroke="#b08a5a" stroke-width="1">${[0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="${400 + 30 * Math.cos(a * Math.PI / 180)}" cy="${64 + 14 * Math.sin(a * Math.PI / 180)}" rx="22" ry="9" transform="rotate(${a / 3} ${400 + 30 * Math.cos(a * Math.PI / 180)} ${64 + 14 * Math.sin(a * Math.PI / 180)})"/>`).join('')}</g><circle cx="400" cy="70" r="12" fill="#f2e6b8"/>`,
     // the cat, on the hearth rug
-    props: () => `<ellipse cx="660" cy="404" rx="34" ry="10" fill="#e9e2cf"/><g fill="#3b332c"><ellipse cx="655" cy="396" rx="16" ry="7"/><circle cx="670" cy="390" r="6"/><polygon points="666,386 667,379 670,386"/><polygon points="672,386 675,379 676,386"/><path d="M639 396 q-14 -2 -12 10" stroke="#3b332c" stroke-width="3" fill="none"/></g>`
+    props: () => `<ellipse cx="758" cy="404" rx="34" ry="10" fill="#e9e2cf"/><g fill="#3b332c"><ellipse cx="753" cy="396" rx="16" ry="7"/><circle cx="768" cy="390" r="6"/><polygon points="764,386 765,379 768,386"/><polygon points="770,386 773,379 774,386"/><path d="M737 396 q-14 -2 -12 10" stroke="#3b332c" stroke-width="3" fill="none"/></g>`
   };
 
   INTERIORS.tudor = {
@@ -955,19 +971,24 @@ const Scenes = (function () {
     ceiling: () => `<g fill="#3d2a22"><rect x="0" y="0" width="800" height="14"/><rect x="0" y="46" width="800" height="10"/><rect x="0" y="96" width="800" height="10"/><rect x="104" y="0" width="12" height="366"/><rect x="684" y="0" width="12" height="366"/></g>
       <g stroke="#3d2a22" stroke-width="6"><line x1="20" y1="14" x2="104" y2="96"/><line x1="780" y1="14" x2="696" y2="96"/></g>`,
     left: () => fireplace(0, '#8f5b4a', '#3d2a22'),
-    right: () => leadedWindow(712, 170, 64, 120, '#3d2a22') + `<rect x="704" y="290" width="80" height="7" fill="#3d2a22"/>`,
-    lamp: () => `<line x1="400" y1="14" x2="400" y2="54" stroke="#2b2a28" stroke-width="2"/><rect x="388" y="54" width="24" height="30" fill="#2b2a28"/><rect x="392" y="58" width="16" height="22" fill="#f2e6b8"/><ellipse cx="400" cy="120" rx="70" ry="30" fill="#f2e6b8" opacity="0.12"/>`,
+    right: () => leadedWindow(712, 130, 64, 170, '#3d2a22') + `<path d="M712 130 a32 32 0 0 1 64 0 z" fill="#dfe8ea" stroke="#3d2a22" stroke-width="2.5"/><rect x="704" y="300" width="80" height="7" fill="#3d2a22"/>`,
+    // a wrought-iron chandelier with candles
+    lamp: () => `<line x1="400" y1="14" x2="400" y2="56" stroke="#2b2a28" stroke-width="2"/><ellipse cx="400" cy="74" rx="46" ry="12" fill="none" stroke="#2b2a28" stroke-width="4"/><g stroke="#2b2a28" stroke-width="2"><line x1="400" y1="56" x2="354" y2="74"/><line x1="400" y1="56" x2="446" y2="74"/><line x1="400" y1="56" x2="400" y2="86"/></g>${[354, 377, 400, 423, 446].map((x, i) => `<rect x="${x - 2}" y="${(i === 0 || i === 4) ? 60 : (i === 2 ? 70 : 54)}" width="4" height="12" fill="#f4efe4"/><ellipse cx="${x}" cy="${(i === 0 || i === 4) ? 56 : (i === 2 ? 66 : 50)}" rx="2.5" ry="4" fill="#f2c46a"/>`).join('')}<ellipse cx="400" cy="130" rx="90" ry="34" fill="#f2e6b8" opacity="0.12"/>`,
     props: () => `<rect x="20" y="344" width="60" height="6" fill="#3d2a22"/><rect x="24" y="320" width="10" height="24" fill="#e9e2cf"/><ellipse cx="29" cy="316" rx="4" ry="6" fill="#d9a441"/>`
   };
 
   INTERIORS.church = {
-    wall: '#f1ede4', trim: '#5a5f66', bookcase: '#7a5a3e', shelfBoard: '#5a4030',
-    counterWood: '#7a5a3e', counterTop: '#5a4030',
+    wall: '#d9cfb8', trim: '#8a8070', bookcase: '#4a3f36', shelfBoard: '#2b2a28',
+    counterWood: '#4a3f36', counterTop: '#2b2a28',
+    // stone blocks
+    texture: () => hLines(0, 800, 22, 360, 22, 0.1) + `<g stroke="#000" stroke-width="1" opacity="0.08">${Array.from({ length: 16 }, (_, r) => Array.from({ length: 9 }, (_, c) => { const x = c * 100 + (r % 2) * 50; return `<line x1="${x}" y1="${r * 22}" x2="${x}" y2="${r * 22 + 22}"/>`; }).join('')).join('')}</g>`,
     floor: stoneFloor,
-    ceiling: () => `<g fill="none" stroke="#5a5f66" stroke-width="8"><path d="M0 120 Q400 -60 800 120"/><path d="M0 200 Q400 20 800 200" opacity="0.5"/></g>`,
+    // ribbed vaulting
+    ceiling: () => `<g fill="none" stroke="#b5a88e" stroke-width="9"><path d="M0 130 Q400 -70 800 130"/><path d="M-60 260 Q200 -20 460 260" opacity="0.8"/><path d="M340 260 Q600 -20 860 260" opacity="0.8"/></g><g fill="none" stroke="#c9bea4" stroke-width="3"><path d="M0 130 Q400 -70 800 130"/><path d="M-60 260 Q200 -20 460 260"/><path d="M340 260 Q600 -20 860 260"/></g>`,
     left: () => stainedArch(28, 60, 60, 240),
     right: () => stainedArch(712, 60, 60, 240),
-    lamp: () => hangingLamp(250, '#5a5f66', 0) + hangingLamp(550, '#5a5f66', 0),
+    // ring lights hung on thin cables
+    lamp: () => [250, 550].map(x => `<g stroke="#3a3f44" stroke-width="1"><line x1="${x - 30}" y1="0" x2="${x - 30}" y2="96"/><line x1="${x + 30}" y1="0" x2="${x + 30}" y2="96"/></g><ellipse cx="${x}" cy="100" rx="46" ry="10" fill="none" stroke="#f6efd6" stroke-width="5"/><ellipse cx="${x}" cy="100" rx="46" ry="10" fill="none" stroke="#f2e6b8" stroke-width="10" opacity="0.25"/>`).join(''),
     // rose window, red runner, and a pew
     props: () => `<circle cx="400" cy="62" r="34" fill="#dfe8ea" stroke="#5a5f66" stroke-width="3"/>
       ${['#8b9cc9', '#b6413a', '#d9a441', '#4f7a4a', '#9b7f9c', '#7fa3ad', '#b6413a', '#8b9cc9'].map((c, i) => { const a = (i / 8) * Math.PI * 2, b = ((i + 1) / 8) * Math.PI * 2; return `<path d="M400 62 L${400 + 30 * Math.cos(a)} ${62 + 30 * Math.sin(a)} A30 30 0 0 1 ${400 + 30 * Math.cos(b)} ${62 + 30 * Math.sin(b)} z" fill="${c}" opacity="0.8"/>`; }).join('')}
@@ -992,19 +1013,21 @@ const Scenes = (function () {
   };
 
   INTERIORS.ship = {
-    wall: '#8a6a4f', trim: '#4a3024', bookcase: '#6b4a3a', shelfBoard: '#4a3024',
-    counterWood: '#6b4a3a', counterTop: '#4a3024',
-    texture: () => hLines(0, 800, 8, 360, 10, 0.15),
-    floor: () => floorPlanks('#a07a55', '#7a5a3e'),
-    // deck beams overhead and the hull's curved ribs
-    ceiling: () => `<g fill="#4a3024"><rect x="0" y="0" width="800" height="16"/><rect x="0" y="40" width="800" height="10"/></g>
-      <g stroke="#4a3024" stroke-width="10" fill="none" stroke-linecap="round"><path d="M110 366 Q92 180 118 0"/><path d="M690 366 Q708 180 682 0"/><path d="M400 0 v50"/></g>`,
+    wall: '#d4b990', trim: '#8a6a48', bookcase: '#b08a5a', shelfBoard: '#8a6a48',
+    counterWood: '#b08a5a', counterTop: '#8a6a48',
+    texture: () => hLines(0, 800, 8, 360, 10, 0.12),
+    floor: () => floorPlanks('#8a6a48', '#6b4a3a'),
+    // deck beams overhead, the hull's curved ribs, and two posts
+    ceiling: () => `<g fill="#c9a97a" stroke="#8a6a48" stroke-width="1"><rect x="0" y="0" width="800" height="16"/><rect x="0" y="40" width="800" height="10"/></g>
+      <g stroke="#b08a5a" stroke-width="12" fill="none" stroke-linecap="round"><path d="M110 366 Q92 180 118 0"/><path d="M690 366 Q708 180 682 0"/></g>
+      <g fill="#c9a97a" stroke="#8a6a48" stroke-width="1"><rect x="176" y="16" width="9" height="356"/><rect x="615" y="16" width="9" height="356"/></g>`,
     left: () => porthole(66, 190) + porthole(66, 280) + `<rect x="30" y="330" width="46" height="42" rx="6" fill="#7a5a3e" stroke="#4a3024"/><g stroke="#4a3024" stroke-width="2"><line x1="30" y1="342" x2="76" y2="342"/><line x1="30" y1="360" x2="76" y2="360"/></g><g fill="#b7736b"><rect x="38" y="318" width="8" height="12"/><rect x="48" y="316" width="8" height="14"/></g>`,
     // a hammock slung between the ribs
     right: () => `<path d="M700 150 Q740 260 790 150" stroke="#e9e2cf" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M712 168 Q740 240 780 166" stroke="#b6413a" stroke-width="6" fill="none"/><g stroke="#c9b28a" stroke-width="2"><line x1="700" y1="150" x2="696" y2="60"/><line x1="790" y1="150" x2="794" y2="60"/></g>`,
-    lamp: () => `<line x1="400" y1="16" x2="400" y2="50" stroke="#2b2a28" stroke-width="2"/><rect x="388" y="50" width="24" height="30" rx="3" fill="#2b2a28"/><rect x="392" y="55" width="16" height="20" fill="#f2e6b8"/><ellipse cx="400" cy="130" rx="70" ry="30" fill="#f2e6b8" opacity="0.12"/>`,
+    // brass lanterns hung from the beams
+    lamp: () => [250, 550].map(x => `<line x1="${x}" y1="16" x2="${x}" y2="46" stroke="#3a3f44" stroke-width="2"/><rect x="${x - 7}" y="44" width="14" height="5" fill="#d9a441"/><rect x="${x - 10}" y="49" width="20" height="26" rx="3" fill="#f2e6b8" stroke="#8a6a3a" stroke-width="2"/><rect x="${x - 6}" y="75" width="12" height="4" fill="#d9a441"/><ellipse cx="${x}" cy="120" rx="60" ry="26" fill="#f2e6b8" opacity="0.12"/>`).join(''),
     // a ship's wheel on the wall
-    props: () => `<ellipse cx="400" cy="412" rx="120" ry="16" fill="#e9e2cf" opacity="0.35"/><g stroke="#4a3024" stroke-width="2" fill="none"><circle cx="46" cy="60" r="18"/><circle cx="46" cy="60" r="6"/>${[0, 45, 90, 135].map(a => `<line x1="${46 - 22 * Math.cos(a * Math.PI / 180)}" y1="${60 - 22 * Math.sin(a * Math.PI / 180)}" x2="${46 + 22 * Math.cos(a * Math.PI / 180)}" y2="${60 + 22 * Math.sin(a * Math.PI / 180)}"/>`).join('')}</g>`
+    props: () => `<ellipse cx="400" cy="412" rx="120" ry="16" fill="#e9e2cf" opacity="0.35"/><g stroke="#6b4a3a" stroke-width="2" fill="none"><circle cx="46" cy="60" r="18"/><circle cx="46" cy="60" r="6"/>${[0, 45, 90, 135].map(a => `<line x1="${46 - 22 * Math.cos(a * Math.PI / 180)}" y1="${60 - 22 * Math.sin(a * Math.PI / 180)}" x2="${46 + 22 * Math.cos(a * Math.PI / 180)}" y2="${60 + 22 * Math.sin(a * Math.PI / 180)}"/>`).join('')}</g>`
   };
 
   // =========================================================
