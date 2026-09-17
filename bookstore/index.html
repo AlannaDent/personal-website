@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Cape Cod Bookshop</title>
+  <!-- Shared site styles first, then this game's own styles on top. -->
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header compact">
+    <a class="home-link" href="../index.html">&larr; Alanna's Workshop</a>
+    <h1>The Cape Cod Bookshop</h1>
+    <p class="tagline">Stage one: the Little Free Library</p>
+  </header>
+
+  <!-- ============ SCREEN 1: choosing a spot ============ -->
+  <!-- The game shows one "screen" at a time. game.js hides and shows them. -->
+  <section id="setup-screen" class="screen">
+    <h2>Every bookshop starts somewhere small.</h2>
+    <p class="intro">
+      Yours starts with twenty books in a weathered box. Give it a name and pick a spot in town.
+    </p>
+
+    <label class="name-field">
+      <span>Name your library</span>
+      <input id="shop-name" type="text" maxlength="28" placeholder="e.g. The Salty Page" autocomplete="off">
+    </label>
+
+    <!-- game.js fills this with one card per location. -->
+    <div id="location-cards" class="location-cards"></div>
+
+    <div class="setup-actions">
+      <button id="start-button" class="button primary" disabled>Open for business</button>
+      <p id="resume-note" class="hint hidden">
+        You have a saved shop.
+        <button id="resume-button" class="link-button">Pick up where you left off</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: running the shop ============ -->
+  <section id="game-screen" class="screen hidden">
+    <!-- HUD = "heads-up display", the row of numbers a player glances at. -->
+    <div class="hud">
+      <div class="hud-item"><span class="label">Shop</span><span id="hud-name">-</span></div>
+      <div class="hud-item"><span class="label">Coins</span><span id="hud-coins">0</span></div>
+      <div class="hud-item"><span class="label">In stock</span><span id="hud-stock">20 / 20</span></div>
+      <div class="hud-item"><span class="label">Sold</span><span id="hud-sold">0</span></div>
+    </div>
+
+    <!-- game.js draws the picture (an SVG) inside this box. -->
+    <div id="scene" class="scene" aria-label="Your Little Free Library"></div>
+
+    <div class="below-scene">
+      <section class="panel controls">
+        <h3>Shopkeeping</h3>
+        <button id="restock-button" class="button primary">Restock</button>
+        <p id="restock-hint" class="hint"></p>
+        <p class="hint">Customers wander by on their own. Keep the shelves full and the coins will follow.</p>
+      </section>
+
+      <section class="panel">
+        <h3>Shop diary</h3>
+        <ul id="log" class="log"></ul>
+      </section>
+
+      <section class="panel goal">
+        <h3>Next goal</h3>
+        <p>A proper book shed with room to grow.</p>
+        <div class="progress"><div id="goal-bar" class="progress-bar"></div></div>
+        <p id="goal-text" class="hint"></p>
+        <p class="hint">Paint, decor and upgrades arrive in stage two.</p>
+      </section>
+    </div>
+
+    <p class="footer-actions">
+      <button id="reset-button" class="link-button">Start over with a new library</button>
+    </p>
+  </section>
+
+  <!-- scenes.js draws the backgrounds; game.js runs the game. Order matters:
+       game.js uses things defined in scenes.js, so scenes.js loads first. -->
+  <script src="scenes.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
