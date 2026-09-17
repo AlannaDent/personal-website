@@ -186,6 +186,9 @@
   const $ = (id) => document.getElementById(id);
   const randomFrom = (list) => list[Math.floor(Math.random() * list.length)];
   const building = () => Scenes.BUILDINGS[state.building];
+  // How big people are drawn right now (see personScale in scenes.js).
+  const personScale = () => Scenes.personScaleFor(state.building, state.view);
+  const customerScale = (c) => personScale() * (c.look.small ? 0.8 : 1);
   const capacity = () => building().capacity;
   const booksInStock = () => state.books.filter(Boolean).length;
 
@@ -406,12 +409,13 @@
     const side = Math.random() < 0.5 ? 'left' : 'right';
     const onSameSide = customers.filter(c => c.side === side).length;
     const stops = Scenes.stopsFor(state.building, state.view);
+    const gap = 38 * personScale();                  // bigger people stand further apart
     const c = {
       id: 'c' + Math.random().toString(36).slice(2, 8),
       look: randomFrom(CUSTOMER_LOOKS),
       side,
-      x: side === 'left' ? -40 : Scenes.VIEW.width + 40,
-      stopX: side === 'left' ? stops.left - onSameSide * 50 : stops.right + onSameSide * 50,
+      x: side === 'left' ? -40 * personScale() : Scenes.VIEW.width + 40 * personScale(),
+      stopX: side === 'left' ? stops.left - onSameSide * gap : stops.right + onSameSide * gap,
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0
@@ -423,7 +427,7 @@
   // Draws a simple person: round head, coat, legs, optional hat and prop.
   function customerSvg(c) {
     const L = c.look;
-    const scale = L.small ? 1.1 : 1.35;
+    const scale = customerScale(c);
     let body = `<ellipse cx="0" cy="0" rx="14" ry="3" fill="#000" opacity="0.12"/>`;
     body += `<rect x="-7" y="-26" width="6" height="26" fill="#4a4a55"/><rect x="1" y="-26" width="6" height="26" fill="#4a4a55"/>`;
     body += `<path d="M-12 -30 L12 -30 L15 -6 L-15 -6 Z" fill="${L.coat}"/>`;
@@ -444,7 +448,7 @@
   function moveCustomerElement(c, bob) {
     const el = document.getElementById(c.id);
     if (!el) return;
-    const scale = c.look.small ? 1.1 : 1.35;
+    const scale = customerScale(c);
     el.setAttribute('transform', `translate(${c.x} ${Scenes.GROUND_Y - bob}) scale(${c.dir * scale} ${scale})`);
   }
 
@@ -461,10 +465,12 @@
     }
 
     customers.forEach(c => {
+      const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
+      const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
       if (c.state === 'arriving') {
-        c.x += c.dir * WALK_SPEED * dt;
+        c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
-        moveCustomerElement(c, Math.abs(Math.sin(c.x / 9)) * 2);
+        moveCustomerElement(c, bob());
         if (arrived) {
           c.x = c.stopX;
           c.state = 'browsing';
@@ -478,14 +484,15 @@
           c.dir = -c.dir;                                  // turn around
         }
       } else if (c.state === 'leaving') {
-        c.x += c.dir * WALK_SPEED * dt;
-        moveCustomerElement(c, Math.abs(Math.sin(c.x / 9)) * 2);
+        c.x += c.dir * speed * dt;
+        moveCustomerElement(c, bob());
       }
     });
 
     // Remove anyone who has walked off the edge.
     customers = customers.filter(c => {
-      const gone = c.state === 'leaving' && (c.x < -60 || c.x > Scenes.VIEW.width + 60);
+      const margin = 60 * personScale();
+      const gone = c.state === 'leaving' && (c.x < -margin || c.x > Scenes.VIEW.width + margin);
       if (gone) { const el = document.getElementById(c.id); if (el) el.remove(); }
       return !gone;
     });
@@ -502,10 +509,10 @@
       state.sold += 1;
       const book = randomFrom(ALL_BOOKS);
       addLog(`${c.look.desc}. Bought <em>${book.title}</em> by ${book.author}. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 80, `+${SELL_PRICE}`, '#a5443a');
+      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, `+${SELL_PRICE}`, '#a5443a');
     } else {
       addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 80, '…', '#5d5a54');
+      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '…', '#5d5a54');
     }
     refresh();
   }
