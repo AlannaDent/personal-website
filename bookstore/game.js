@@ -122,16 +122,8 @@
   // Faded book colours to match the weathered buildings.
   const BOOK_COLORS = ['#b7736b', '#6f8a99', '#a9a06b', '#7d9a7a', '#9b7f9c', '#c2a37c', '#8c8c8c', '#b39a5b', '#8f6f5a'];
 
-  // Titles with a wink at Chatham and the Cape.
-  const BOOK_TITLES = [
-    'Fog Over Monomoy', 'The Seal Who Read Too Much', 'Low Tide at Oyster Pond',
-    'Saltwater Taffy and Other Vices', 'Cranberry Bog Mysteries, Vol. 3', 'Hydrangea Season',
-    'A Field Guide to Piping Plovers', 'The Band Concert Waltz', 'Shingles: A Love Story',
-    'Main Street After Labor Day', 'Knots for Nervous Sailors', 'Rainy Day at the Fish Pier',
-    'How to Parallel Park in July', 'The Lighthouse Keeper’s Almanac', 'The Ferry Left Without Me',
-    'Stargazing from the Dunes', 'Whale Tales', 'The Anglers’ Book Club',
-    'Chowder: A Memoir', 'Ninety-Nine Uses for Beach Glass'
-  ];
+  // The books customers buy come from books.js: 500 widely held novels (OCLC
+  // WorldCat) and 96 nonfiction classics (the Guardian). Real titles, real authors.
 
   // Little observations for the journal, in the spirit of a bookshop clerk's logbook.
   const OBSERVATIONS = [
@@ -508,7 +500,8 @@
       state.books[randomFrom(stocked)] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
-      addLog(`${c.look.desc}. Bought <em>${randomFrom(BOOK_TITLES)}</em>. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
+      const book = randomFrom(ALL_BOOKS);
+      addLog(`${c.look.desc}. Bought <em>${book.title}</em> by ${book.author}. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
       floatText(c.x, Scenes.GROUND_Y - 80, `+${SELL_PRICE}`, '#a5443a');
     } else {
       addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
