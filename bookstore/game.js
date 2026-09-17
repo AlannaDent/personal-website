@@ -29,12 +29,29 @@
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
-    1: { cost: 60,  label: 'A proper book shed with room to grow.', next: 2, button: 'Choose your shed' },
-    2: { cost: 250, label: 'A real storefront on the high street.', next: null, button: null }
+    1: { cost: 60,  label: 'A proper book shed with room to grow.', thing: 'shed', next: 2, button: 'Choose your shed' },
+    2: { cost: 250, label: 'A real shop on the high street.', thing: 'shop', next: 3, button: 'Choose your shop' },
+    3: { cost: 800, label: 'The bookshop of every reader\u2019s dreams.', thing: 'dream shop', next: 4, button: 'Choose your dream shop' },
+    4: { cost: null, label: 'The bookshop of every reader\u2019s dreams. You\u2019re in it.', final: true }
   };
-  const STAGE_TAGLINES = { 1: 'Stage one: the Little Free Library', 2: 'Stage two: the Shed' };
-  const MAX_CUSTOMERS = { 1: 3, 2: 4 };              // people on screen at once
-  const SPAWN_GAP = { 1: [3500, 7500], 2: [2800, 6000] }; // ms between arrivals, min and max
+  // What the upgrade screen says for each stage being moved into.
+  const UPGRADE_COPY = {
+    2: {
+      title: 'Time to move up in the world.',
+      intro: 'Twenty books was never going to be enough. Pick a shed. Each one holds a hundred books and comes with its own spot in town. Your books and your name come with you.'
+    },
+    3: {
+      title: 'A real shop. With a door and everything.',
+      intro: 'The shed did its job. Pick a house on the high street to turn into a proper bookshop. Each holds two hundred and fifty books, and the neighbours match. Your books and your name come with you.'
+    },
+    4: {
+      title: 'The Big One.',
+      intro: 'You have run a real shop. Now run the one people drive across the Cape to see. Each holds five hundred books. Your books and your name come with you. So does the cat, probably.'
+    }
+  };
+  const STAGE_TAGLINES = { 1: 'Stage one: the Little Free Library', 2: 'Stage two: the Shed', 3: 'Stage three: A Real Shop', 4: 'Stage four: The Big One' };
+  const MAX_CUSTOMERS = { 1: 3, 2: 4, 3: 5, 4: 6 };              // people on screen at once
+  const SPAWN_GAP = { 1: [3500, 7500], 2: [2800, 6000], 3: [2200, 5000], 4: [1800, 4200] }; // ms between arrivals, min and max
 
   // Small print under the stage title. One is chosen at random on each page load,
   // from the list for the building the player is in.
@@ -63,6 +80,36 @@
       'Oil stain now considered a feature.',
       'Door sticks in humid weather. Everything does.',
       'Mind the lawnmower. It stayed.'
+    ],
+    'dutch-colonial': [
+      'Look, Geppetto, I\u2019m a real live boy!',
+      'The balcony is decorative. Please do not test this.',
+      'Gambrel: a roof, not a small mammal.'
+    ],
+    'cape-cod': [
+      'Look, Geppetto, I\u2019m a real live boy!',
+      'The cat came with the house.',
+      'Three dormers, two chimneys, one very good reading nook.'
+    ],
+    tudor: [
+      'Look, Geppetto, I\u2019m a real live boy!',
+      'The timbers are load-bearing. The plaster is opinion.',
+      'The door creaks. This is on purpose.'
+    ],
+    church: [
+      'The bell rings at closing. Nobody asked.',
+      'Pews: now with lumbar support and a reading light.',
+      'Sermons replaced by staff picks.'
+    ],
+    lighthouse: [
+      'Open until the fog says otherwise.',
+      'Ships still steer by it. Readers too.',
+      'Two hundred and twelve steps to the poetry section.'
+    ],
+    ship: [
+      'Seaworthy. Certainly. Probably.',
+      'The gangplank is the only queue we have.',
+      'Books below decks. Gulls above. Do not feed the gulls.'
     ]
   };
 
@@ -95,7 +142,13 @@
   const MOVING_IN = {
     'garden-shed': 'Moved into the garden shed. A hundred slots. The spiders are unimpressed.',
     container: 'Moved into the container on the beach. A hundred slots and a view. Rust is decorative.',
-    garage: 'Moved into the garage down the block. A hundred slots. The oil stain stays.'
+    garage: 'Moved into the garage down the block. A hundred slots. The oil stain stays.',
+    'dutch-colonial': 'Moved into the Dutch colonial on the high street. Two hundred and fifty slots. A real shop. Painted the door blue anyway.',
+    'cape-cod': 'Moved into the Cape on the high street. Two hundred and fifty slots. A real shop. The cat approves.',
+    tudor: 'Moved into the Tudor on the high street. Two hundred and fifty slots. A real shop. The door creaked a welcome.',
+    church: 'Moved into the old church on the green. Five hundred slots. The bell rang once, on its own.',
+    lighthouse: 'Moved into the lighthouse. Five hundred slots and the whole sea for a window. The light still turns.',
+    ship: 'Moved aboard the schooner at the town dock. Five hundred slots below decks. The floor moves. Slightly.'
   };
 
   // Who wanders by. Personality comes from clothes and props, per STYLE.md.
@@ -120,6 +173,7 @@
   //   state.stage     : 1 (library box) or 2 (shed)
   //   state.building  : 'lfl' | 'garden-shed' | 'container' | 'garage'
   //   state.location  : which backdrop the building sits in
+  //   state.view      : 'outside' or 'inside' (inside exists from stage three on)
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.sold      : lifetime books sold
@@ -140,7 +194,7 @@
   function freshState(shopName, location) {
     const books = [];
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, stage: 1, building: 'lfl', location, coins: 0, books, sold: 0, log: [] };
+    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [] };
   }
 
   // =========================================================
@@ -163,7 +217,7 @@
         <p>${loc.blurb}</p>`;
       // Show the preview box full of books, with a placeholder name.
       const svg = card.querySelector('svg');
-      drawBooksInto(svg, freshState('', loc.id).books, 'lfl');
+      drawBooksInto(svg, freshState('', loc.id).books, 'lfl', 'outside');
       fitSign(svg.querySelector('.box-sign'), 'your library', 'lfl');
 
       card.addEventListener('click', () => {
@@ -214,18 +268,23 @@
   // 4. Drawing the scene and the panels
   // =========================================================
   function drawScene() {
-    $('scene').innerHTML = Scenes.render(state.location, state.building);
+    if (!building().interior) state.view = 'outside';
+    $('scene').innerHTML = Scenes.render(state.location, state.building, state.view);
     const svg = $('scene').querySelector('svg');
-    drawBooksInto(svg, state.books, state.building);
+    drawBooksInto(svg, state.books, state.building, state.view);
     fitSign(svg.querySelector('.box-sign'), state.shopName, state.building);
+    // The step-inside / step-outside button only exists for buildings with an interior.
+    const toggle = $('view-toggle');
+    toggle.classList.toggle('hidden', !building().interior);
+    toggle.textContent = state.view === 'inside' ? 'Step outside' : 'Step inside';
   }
 
   // Draws one small rectangle per book, shelf by shelf. Empty slots draw nothing.
-  function drawBooksInto(svg, books, buildingId) {
-    const b = Scenes.BUILDINGS[buildingId];
+  // Which shelves depends on the view: shop windows outside, the big wall inside.
+  function drawBooksInto(svg, books, buildingId, view) {
     let out = '';
     let i = 0;
-    b.shelves.forEach(shelf => {
+    Scenes.shelvesFor(buildingId, view).forEach(shelf => {
       for (let col = 0; col < shelf.count; col++, i++) {
         const color = books[i];
         if (!color) continue;
@@ -283,35 +342,42 @@
 
   function drawGoal() {
     const goal = GOALS[state.stage];
-    const pct = Math.min(100, Math.round((state.coins / goal.cost) * 100));
     $('goal-label').textContent = goal.label;
+    if (goal.final) {
+      $('goal-bar').style.width = '100%';
+      $('goal-text').textContent = 'Every reader\u2019s dream, achieved. The town is very proud.';
+      $('upgrade-button').classList.add('hidden');
+      $('goal-hint').textContent = 'Paint, decor and more are coming in a later update.';
+      return;
+    }
+    const pct = Math.min(100, Math.round((state.coins / goal.cost) * 100));
     $('goal-bar').style.width = pct + '%';
     const reached = state.coins >= goal.cost;
     const upgradeButton = $('upgrade-button');
     if (reached && goal.next) {
-      $('goal-text').textContent = `You have ${state.coins} coins. The shed costs ${goal.cost}.`;
+      $('goal-text').textContent = `You have ${state.coins} coins. The ${goal.thing} costs ${goal.cost}.`;
       upgradeButton.textContent = `${goal.button} (${goal.cost} coins)`;
       upgradeButton.classList.remove('hidden');
       $('goal-hint').textContent = 'Your books come with you. Your customers will find you.';
     } else if (reached) {
-      $('goal-text').textContent = 'You have saved enough for a storefront! Stage three is coming.';
+      $('goal-text').textContent = `You have saved enough for the ${goal.thing}! Stage four is coming.`;
       upgradeButton.classList.add('hidden');
       $('goal-hint').textContent = 'Keep selling in the meantime. The town is talking.';
     } else {
       $('goal-text').textContent = `${state.coins} of ${goal.cost} coins saved.`;
       upgradeButton.classList.add('hidden');
-      $('goal-hint').textContent = goal.next ? 'Paint and decor arrive in a later stage.' : 'Stage three is still being built.';
+      $('goal-hint').textContent = goal.next ? 'Paint and decor arrive in a later stage.' : 'Stage four is still being built.';
     }
   }
 
   function addLog(line) {
     state.log.unshift(line);              // newest first
-    if (state.log.length > 30) state.log.pop();   // the journal keeps the last thirty entries
+    if (state.log.length > 200) state.log.pop();  // the journal keeps the last two hundred entries
   }
 
   // Redraw everything that changes when books or coins change, then save.
   function refresh() {
-    drawBooksInto($('scene').querySelector('svg'), state.books, state.building);
+    drawBooksInto($('scene').querySelector('svg'), state.books, state.building, state.view);
     drawHud();
     drawLog();
     drawGoal();
@@ -341,7 +407,7 @@
   function spawnCustomer() {
     const side = Math.random() < 0.5 ? 'left' : 'right';
     const onSameSide = customers.filter(c => c.side === side).length;
-    const stops = building().stops;
+    const stops = Scenes.stopsFor(state.building, state.view);
     const c = {
       id: 'c' + Math.random().toString(36).slice(2, 8),
       look: randomFrom(CUSTOMER_LOOKS),
@@ -466,6 +532,8 @@
     if (!goal.next || state.coins < goal.cost) return;
     chosenBuilding = null;
     $('confirm-upgrade').disabled = true;
+    $('upgrade-title').textContent = UPGRADE_COPY[goal.next].title;
+    $('upgrade-intro').textContent = UPGRADE_COPY[goal.next].intro;
     $('upgrade-cost').textContent = goal.cost;
     $('upgrade-coins').textContent = state.coins;
 
@@ -485,7 +553,7 @@
       const svg = card.querySelector('svg');
       const full = [];
       for (let i = 0; i < b.capacity; i++) full.push(randomFrom(BOOK_COLORS));
-      drawBooksInto(svg, full, id);
+      drawBooksInto(svg, full, id, 'outside');
       fitSign(svg.querySelector('.box-sign'), state.shopName, id);
       card.addEventListener('click', () => {
         chosenBuilding = id;
@@ -511,6 +579,7 @@
     state.building = b.id;
     state.location = b.location;
     state.books = books;
+    state.view = 'outside';
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
     save();
 
@@ -522,6 +591,41 @@
     drawHud();
     drawLog();
     drawGoal();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Admire the outside for a moment, then get pulled in through the door.
+    if (b.interior) setTimeout(enterBuilding, 1800);
+  }
+
+  // ---- Stepping inside and out ----
+  // Entering zooms the picture toward the door and fades to the interior.
+  function enterBuilding() {
+    const b = building();
+    if (!b.interior || state.view === 'inside') return;
+    const scene = $('scene');
+    scene.style.setProperty('--door-x', (b.door.x / Scenes.VIEW.width * 100) + '%');
+    scene.style.setProperty('--door-y', (b.door.y / Scenes.VIEW.height * 100) + '%');
+    scene.classList.add('entering');
+    setTimeout(() => {
+      state.view = 'inside';
+      switchView();
+      scene.classList.remove('entering');
+    }, 900);
+  }
+  function exitBuilding() {
+    if (state.view !== 'inside') return;
+    state.view = 'outside';
+    switchView();
+  }
+  function switchView() {
+    customers = [];
+    nextSpawnAt = performance.now() + 1200;
+    drawScene();
+    const scene = $('scene');
+    scene.classList.remove('arriving');
+    void scene.offsetWidth;               // restart the animation
+    scene.classList.add('arriving');
+    setTimeout(() => scene.classList.remove('arriving'), 800);
+    save();
   }
 
   // =========================================================
@@ -542,6 +646,7 @@
       if (!data || !Array.isArray(data.books)) return null;
       // Saves from before buildings existed: they were all stage-one libraries.
       if (!data.stage) { data.stage = 1; data.building = 'lfl'; }
+      if (!data.view) data.view = data.stage >= 3 ? 'inside' : 'outside';
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;
@@ -564,6 +669,7 @@
     $('upgrade-button').addEventListener('click', openUpgradeScreen);
     $('confirm-upgrade').addEventListener('click', confirmUpgrade);
     $('cancel-upgrade').addEventListener('click', () => showScreen('game-screen'));
+    $('view-toggle').addEventListener('click', () => (state.view === 'inside' ? exitBuilding() : enterBuilding()));
   }
 
   init();
