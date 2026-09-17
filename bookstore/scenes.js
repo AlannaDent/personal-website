@@ -62,13 +62,44 @@ const Scenes = (function () {
   function seagull(x, y) {
     return `<path d="M${x} ${y} q8 -6 16 0 q8 -6 16 0" stroke="#7c8a90" stroke-width="2" fill="none"/>`;
   }
-  // A few faded book spines for a neighbouring shop window (not the player's stock).
-  function windowBooks(x, y, count, color) {
-    let out = '';
-    for (let i = 0; i < count; i++) {
-      const h = 14 + ((i * 5) % 9);
-      out += `<rect x="${x + i * 7}" y="${y - h}" width="5" height="${h}" fill="${color}" opacity="${0.55 + (i % 3) * 0.12}"/>`;
-    }
+  // Three glass jars of saltwater taffy on a shelf. (x, y) is the shelf's left end.
+  function taffyJars(x, y) {
+    const fills = [
+      ['#d98c9c', '#f2d7a0', '#9fd0c4', '#f4efe4', '#d98c9c'],
+      ['#b6413a', '#f4efe4', '#b6413a', '#f4efe4', '#e59a8c'],
+      ['#d9a441', '#8b9cc9', '#e59a8c', '#d9a441', '#9fd0c4']
+    ];
+    let out = `<rect x="${x - 4}" y="${y}" width="86" height="3" fill="#6d4a42"/>`;
+    fills.forEach((candies, j) => {
+      const jx = x + j * 28;
+      out += `<rect x="${jx}" y="${y - 30}" width="22" height="30" rx="4" fill="#eef3f4" stroke="#8a8f94" stroke-width="1"/>`;
+      out += `<rect x="${jx + 4}" y="${y - 35}" width="14" height="6" rx="1.5" fill="#6d4a42"/>`;
+      candies.forEach((c, k) => {
+        const cx = jx + 5 + ((k * 7) % 13);
+        const cy = y - 5 - Math.floor(k / 2) * 7 - (k % 2) * 3;
+        out += `<ellipse cx="${cx}" cy="${cy}" rx="3.5" ry="2.6" fill="${c}"/>`;
+      });
+      out += `<rect x="${jx + 3}" y="${y - 26}" width="3" height="18" fill="#fff" opacity="0.5"/>`;
+    });
+    return out;
+  }
+  // A pyramid of fudge blocks and a couple of lollipops. (x, y) is the shelf's left end.
+  function fudgeAndLollipops(x, y) {
+    let out = `<rect x="${x - 4}" y="${y}" width="86" height="3" fill="#6d4a42"/>`;
+    [4, 3, 2].forEach((count, row) => {
+      for (let i = 0; i < count; i++) {
+        const bx = x + row * 7 + i * 14;
+        const by = y - (row + 1) * 9;
+        out += `<rect x="${bx}" y="${by}" width="12" height="8" rx="1" fill="${row % 2 ? '#8a6248' : '#6b4a3a'}" stroke="#4a3024" stroke-width="0.8"/>`;
+        out += `<rect x="${bx + 1}" y="${by + 1}" width="10" height="2" fill="#fff" opacity="0.18"/>`;
+      }
+    });
+    // lollipops in a little cup
+    out += `<rect x="${x + 62}" y="${y - 12}" width="16" height="12" rx="2" fill="#f4efe4" stroke="#8a8f94" stroke-width="1"/>`;
+    [['#d98c9c', 64, 30], ['#9fd0c4', 71, 34], ['#d9a441', 77, 29]].forEach(([c, dx, h]) => {
+      out += `<line x1="${x + dx}" y1="${y - 10}" x2="${x + dx}" y2="${y - h}" stroke="#f4efe4" stroke-width="1.5"/>`;
+      out += `<circle cx="${x + dx}" cy="${y - h}" r="5" fill="${c}"/><circle cx="${x + dx}" cy="${y - h}" r="2" fill="none" stroke="#fff" stroke-width="1" opacity="0.7"/>`;
+    });
     return out;
   }
 
@@ -210,7 +241,7 @@ const Scenes = (function () {
     s += `<text x="640" y="274" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#6d4a42" letter-spacing="1">SALTWATER TAFFY &amp; FUDGE</text>`;
     s += `<polygon points="480,284 800,284 806,306 470,306" fill="#d1a85a"/>`;
     s += `<g fill="#f1e7c8" stroke="#6d4a42" stroke-width="3"><rect x="500" y="314" width="100" height="56"/><rect x="680" y="314" width="100" height="56"/></g>`;
-    s += windowBooks(512, 362, 6, '#d98c9c') + windowBooks(692, 362, 6, '#e8c46a');
+    s += taffyJars(510, 362) + fudgeAndLollipops(690, 362);
     s += `<rect x="620" y="310" width="46" height="60" fill="#6d4a42"/><rect x="630" y="320" width="26" height="28" fill="#dfe8ea"/>`;
     // hanging sign
     s += `<line x1="480" y1="300" x2="470" y2="300" stroke="#3a3f44" stroke-width="3"/>`;

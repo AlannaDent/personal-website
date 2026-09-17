@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>The Cape Cod Bookshop</title>
+  <title>The Salty Jellyfish</title>
   <!-- Shared site styles first, then this game's own styles on top. -->
   <link rel="stylesheet" href="../style.css">
   <link rel="stylesheet" href="style.css">
+  <!-- A handwriting font for the shop journal, served by Google Fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="site-header compact">
     <a class="home-link" href="../index.html">&larr; Alanna's Workshop</a>
-    <h1>The Cape Cod Bookshop</h1>
-    <p class="tagline">Stage one: the Little Free Library</p>
+    <h1>The Salty Jellyfish</h1>
+    <p class="tagline">Stage one: the Little Free Library<sup class="footnote-mark">*</sup></p>
+    <!-- game.js swaps in a random footnote on each page load. -->
+    <p class="footnote"><sup>*</sup><span id="footnote-text">Free library. Books sold separately.</span></p>
   </header>
 
   <!-- ============ SCREEN 1: choosing a spot ============ -->
@@ -25,7 +31,7 @@
 
     <label class="name-field">
       <span>Name your library</span>
-      <input id="shop-name" type="text" maxlength="28" placeholder="e.g. The Salty Page" autocomplete="off">
+      <input id="shop-name" type="text" maxlength="28" placeholder="The Salty Jellyfish" autocomplete="off">
     </label>
 
     <!-- game.js fills this with one card per location. -->
@@ -53,25 +59,31 @@
     <!-- game.js draws the picture (an SVG) inside this box. -->
     <div id="scene" class="scene" aria-label="Your Little Free Library"></div>
 
+    <!-- Two columns: the side column keeps its size and stays in view while
+         the journal on the right grows as entries pile up. -->
     <div class="below-scene">
-      <section class="panel controls">
-        <h3>Shopkeeping</h3>
-        <button id="restock-button" class="button primary">Restock</button>
-        <p id="restock-hint" class="hint"></p>
-        <p class="hint">Customers wander by on their own. Keep the shelves full and the coins will follow.</p>
-      </section>
+      <div class="side-column">
+        <section class="panel controls">
+          <h3>Shopkeeping</h3>
+          <button id="restock-button" class="button primary">Restock</button>
+          <p id="restock-hint" class="hint"></p>
+          <p class="hint">Customers wander by on their own. Keep the shelves full and the coins will follow.</p>
+        </section>
 
-      <section class="panel">
-        <h3>Shop diary</h3>
+        <section class="panel goal">
+          <h3>Next goal</h3>
+          <p>A proper book shed with room to grow.</p>
+          <div class="progress"><div id="goal-bar" class="progress-bar"></div></div>
+          <p id="goal-text" class="hint"></p>
+          <p class="hint">Paint, decor and upgrades arrive in stage two.</p>
+        </section>
+      </div>
+
+      <!-- The shop journal: every visitor noted in ink. -->
+      <section class="panel journal">
+        <h3>Shop journal</h3>
+        <p class="journal-note">Every visitor, noted in ink.</p>
         <ul id="log" class="log"></ul>
-      </section>
-
-      <section class="panel goal">
-        <h3>Next goal</h3>
-        <p>A proper book shed with room to grow.</p>
-        <div class="progress"><div id="goal-bar" class="progress-bar"></div></div>
-        <p id="goal-text" class="hint"></p>
-        <p class="hint">Paint, decor and upgrades arrive in stage two.</p>
       </section>
     </div>
 
