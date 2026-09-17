@@ -181,12 +181,12 @@ const Scenes = (function () {
       <line x1="${bx + 24}" y1="380" x2="${bx + 73}" y2="380"/><line x1="${bx + 36}" y1="410" x2="${bx + 101}" y2="410"/>
       <line x1="${bx + 50}" y1="440" x2="${bx + 134}" y2="440"/>
     </g>`;
-    s += `<g stroke="#8b6f4e" stroke-width="4"><line x1="40" y1="300" x2="40" y2="340"/><line x1="130" y1="298" x2="130" y2="338"/><line x1="215" y1="310" x2="215" y2="350"/></g>`;
-    s += `<path d="M40 310 Q85 325 130 308 Q172 330 215 320" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
+    s += `<g stroke="#8b6f4e" stroke-width="6"><line x1="40" y1="290" x2="40" y2="370"/><line x1="130" y1="288" x2="130" y2="368"/><line x1="215" y1="300" x2="215" y2="380"/></g>`;
+    s += `<path d="M40 306 Q85 330 130 304 Q172 336 215 316" stroke="#c9b28a" stroke-width="3" fill="none"/><path d="M40 336 Q85 358 130 334 Q172 364 215 346" stroke="#c9b28a" stroke-width="3" fill="none"/>`;
     [60, 95, 160, 250, 300, 560, 610, 700, 760].forEach((x, i) => { s += grassTuft(x, 296 + (i % 3) * 6); });
-    s += `<rect x="${sx}" y="330" width="6" height="70" fill="#8b6f4e"/>`;
-    s += `<rect x="${sx - 30}" y="316" width="66" height="24" fill="#e8e1cf" stroke="#8b6f4e" stroke-width="2"/>`;
-    s += `<text x="${sx + 3}" y="333" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#5b6b70">BEACH &#8594;</text>`;
+    s += `<rect x="${sx - 1}" y="270" width="9" height="130" fill="#8b6f4e"/>`;
+    s += `<rect x="${sx - 46}" y="250" width="100" height="34" fill="#e8e1cf" stroke="#8b6f4e" stroke-width="3"/>`;
+    s += `<text x="${sx + 4}" y="274" text-anchor="middle" font-family="Georgia, serif" font-size="17" fill="#5b6b70">BEACH &#8594;</text>`;
     return s;
   }
 
@@ -212,9 +212,9 @@ const Scenes = (function () {
     s += `<g fill="#6f9556"><circle cx="80" cy="200" r="70"/><circle cx="40" cy="235" r="48"/><circle cx="125" cy="220" r="55"/></g>`;
     s += `<g fill="#7fa563"><circle cx="70" cy="180" r="40"/><circle cx="115" cy="205" r="30"/></g>`;
     s += `<g fill="#8b6f4e">
-      <rect x="170" y="355" width="90" height="8"/><rect x="170" y="335" width="90" height="6"/>
-      <rect x="175" y="360" width="6" height="40"/><rect x="249" y="360" width="6" height="40"/>
-      <rect x="172" y="341" width="5" height="16"/><rect x="253" y="341" width="5" height="16"/>
+      <rect x="120" y="340" width="150" height="12"/><rect x="120" y="300" width="150" height="10"/><rect x="120" y="318" width="150" height="8"/>
+      <rect x="128" y="350" width="9" height="50"/><rect x="253" y="350" width="9" height="50"/>
+      <rect x="124" y="310" width="8" height="32"/><rect x="258" y="310" width="8" height="32"/>
     </g>`;
     s += flower(300, 372, '#d98c9c') + flower(312, 380, '#e8c46a') + flower(560, 375, '#d98c9c') + flower(575, 368, '#ffffff') + flower(640, 384, '#e8c46a');
     s += grassTuft(330, 392) + grassTuft(590, 395) + grassTuft(720, 388);
@@ -281,8 +281,8 @@ const Scenes = (function () {
     s += cloud(420, 60, 50) + cloud(700, 95, 45);
     s += pavementAndRoad();
     s += chowderHouse() + church() + taffyShop();
-    s += `<rect x="466" y="262" width="5" height="138" fill="#3a3f44"/>`;
-    s += `<rect x="457" y="240" width="23" height="26" fill="#3a3f44"/><rect x="461" y="244" width="15" height="18" fill="#f2e6b8"/>`;
+    s += `<rect x="465" y="150" width="7" height="250" fill="#3a3f44"/><rect x="458" y="392" width="21" height="8" fill="#3a3f44"/>`;
+    s += `<rect x="454" y="118" width="29" height="34" fill="#3a3f44"/><rect x="459" y="123" width="19" height="24" fill="#f2e6b8"/><polygon points="450,118 468,104 487,118" fill="#3a3f44"/>`;
     return s;
   }
 
@@ -302,7 +302,7 @@ const Scenes = (function () {
     s += picketFence(600, 800, 375);
     s += hydrangeas(612, 366) + hydrangeas(760, 366);
     // mailbox by the kerb
-    s += `<rect x="248" y="350" width="4" height="50" fill="#3a3f44"/><rect x="240" y="338" width="22" height="14" rx="4" fill="#3f5f5b"/>`;
+    s += `<rect x="247" y="330" width="6" height="70" fill="#3a3f44"/><rect x="236" y="314" width="30" height="18" rx="6" fill="#3f5f5b"/><rect x="262" y="318" width="4" height="8" fill="#b6413a"/>`;
     return s;
   }
 
@@ -500,7 +500,8 @@ const Scenes = (function () {
   }
   const SHOP_INTERIOR_SHELVES = interiorShelves(5, 170, 40, 24, 9);    // 5 x 50 = 250
   const BIG_INTERIOR_SHELVES = interiorShelves(10, 132, 22, 14, 6);    // 10 x 50 = 500
-  const INTERIOR_STOPS = { left: 230, right: 470 };
+  const INTERIOR_STOPS = { left: 220, right: 480 };
+  const INTERIOR_PERSON_SCALE = 2.0;    // about as tall as the counter is wide
 
   // ---- Stage one: the Little Free Library box ----
   BUILDINGS.lfl = {
@@ -514,7 +515,8 @@ const Scenes = (function () {
       { bottom: 318, firstX: 353, step: 9.5, width: 8, count: 10, minH: 26, varH: 9 }
     ],
     sign: { size: 9.5, small: 7.6 },
-    stops: { left: 300, right: 500 },
+    stops: { left: 262, right: 538 },
+    personScale: 3.2,                     // a real person next to a real Little Free Library
     backdropOpts: {},
     draw(color) {
       return `
@@ -552,7 +554,8 @@ const Scenes = (function () {
     paint: '#aaa99d',
     shelves: [278, 306, 334, 362, 390].map(bottom => ({ bottom, firstX: 332, step: 6.9, width: 5.4, count: 20, minH: 18, varH: 7 })),
     sign: { size: 10, small: 8 },
-    stops: { left: 262, right: 538 },
+    stops: { left: 240, right: 560 },
+    personScale: 2.3,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
@@ -599,7 +602,8 @@ const Scenes = (function () {
     paint: '#7f9a78',
     shelves: [300, 330, 360, 390].map(bottom => ({ bottom, firstX: 312, step: 7.9, width: 6.2, count: 25, minH: 20, varH: 8 })),
     sign: { size: 11, small: 8.5 },
-    stops: { left: 242, right: 578 },
+    stops: { left: 232, right: 588 },
+    personScale: 1.7,
     backdropOpts: { boardwalkX: 590, signX: 150 },
     draw(color) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -643,7 +647,8 @@ const Scenes = (function () {
     paint: '#b7ada0',
     shelves: [311, 332, 353, 374, 395].map(bottom => ({ bottom, firstX: 442, step: 6.9, width: 5.4, count: 20, minH: 14, varH: 6 })),
     sign: { size: 10, small: 8 },
-    stops: { left: 402, right: 632 },
+    stops: { left: 400, right: 636 },
+    personScale: 1.25,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
@@ -713,12 +718,13 @@ const Scenes = (function () {
     blurb: 'Gambrel roof, white clapboard, a blue door and a balcony nobody uses. A Cape classic.',
     location: 'street3dutch',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 400, y: 350 },
     paint: '#f4f1e8',
     shelves: houseShelves(),
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
+    personScale: 1.0,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -755,12 +761,13 @@ const Scenes = (function () {
     blurb: 'Named for the place. Steep roof, three dormers, green shutters, two chimneys, one cat.',
     location: 'street3cape',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 400, y: 350 },
     paint: '#f6f3ea',
     shelves: houseShelves(),
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
+    personScale: 1.0,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -800,12 +807,13 @@ const Scenes = (function () {
     blurb: 'Brick below, timber and plaster above, an arched door that creaks on purpose.',
     location: 'street3tudor',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 400, y: 350 },
     paint: '#8f5b4a',
     shelves: houseShelves(),
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
+    personScale: 1.0,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1043,10 +1051,11 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 400, y: 350 },
     sign: { size: 11, small: 9 },
     stops: { left: 235, right: 565 },
+    personScale: 1.0,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1081,10 +1090,11 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 455, y: 365 },
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
+    personScale: 1.0,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1121,10 +1131,11 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#4a3024',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
     door: { x: 400, y: 232 },
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
+    personScale: 1.15,
     backdropOpts: {},
     draw(color) {
       let s = '';
@@ -1206,7 +1217,13 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return (view === 'inside' && b.interior) ? b.interior.stops : b.stops;
   }
+  // How big people are drawn in this view. 1 is the size that suits a house.
+  function personScaleFor(buildingId, view) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    if (view === 'inside' && b.interior) return b.interior.personScale || 1;
+    return b.personScale || 1;
+  }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor };
 })();
