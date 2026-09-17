@@ -1,0 +1,171 @@
+/* Styles specific to the bookshop game. Shared colours come from ../style.css. */
+
+.site-header.compact { padding-top: 1.2rem; }
+.home-link {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.home-link:hover { color: var(--brick); }
+
+.screen {
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  padding: 0 1rem;
+}
+.hidden { display: none !important; }
+
+.intro { color: var(--ink-soft); margin-top: 0; }
+
+/* ---- Setup screen ---- */
+.name-field {
+  display: block;
+  margin: 1.2rem 0 1.4rem;
+}
+.name-field span {
+  display: block;
+  font-family: Georgia, serif;
+  color: var(--teal-dark);
+  margin-bottom: 0.3rem;
+}
+.name-field input {
+  width: 100%;
+  max-width: 360px;
+  font-size: 1.05rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+}
+.name-field input:focus { outline: 2px solid var(--mustard); border-color: transparent; }
+
+.location-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.location-card {
+  text-align: left;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.location-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(60, 50, 30, 0.1); }
+.location-card.selected { border-color: var(--brick); box-shadow: 0 0 0 3px rgba(165, 68, 58, 0.18); }
+.location-card .thumb svg { display: block; width: 100%; height: auto; }
+.location-card h3 { margin: 0.7rem 1rem 0.2rem; font-size: 1.15rem; }
+.location-card p { margin: 0 1rem 0.9rem; color: var(--ink-soft); font-size: 0.93rem; }
+
+.setup-actions { margin-top: 1.4rem; display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+
+/* ---- Buttons ---- */
+.button {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid var(--teal-dark);
+  background: var(--card);
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+.button.primary { background: var(--teal); border-color: var(--teal); color: #fff; }
+.button.primary:hover:not(:disabled) { background: var(--teal-dark); }
+.button:disabled { opacity: 0.45; cursor: not-allowed; }
+.link-button {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brick);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hint { color: var(--ink-soft); font-size: 0.9rem; margin: 0.5rem 0 0; }
+
+/* ---- Game screen ---- */
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+.hud-item {
+  flex: 1 1 140px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.hud-item .label { color: var(--ink-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.hud-item span:last-child { font-family: Georgia, serif; font-size: 1.15rem; color: var(--teal-dark); }
+#hud-coins { color: var(--brick); }
+
+.scene {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(60, 50, 30, 0.08);
+}
+.scene svg { display: block; width: 100%; height: auto; }
+
+.below-scene {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+}
+.panel h3 { font-size: 1.05rem; }
+
+.log { list-style: none; padding: 0; margin: 0; font-size: 0.92rem; }
+.log li { padding: 0.3rem 0; border-bottom: 1px dashed var(--line); color: var(--ink-soft); }
+.log li:first-child { color: var(--ink); }
+.log li:last-child { border-bottom: none; }
+
+.progress {
+  height: 12px;
+  background: #efe8da;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+.progress-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--mustard), var(--brick));
+  transition: width 0.4s ease;
+}
+
+.footer-actions { text-align: center; margin-top: 1.5rem; }
+
+/* Floating "+3" text inside the scene. Browsers can animate SVG text with CSS. */
+.float {
+  animation: floatUp 1.1s ease-out forwards;
+  font-family: Georgia, serif;
+  font-weight: bold;
+  pointer-events: none;
+}
+@keyframes floatUp {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(-34px); opacity: 0; }
+}

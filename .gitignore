@@ -8,3 +8,6 @@ reference/**/*.gif
 
 # macOS clutter
 .DS_Store
+
+# Local tool configuration for previewing the site; not part of the website itself.
+.claude/
