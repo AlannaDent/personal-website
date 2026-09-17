@@ -26,7 +26,8 @@
   const GOAL_COINS = 60;         // what the book shed will cost in stage two
   const MAX_CUSTOMERS = 3;       // how many people can be on screen at once
   const WALK_SPEED = 55;         // picture units per second
-  const SAVE_KEY = 'capeCodBookshop.stageOne';
+  const SAVE_KEY = 'saltyJellyfish.stageOne';
+  const DEFAULT_SHOP_NAME = 'The Salty Jellyfish';   // used if the player leaves the name blank
 
   // Faded book colours to match the weathered box.
   const BOOK_COLORS = ['#b7736b', '#6f8a99', '#a9a06b', '#7d9a7a', '#9b7f9c', '#c2a37c', '#8c8c8c', '#b39a5b', '#8f6f5a'];
@@ -40,6 +41,27 @@
     'How to Parallel Park in July', 'The Lighthouse Keeper’s Almanac', 'The Ferry Left Without Me',
     'Stargazing from the Dunes', 'Whale Tales', 'The Anglers’ Book Club',
     'Chowder: A Memoir', 'Ninety-Nine Uses for Beach Glass'
+  ];
+
+  // Small print under the stage title. One is chosen at random on each page load.
+  const FOOTNOTES = [
+    'Free library. Books sold separately.',
+    'Technically a Little Fee Library.',
+    'The \u201cFree\u201d is aspirational.',
+    'Free to browse. Three coins to leave with one.',
+    'Free in spirit. Not in price.'
+  ];
+
+  // Little observations for the journal, in the spirit of a bookshop clerk's logbook.
+  const OBSERVATIONS = [
+    'Lingered over the spines.', 'Hummed while browsing.', 'Read the first page standing up.',
+    'Asked about the fog.', 'Left a thumbprint on the glass.', 'Seemed pleased.',
+    'Paid in exact change.', 'Said the box needed paint. Not wrong.', 'Sniffed the pages.',
+    'Waved at the church.', 'Checked the roof for leaks.', 'Promised to come back Tuesday.'
+  ];
+  const EMPTY_OBSERVATIONS = [
+    'Peered in. Shelves bare. Sighed.', 'Found nothing. Rattled the door anyway.',
+    'Stared at the empty shelves a long moment, then left.', 'Tutted. Walked on.'
   ];
 
   // Who wanders by. Personality comes from clothes and props, per STYLE.md.
@@ -115,9 +137,9 @@
     });
 
     $('start-button').addEventListener('click', () => {
-      const name = $('shop-name').value.trim() || 'The Little Library';
+      const name = $('shop-name').value.trim() || DEFAULT_SHOP_NAME;
       state = freshState(name, chosenLocation);
-      addLog(`You opened ${name} with ${SLOT_COUNT} books and high hopes.`);
+      addLog(`Opened ${name} today. ${SLOT_COUNT} books. High hopes.`);
       save();
       startGame();
     });
@@ -153,7 +175,7 @@
     $('scene').innerHTML = Scenes.render(state.location);
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books);
-    svg.querySelector('.box-sign').textContent = shortName(state.shopName);
+    fitSign(svg.querySelector('.box-sign'), state.shopName);
   }
 
   // Draws one small rectangle per book. Empty slots draw nothing, so gaps show.
@@ -173,8 +195,12 @@
     group.innerHTML = out;
   }
 
-  function shortName(name) {
-    return name.length > 16 ? name.slice(0, 15) + '…' : name;
+  // The name plate is 80 units wide. Long names use smaller lettering; very long
+  // names are trimmed with an ellipsis.
+  function fitSign(textEl, name) {
+    const shown = name.length > 22 ? name.slice(0, 21) + '\u2026' : name;
+    textEl.setAttribute('font-size', shown.length > 15 ? '7.6' : '9.5');
+    textEl.textContent = shown;
   }
 
   function drawHud() {
@@ -217,7 +243,7 @@
 
   function addLog(line) {
     state.log.unshift(line);              // newest first
-    if (state.log.length > 6) state.log.pop();
+    if (state.log.length > 30) state.log.pop();   // the journal keeps the last thirty entries
   }
 
   // A little "+3" that drifts upward from a point in the scene.
@@ -340,10 +366,10 @@
       state.books[slot] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
-      addLog(`${c.look.desc} bought <em>${randomFrom(BOOK_TITLES)}</em>. +${SELL_PRICE} coins.`);
+      addLog(`${c.look.desc}. Bought <em>${randomFrom(BOOK_TITLES)}</em>. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
       floatText(c.x, Scenes.GROUND_Y - 80, `+${SELL_PRICE}`, '#a5443a');
     } else {
-      addLog(`${c.look.desc} peered in, found nothing, and wandered off.`);
+      addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
       floatText(c.x, Scenes.GROUND_Y - 80, '…', '#5d5a54');
     }
     const svg = $('scene').querySelector('svg');
@@ -361,7 +387,7 @@
     if (n <= 0) return;
     for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
     state.coins -= n * RESTOCK_COST;
-    addLog(`You restocked ${n} ${n === 1 ? 'book' : 'books'} for ${n * RESTOCK_COST} ${n * RESTOCK_COST === 1 ? 'coin' : 'coins'}.`);
+    addLog(`Restocked ${n} ${n === 1 ? 'book' : 'books'} for ${n * RESTOCK_COST} ${n * RESTOCK_COST === 1 ? 'coin' : 'coins'}. Shelves look hopeful again.`);
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books);
     drawHud();
@@ -399,6 +425,7 @@
   // Wire up the buttons and go.
   // =========================================================
   function init() {
+    $('footnote-text').textContent = randomFrom(FOOTNOTES);
     buildSetupScreen();
     $('restock-button').addEventListener('click', restock);
     $('reset-button').addEventListener('click', reset);
