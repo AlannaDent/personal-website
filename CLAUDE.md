@@ -7,8 +7,8 @@ Nothing here is Relativity work.
 ## Working rules
 
 ### 1. Personal GitHub account only
-- This project belongs to my **personal** GitHub account: username **AlannaDent**
-  (email: alanna.dent@gmail.com). Repo: https://github.com/AlannaDent/personal-website
+- This project belongs to my **personal** GitHub account: username **AlannaDent**.
+  Repo: https://github.com/AlannaDent/personal-website
 - My **work** GitHub account is **AlannaDent7** (Relativity). Never use it for this project,
   and never connect this project to any Relativity repository.
 - The GitHub command-line tool (`gh`) on this Mac may be signed in to both accounts. Before
@@ -37,4 +37,6 @@ Nothing here is Relativity work.
 ## Project notes
 - Started: 16 September 2026.
 - Website content and technology choices: to be decided (start simple, e.g. plain HTML/CSS).
-- Git identity to use here: Alanna Dent <alanna.dent@gmail.com> (set locally, not globally).
+- Git identity to use here (set locally, not globally): Alanna Dent
+  <55811081+AlannaDent@users.noreply.github.com>. This is GitHub's no-reply address, so
+  public commits show my name but not my real email.
