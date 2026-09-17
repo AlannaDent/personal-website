@@ -73,11 +73,15 @@
          the journal on the right grows as entries pile up. -->
     <div class="below-scene">
       <div class="side-column">
+        <!-- The order form: what the wholesaler offers today, what is on its way,
+             and what is waiting outside in boxes. game.js fills the lists. -->
         <section class="panel controls">
-          <h3>Shopkeeping</h3>
-          <button id="restock-button" class="button primary">Restock</button>
-          <p id="restock-hint" class="hint"></p>
-          <p class="hint">Customers wander by on their own. Keep the shelves full and the coins will follow.</p>
+          <h3>Order form</h3>
+          <p id="order-date" class="hint"></p>
+          <ul id="catalogue" class="catalogue"></ul>
+          <div id="orders-pending" class="orders"></div>
+          <div id="deliveries-list" class="orders"></div>
+          <p class="hint">Orders arrive the next morning in boxes outside the shop. Click a box to open it.</p>
         </section>
 
         <section class="panel goal">

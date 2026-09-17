@@ -315,6 +315,29 @@
 
 .footer-actions { text-align: center; margin-top: 1.5rem; }
 
+/* ---- The order form ---- */
+.catalogue { list-style: none; padding: 0; margin: 0.4rem 0 0; }
+.catalogue li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.catalogue li:last-child { border-bottom: none; }
+.catalogue .item-name { display: block; font-family: Georgia, serif; color: var(--teal-dark); }
+.catalogue .item-meta { display: block; font-size: 0.85rem; color: var(--ink-soft); }
+.catalogue .item-name.mystery::after { content: ' ?'; color: var(--brick); }
+.catalogue .empty { color: var(--ink-soft); font-style: italic; }
+.button.small { padding: 0.35rem 0.9rem; font-size: 0.9rem; }
+.ordered { font-size: 0.85rem; color: var(--teal-dark); white-space: nowrap; }
+.orders { margin-top: 0.6rem; font-size: 0.9rem; }
+.orders h4 { margin: 0.4rem 0 0.2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: normal; }
+.orders ul { list-style: none; padding: 0; margin: 0; }
+.orders li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.25rem 0; }
+.scene .delivery-box:hover rect:first-of-type { filter: brightness(1.06); }
+
 /* The upgrade button inside the Next goal panel. */
 .button.upgrade {
   display: block;
