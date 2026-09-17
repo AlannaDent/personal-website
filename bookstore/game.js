@@ -67,19 +67,25 @@
       'Previously home to a lawnmower.',
       'The spiders were here first.',
       'Some assembly was required.',
-      'Smells of cedar and ambition.'
+      'Smells of cedar and ambition.',
+      'At least this one locks.',
+      'Now shop-able in the rain!'
     ],
     container: [
       'Seaworthy. Probably.',
       'The rust is decorative.',
       'Has seen more of the world than you have.',
-      'Formerly shipped everything. Now ships books.'
+      'Formerly shipped everything. Now ships books.',
+      'At least this one locks.',
+      'Now shop-able in the rain!'
     ],
     garage: [
       'The car had to go. No regrets.',
       'Oil stain now considered a feature.',
       'Door sticks in humid weather. Everything does.',
-      'Mind the lawnmower. It stayed.'
+      'Mind the lawnmower. It stayed.',
+      'At least this one locks.',
+      'Now shop-able in the rain!'
     ],
     'dutch-colonial': [
       'Look, Geppetto, I\u2019m a real live boy!',
