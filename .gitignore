@@ -1,0 +1,10 @@
+# Reference images are other artists' work or personal photos: keep them out of the repo.
+# The written style notes (reference/STYLE.md) are still tracked.
+reference/**/*.png
+reference/**/*.jpg
+reference/**/*.jpeg
+reference/**/*.webp
+reference/**/*.gif
+
+# macOS clutter
+.DS_Store
