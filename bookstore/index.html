@@ -56,8 +56,12 @@
       <div class="hud-item"><span class="label">Sold</span><span id="hud-sold">0</span></div>
     </div>
 
-    <!-- game.js draws the picture (an SVG) inside this box. -->
-    <div id="scene" class="scene" aria-label="Your Little Free Library"></div>
+    <!-- game.js draws the picture (an SVG) inside this box. From stage three on,
+         a button in the corner steps inside the building and back out. -->
+    <div class="scene-wrap">
+      <div id="scene" class="scene" aria-label="Your shop"></div>
+      <button id="view-toggle" class="view-toggle hidden" type="button">Step inside</button>
+    </div>
 
     <!-- Two columns: the side column keeps its size and stays in view while
          the journal on the right grows as entries pile up. -->
@@ -85,7 +89,11 @@
       <section class="panel journal">
         <h3>Shop journal</h3>
         <p class="journal-note">Every visitor, noted in ink.</p>
-        <ul id="log" class="log"></ul>
+        <!-- The entries scroll inside the journal, so the page stays the height
+             of the two cards on the left. -->
+        <div class="log-scroll">
+          <ul id="log" class="log"></ul>
+        </div>
       </section>
     </div>
 
@@ -96,11 +104,9 @@
 
   <!-- ============ SCREEN 3: moving up ============ -->
   <section id="upgrade-screen" class="screen hidden">
-    <h2>Time to move up in the world.</h2>
-    <p class="intro">
-      Twenty books was never going to be enough. Pick a shed. Each one holds a hundred
-      books and comes with its own spot in town. Your books and your name come with you.
-    </p>
+    <!-- game.js fills the title and intro for whichever stage is next. -->
+    <h2 id="upgrade-title">Time to move up in the world.</h2>
+    <p id="upgrade-intro" class="intro"></p>
     <p class="hint">You have <strong id="upgrade-coins">0</strong> coins. Moving in costs <strong id="upgrade-cost">60</strong>.</p>
 
     <!-- game.js fills this with one card per shed. -->
