@@ -76,6 +76,12 @@
 .location-card p { margin: 0 1rem 0.9rem; color: var(--ink-soft); font-size: 0.93rem; }
 
 .setup-actions { margin-top: 1.4rem; display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+.card-meta {
+  margin: -0.5rem 1rem 0.9rem !important;
+  font-size: 0.82rem !important;
+  color: var(--brick) !important;
+  font-family: Georgia, serif;
+}
 
 /* ---- Buttons ---- */
 .button {
@@ -110,7 +116,7 @@
   margin-bottom: 0.8rem;
 }
 .hud-item {
-  flex: 1 1 140px;
+  flex: 1 1 150px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -120,8 +126,9 @@
   align-items: baseline;
   gap: 0.6rem;
 }
-.hud-item .label { color: var(--ink-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.hud-item span:last-child { font-family: Georgia, serif; font-size: 1.15rem; color: var(--teal-dark); }
+.hud-item .label { color: var(--ink-soft); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.hud-item span:last-child { font-family: Georgia, serif; font-size: 1.15rem; color: var(--teal-dark); text-align: right; }
+#hud-stock { white-space: nowrap; }
 #hud-coins { color: var(--brick); }
 
 .scene {
@@ -239,6 +246,16 @@
 }
 
 .footer-actions { text-align: center; margin-top: 1.5rem; }
+
+/* The upgrade button inside the Next goal panel. */
+.button.upgrade {
+  display: block;
+  width: 100%;
+  margin: 0.6rem 0 0.2rem;
+  background: var(--brick);
+  border-color: var(--brick);
+}
+.button.upgrade:hover { background: #8a3730; }
 
 /* Floating "+3" text inside the scene. Browsers can animate SVG text with CSS. */
 .float {

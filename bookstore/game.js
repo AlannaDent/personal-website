@@ -1,17 +1,18 @@
 /* game.js
-   Runs stage one of the bookshop game.
+   Runs The Salty Jellyfish.
 
-   The idea in one breath: customers wander up to your Little Free Library, buy a
-   book if there is one, and pay you coins. You spend coins to restock. Save up
-   for the next stage.
+   The idea in one breath: customers wander up to your shop, buy a book if there
+   is one, and pay you coins. You spend coins to restock. Save up, and move into
+   a bigger building.
 
    Reading guide:
      1. Settings and word lists
      2. The game "state": everything worth remembering
      3. Setup screen (pick a spot)
-     4. Drawing the scene
+     4. Drawing the scene and the panels
      5. Customers and the game loop
-     6. Saving and loading
+     6. Moving up: the upgrade screen
+     7. Saving and loading
 */
 
 (function () {
@@ -20,16 +21,52 @@
   // =========================================================
   // 1. Settings and word lists
   // =========================================================
-  const SLOT_COUNT = 20;         // a comically small shop
   const SELL_PRICE = 3;          // coins earned per book sold
   const RESTOCK_COST = 1;        // coins spent per book restocked
-  const GOAL_COINS = 60;         // what the book shed will cost in stage two
-  const MAX_CUSTOMERS = 3;       // how many people can be on screen at once
   const WALK_SPEED = 55;         // picture units per second
   const SAVE_KEY = 'saltyJellyfish.stageOne';
   const DEFAULT_SHOP_NAME = 'The Salty Jellyfish';   // used if the player leaves the name blank
 
-  // Faded book colours to match the weathered box.
+  // What each stage is saving toward. "next" is the stage the upgrade leads to.
+  const GOALS = {
+    1: { cost: 60,  label: 'A proper book shed with room to grow.', next: 2, button: 'Choose your shed' },
+    2: { cost: 250, label: 'A real storefront on the high street.', next: null, button: null }
+  };
+  const STAGE_TAGLINES = { 1: 'Stage one: the Little Free Library', 2: 'Stage two: the Shed' };
+  const MAX_CUSTOMERS = { 1: 3, 2: 4 };              // people on screen at once
+  const SPAWN_GAP = { 1: [3500, 7500], 2: [2800, 6000] }; // ms between arrivals, min and max
+
+  // Small print under the stage title. One is chosen at random on each page load,
+  // from the list for the building the player is in.
+  const FOOTNOTES = {
+    lfl: [
+      'Free library. Books sold separately.',
+      'Technically a Little Fee Library.',
+      'The “Free” is aspirational.',
+      'Free to browse. Three coins to leave with one.',
+      'Free in spirit. Not in price.'
+    ],
+    'garden-shed': [
+      'Previously home to a lawnmower.',
+      'The spiders were here first.',
+      'Some assembly was required.',
+      'Smells of cedar and ambition.'
+    ],
+    container: [
+      'Seaworthy. Probably.',
+      'The rust is decorative.',
+      'Has seen more of the world than you have.',
+      'Formerly shipped everything. Now ships books.'
+    ],
+    garage: [
+      'The car had to go. No regrets.',
+      'Oil stain now considered a feature.',
+      'Door sticks in humid weather. Everything does.',
+      'Mind the lawnmower. It stayed.'
+    ]
+  };
+
+  // Faded book colours to match the weathered buildings.
   const BOOK_COLORS = ['#b7736b', '#6f8a99', '#a9a06b', '#7d9a7a', '#9b7f9c', '#c2a37c', '#8c8c8c', '#b39a5b', '#8f6f5a'];
 
   // Titles with a wink at Chatham and the Cape.
@@ -43,15 +80,6 @@
     'Chowder: A Memoir', 'Ninety-Nine Uses for Beach Glass'
   ];
 
-  // Small print under the stage title. One is chosen at random on each page load.
-  const FOOTNOTES = [
-    'Free library. Books sold separately.',
-    'Technically a Little Fee Library.',
-    'The \u201cFree\u201d is aspirational.',
-    'Free to browse. Three coins to leave with one.',
-    'Free in spirit. Not in price.'
-  ];
-
   // Little observations for the journal, in the spirit of a bookshop clerk's logbook.
   const OBSERVATIONS = [
     'Lingered over the spines.', 'Hummed while browsing.', 'Read the first page standing up.',
@@ -63,6 +91,12 @@
     'Peered in. Shelves bare. Sighed.', 'Found nothing. Rattled the door anyway.',
     'Stared at the empty shelves a long moment, then left.', 'Tutted. Walked on.'
   ];
+  // What the journal says the day you move in.
+  const MOVING_IN = {
+    'garden-shed': 'Moved into the garden shed. A hundred slots. The spiders are unimpressed.',
+    container: 'Moved into the container on the beach. A hundred slots and a view. Rust is decorative.',
+    garage: 'Moved into the garage down the block. A hundred slots. The oil stain stays.'
+  };
 
   // Who wanders by. Personality comes from clothes and props, per STYLE.md.
   const CUSTOMER_LOOKS = [
@@ -83,11 +117,13 @@
   // Saving the game means writing this object down; loading means reading it back.
   let state = null;
   //   state.shopName  : what the player called it
-  //   state.location  : 'beach' | 'park' | 'street'
+  //   state.stage     : 1 (library box) or 2 (shed)
+  //   state.building  : 'lfl' | 'garden-shed' | 'container' | 'garage'
+  //   state.location  : which backdrop the building sits in
   //   state.coins     : money in the tin
-  //   state.books     : 20 entries, each a colour (a book) or null (empty slot)
+  //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.sold      : lifetime books sold
-  //   state.log       : the last few diary lines
+  //   state.log       : the last few journal lines
 
   let customers = [];            // people currently on screen (not saved; they just wander off)
   let nextSpawnAt = 0;           // when the next customer may appear
@@ -96,14 +132,16 @@
 
   // Shorthand for finding an element on the page by its id.
   const $ = (id) => document.getElementById(id);
+  const randomFrom = (list) => list[Math.floor(Math.random() * list.length)];
+  const building = () => Scenes.BUILDINGS[state.building];
+  const capacity = () => building().capacity;
+  const booksInStock = () => state.books.filter(Boolean).length;
 
   function freshState(shopName, location) {
     const books = [];
-    for (let i = 0; i < SLOT_COUNT; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, location, coins: 0, books, sold: 0, log: [] };
+    for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
+    return { shopName, stage: 1, building: 'lfl', location, coins: 0, books, sold: 0, log: [] };
   }
-
-  function randomFrom(list) { return list[Math.floor(Math.random() * list.length)]; }
 
   // =========================================================
   // 3. Setup screen
@@ -120,13 +158,13 @@
       card.className = 'location-card';
       card.dataset.id = loc.id;
       card.innerHTML = `
-        <div class="thumb">${Scenes.render(loc.id)}</div>
+        <div class="thumb">${Scenes.render(loc.id, 'lfl')}</div>
         <h3>${loc.name}</h3>
         <p>${loc.blurb}</p>`;
       // Show the preview box full of books, with a placeholder name.
       const svg = card.querySelector('svg');
-      drawBooksInto(svg, freshState('', loc.id).books);
-      svg.querySelector('.box-sign').textContent = 'your library';
+      drawBooksInto(svg, freshState('', loc.id).books, 'lfl');
+      fitSign(svg.querySelector('.box-sign'), 'your library', 'lfl');
 
       card.addEventListener('click', () => {
         chosenLocation = loc.id;
@@ -139,7 +177,7 @@
     $('start-button').addEventListener('click', () => {
       const name = $('shop-name').value.trim() || DEFAULT_SHOP_NAME;
       state = freshState(name, chosenLocation);
-      addLog(`Opened ${name} today. ${SLOT_COUNT} books. High hopes.`);
+      addLog(`Opened ${name} today. ${capacity()} books. High hopes.`);
       save();
       startGame();
     });
@@ -152,9 +190,13 @@
     }
   }
 
+  function showScreen(id) {
+    ['setup-screen', 'game-screen', 'upgrade-screen'].forEach(s => $(s).classList.toggle('hidden', s !== id));
+  }
+
   function startGame() {
-    $('setup-screen').classList.add('hidden');
-    $('game-screen').classList.remove('hidden');
+    showScreen('game-screen');
+    setStageText();
     drawScene();
     drawHud();
     drawLog();
@@ -169,47 +211,55 @@
   }
 
   // =========================================================
-  // 4. Drawing the scene
+  // 4. Drawing the scene and the panels
   // =========================================================
   function drawScene() {
-    $('scene').innerHTML = Scenes.render(state.location);
+    $('scene').innerHTML = Scenes.render(state.location, state.building);
     const svg = $('scene').querySelector('svg');
-    drawBooksInto(svg, state.books);
-    fitSign(svg.querySelector('.box-sign'), state.shopName);
+    drawBooksInto(svg, state.books, state.building);
+    fitSign(svg.querySelector('.box-sign'), state.shopName, state.building);
   }
 
-  // Draws one small rectangle per book. Empty slots draw nothing, so gaps show.
-  function drawBooksInto(svg, books) {
-    const group = svg.querySelector('.books');
+  // Draws one small rectangle per book, shelf by shelf. Empty slots draw nothing.
+  function drawBooksInto(svg, books, buildingId) {
+    const b = Scenes.BUILDINGS[buildingId];
     let out = '';
-    books.forEach((color, i) => {
-      if (!color) return;
-      const shelf = Scenes.SHELVES[i < 10 ? 0 : 1];
-      const col = i % 10;
-      const x = Scenes.SLOT.firstX + col * Scenes.SLOT.step;
-      const height = 26 + ((i * 7) % 9);              // varied heights, same every time
-      const y = shelf.bottom - height;
-      out += `<rect x="${x}" y="${y}" width="${Scenes.SLOT.width}" height="${height}" fill="${color}" stroke="#3b332c" stroke-width="0.6"/>`;
-      out += `<rect x="${x + 1}" y="${y + 4}" width="${Scenes.SLOT.width - 2}" height="1.5" fill="#fff" opacity="0.35"/>`;
+    let i = 0;
+    b.shelves.forEach(shelf => {
+      for (let col = 0; col < shelf.count; col++, i++) {
+        const color = books[i];
+        if (!color) continue;
+        const x = shelf.firstX + col * shelf.step;
+        const height = shelf.minH + ((i * 7) % shelf.varH);   // varied heights, same every time
+        const y = shelf.bottom - height;
+        out += `<rect x="${x.toFixed(1)}" y="${y}" width="${shelf.width}" height="${height}" fill="${color}" stroke="#3b332c" stroke-width="0.5"/>`;
+        out += `<rect x="${(x + 1).toFixed(1)}" y="${y + 3}" width="${(shelf.width - 2).toFixed(1)}" height="1.2" fill="#fff" opacity="0.35"/>`;
+      }
     });
-    group.innerHTML = out;
+    svg.querySelector('.books').innerHTML = out;
   }
 
-  // The name plate is 80 units wide. Long names use smaller lettering; very long
-  // names are trimmed with an ellipsis.
-  function fitSign(textEl, name) {
-    const shown = name.length > 22 ? name.slice(0, 21) + '\u2026' : name;
-    textEl.setAttribute('font-size', shown.length > 15 ? '7.6' : '9.5');
+  // Long names use smaller lettering on the sign; very long names are trimmed.
+  function fitSign(textEl, name, buildingId) {
+    const sign = Scenes.BUILDINGS[buildingId].sign;
+    const shown = name.length > 22 ? name.slice(0, 21) + '…' : name;
+    textEl.setAttribute('font-size', shown.length > 15 ? sign.small : sign.size);
     textEl.textContent = shown;
+  }
+
+  // The stage line under the title, and its footnote.
+  function setStageText() {
+    $('stage-tagline').textContent = STAGE_TAGLINES[state.stage];
+    $('footnote-text').textContent = randomFrom(FOOTNOTES[state.building] || FOOTNOTES.lfl);
   }
 
   function drawHud() {
     $('hud-name').textContent = state.shopName;
     $('hud-coins').textContent = state.coins;
-    $('hud-stock').textContent = `${booksInStock()} / ${SLOT_COUNT}`;
+    $('hud-stock').textContent = `${booksInStock()} / ${capacity()}`;
     $('hud-sold').textContent = state.sold;
 
-    const empty = SLOT_COUNT - booksInStock();
+    const empty = capacity() - booksInStock();
     const button = $('restock-button');
     if (empty === 0) {
       button.disabled = true;
@@ -232,24 +282,45 @@
   }
 
   function drawGoal() {
-    const pct = Math.min(100, Math.round((state.coins / GOAL_COINS) * 100));
+    const goal = GOALS[state.stage];
+    const pct = Math.min(100, Math.round((state.coins / goal.cost) * 100));
+    $('goal-label').textContent = goal.label;
     $('goal-bar').style.width = pct + '%';
-    $('goal-text').textContent = state.coins >= GOAL_COINS
-      ? 'You have saved enough for a book shed! Stage two is coming.'
-      : `${state.coins} of ${GOAL_COINS} coins saved.`;
+    const reached = state.coins >= goal.cost;
+    const upgradeButton = $('upgrade-button');
+    if (reached && goal.next) {
+      $('goal-text').textContent = `You have ${state.coins} coins. The shed costs ${goal.cost}.`;
+      upgradeButton.textContent = `${goal.button} (${goal.cost} coins)`;
+      upgradeButton.classList.remove('hidden');
+      $('goal-hint').textContent = 'Your books come with you. Your customers will find you.';
+    } else if (reached) {
+      $('goal-text').textContent = 'You have saved enough for a storefront! Stage three is coming.';
+      upgradeButton.classList.add('hidden');
+      $('goal-hint').textContent = 'Keep selling in the meantime. The town is talking.';
+    } else {
+      $('goal-text').textContent = `${state.coins} of ${goal.cost} coins saved.`;
+      upgradeButton.classList.add('hidden');
+      $('goal-hint').textContent = goal.next ? 'Paint and decor arrive in a later stage.' : 'Stage three is still being built.';
+    }
   }
-
-  function booksInStock() { return state.books.filter(Boolean).length; }
 
   function addLog(line) {
     state.log.unshift(line);              // newest first
     if (state.log.length > 30) state.log.pop();   // the journal keeps the last thirty entries
   }
 
+  // Redraw everything that changes when books or coins change, then save.
+  function refresh() {
+    drawBooksInto($('scene').querySelector('svg'), state.books, state.building);
+    drawHud();
+    drawLog();
+    drawGoal();
+    save();
+  }
+
   // A little "+3" that drifts upward from a point in the scene.
   function floatText(x, y, text, color) {
-    const svg = $('scene').querySelector('svg');
-    const group = svg.querySelector('.effects');
+    const group = $('scene').querySelector('svg .effects');
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     el.setAttribute('x', x);
     el.setAttribute('y', y);
@@ -270,20 +341,19 @@
   function spawnCustomer() {
     const side = Math.random() < 0.5 ? 'left' : 'right';
     const onSameSide = customers.filter(c => c.side === side).length;
-    const look = randomFrom(CUSTOMER_LOOKS);
+    const stops = building().stops;
     const c = {
       id: 'c' + Math.random().toString(36).slice(2, 8),
-      look,
+      look: randomFrom(CUSTOMER_LOOKS),
       side,
       x: side === 'left' ? -40 : Scenes.VIEW.width + 40,
-      stopX: side === 'left' ? Scenes.STOP_X.left - onSameSide * 50 : Scenes.STOP_X.right + onSameSide * 50,
+      stopX: side === 'left' ? stops.left - onSameSide * 50 : stops.right + onSameSide * 50,
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0
     };
     customers.push(c);
-    const group = $('scene').querySelector('.customers');
-    group.insertAdjacentHTML('beforeend', customerSvg(c));
+    $('scene').querySelector('svg .customers').insertAdjacentHTML('beforeend', customerSvg(c));
   }
 
   // Draws a simple person: round head, coat, legs, optional hat and prop.
@@ -320,9 +390,10 @@
     const dt = Math.min(0.1, (now - lastFrame) / 1000);   // seconds since last frame, capped
     lastFrame = now;
 
-    if (now >= nextSpawnAt && customers.length < MAX_CUSTOMERS) {
+    if (now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
       spawnCustomer();
-      nextSpawnAt = now + 3500 + Math.random() * 4000;
+      const [min, max] = SPAWN_GAP[state.stage];
+      nextSpawnAt = now + min + Math.random() * (max - min);
     }
 
     customers.forEach(c => {
@@ -362,8 +433,7 @@
   function completeVisit(c) {
     const stocked = state.books.map((b, i) => (b ? i : -1)).filter(i => i >= 0);
     if (stocked.length > 0) {
-      const slot = randomFrom(stocked);
-      state.books[slot] = null;
+      state.books[randomFrom(stocked)] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
       addLog(`${c.look.desc}. Bought <em>${randomFrom(BOOK_TITLES)}</em>. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
@@ -372,12 +442,7 @@
       addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
       floatText(c.x, Scenes.GROUND_Y - 80, '…', '#5d5a54');
     }
-    const svg = $('scene').querySelector('svg');
-    drawBooksInto(svg, state.books);
-    drawHud();
-    drawLog();
-    drawGoal();
-    save();
+    refresh();
   }
 
   function restock() {
@@ -388,16 +453,79 @@
     for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
     state.coins -= n * RESTOCK_COST;
     addLog(`Restocked ${n} ${n === 1 ? 'book' : 'books'} for ${n * RESTOCK_COST} ${n * RESTOCK_COST === 1 ? 'coin' : 'coins'}. Shelves look hopeful again.`);
-    const svg = $('scene').querySelector('svg');
-    drawBooksInto(svg, state.books);
-    drawHud();
-    drawLog();
-    drawGoal();
-    save();
+    refresh();
   }
 
   // =========================================================
-  // 6. Saving and loading
+  // 6. Moving up: the upgrade screen
+  // =========================================================
+  let chosenBuilding = null;
+
+  function openUpgradeScreen() {
+    const goal = GOALS[state.stage];
+    if (!goal.next || state.coins < goal.cost) return;
+    chosenBuilding = null;
+    $('confirm-upgrade').disabled = true;
+    $('upgrade-cost').textContent = goal.cost;
+    $('upgrade-coins').textContent = state.coins;
+
+    const holder = $('upgrade-cards');
+    holder.innerHTML = '';
+    Scenes.UPGRADES[goal.next].forEach(id => {
+      const b = Scenes.BUILDINGS[id];
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'location-card';
+      card.dataset.id = id;
+      card.innerHTML = `
+        <div class="thumb">${Scenes.render(b.location, id)}</div>
+        <h3>${b.name}</h3>
+        <p>${b.blurb}</p>
+        <p class="card-meta">Holds ${b.capacity} books</p>`;
+      const svg = card.querySelector('svg');
+      const full = [];
+      for (let i = 0; i < b.capacity; i++) full.push(randomFrom(BOOK_COLORS));
+      drawBooksInto(svg, full, id);
+      fitSign(svg.querySelector('.box-sign'), state.shopName, id);
+      card.addEventListener('click', () => {
+        chosenBuilding = id;
+        holder.querySelectorAll('.location-card').forEach(c => c.classList.toggle('selected', c === card));
+        $('confirm-upgrade').disabled = false;
+      });
+      holder.appendChild(card);
+    });
+    showScreen('upgrade-screen');
+  }
+
+  // Pay up, move in. Existing books come along; the rest of the shelves start empty.
+  function confirmUpgrade() {
+    const goal = GOALS[state.stage];
+    if (!chosenBuilding || state.coins < goal.cost) return;
+    const b = Scenes.BUILDINGS[chosenBuilding];
+    const carried = state.books.filter(Boolean);
+    const books = carried.slice(0, b.capacity);
+    while (books.length < b.capacity) books.push(null);
+
+    state.coins -= goal.cost;
+    state.stage = b.stage;
+    state.building = b.id;
+    state.location = b.location;
+    state.books = books;
+    addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
+    save();
+
+    customers = [];                       // the old crowd stays behind
+    nextSpawnAt = performance.now() + 1500;
+    showScreen('game-screen');
+    setStageText();
+    drawScene();
+    drawHud();
+    drawLog();
+    drawGoal();
+  }
+
+  // =========================================================
+  // 7. Saving and loading
   // =========================================================
   // localStorage is a small notebook the browser keeps for this site on this
   // device. It survives refreshes and closing the tab. It is wrapped in
@@ -411,7 +539,11 @@
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.books) || data.books.length !== SLOT_COUNT) return null;
+      if (!data || !Array.isArray(data.books)) return null;
+      // Saves from before buildings existed: they were all stage-one libraries.
+      if (!data.stage) { data.stage = 1; data.building = 'lfl'; }
+      const b = Scenes.BUILDINGS[data.building];
+      if (!b || data.books.length !== b.capacity) return null;
       return data;
     } catch (e) { return null; }
   }
@@ -425,10 +557,13 @@
   // Wire up the buttons and go.
   // =========================================================
   function init() {
-    $('footnote-text').textContent = randomFrom(FOOTNOTES);
+    $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
     $('restock-button').addEventListener('click', restock);
     $('reset-button').addEventListener('click', reset);
+    $('upgrade-button').addEventListener('click', openUpgradeScreen);
+    $('confirm-upgrade').addEventListener('click', confirmUpgrade);
+    $('cancel-upgrade').addEventListener('click', () => showScreen('game-screen'));
   }
 
   init();
