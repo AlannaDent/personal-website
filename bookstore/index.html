@@ -16,7 +16,7 @@
   <header class="site-header compact">
     <a class="home-link" href="../index.html">&larr; Alanna's Workshop</a>
     <h1>The Salty Jellyfish</h1>
-    <p class="tagline">Stage one: the Little Free Library<sup class="footnote-mark">*</sup></p>
+    <p class="tagline"><span id="stage-tagline">Stage one: the Little Free Library</span><sup class="footnote-mark">*</sup></p>
     <!-- game.js swaps in a random footnote on each page load. -->
     <p class="footnote"><sup>*</sup><span id="footnote-text">Free library. Books sold separately.</span></p>
   </header>
@@ -72,10 +72,12 @@
 
         <section class="panel goal">
           <h3>Next goal</h3>
-          <p>A proper book shed with room to grow.</p>
+          <p id="goal-label">A proper book shed with room to grow.</p>
           <div class="progress"><div id="goal-bar" class="progress-bar"></div></div>
           <p id="goal-text" class="hint"></p>
-          <p class="hint">Paint, decor and upgrades arrive in stage two.</p>
+          <!-- Appears once the player has saved enough. Opens the upgrade screen. -->
+          <button id="upgrade-button" class="button primary upgrade hidden">Choose your shed</button>
+          <p id="goal-hint" class="hint"></p>
         </section>
       </div>
 
@@ -90,6 +92,24 @@
     <p class="footer-actions">
       <button id="reset-button" class="link-button">Start over with a new library</button>
     </p>
+  </section>
+
+  <!-- ============ SCREEN 3: moving up ============ -->
+  <section id="upgrade-screen" class="screen hidden">
+    <h2>Time to move up in the world.</h2>
+    <p class="intro">
+      Twenty books was never going to be enough. Pick a shed. Each one holds a hundred
+      books and comes with its own spot in town. Your books and your name come with you.
+    </p>
+    <p class="hint">You have <strong id="upgrade-coins">0</strong> coins. Moving in costs <strong id="upgrade-cost">60</strong>.</p>
+
+    <!-- game.js fills this with one card per shed. -->
+    <div id="upgrade-cards" class="location-cards"></div>
+
+    <div class="setup-actions">
+      <button id="confirm-upgrade" class="button primary" disabled>Move in</button>
+      <button id="cancel-upgrade" class="link-button">Not yet, keep selling</button>
+    </div>
   </section>
 
   <!-- scenes.js draws the backgrounds; game.js runs the game. Order matters:
