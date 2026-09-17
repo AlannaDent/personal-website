@@ -128,6 +128,19 @@ const Scenes = (function () {
     for (let x = x1; x <= x2; x += gap) out += `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/>`;
     return out + '</g>';
   }
+  // A cardboard delivery box on the ground. (x, y) is the bottom-left corner.
+  function deliveryBox(x, y, size, id, remaining) {
+    const w = size, h = size * 0.72;
+    return `<g class="delivery-box" data-id="${id}" transform="translate(${x} ${y})" style="cursor:pointer">
+      <ellipse cx="${w / 2}" cy="0" rx="${w * 0.6}" ry="${size * 0.08}" fill="#000" opacity="0.12"/>
+      <rect x="0" y="${-h}" width="${w}" height="${h}" fill="#c9a97a" stroke="#8a6a48" stroke-width="${Math.max(1, size / 30)}"/>
+      <rect x="${w * 0.42}" y="${-h}" width="${w * 0.16}" height="${h}" fill="#e9e2cf" opacity="0.85"/>
+      <line x1="0" y1="${-h * 0.88}" x2="${w}" y2="${-h * 0.88}" stroke="#8a6a48" stroke-width="${Math.max(1, size / 40)}" opacity="0.7"/>
+      <rect x="${w * 0.1}" y="${-h * 0.62}" width="${w * 0.26}" height="${h * 0.2}" fill="#f4efe4" stroke="#8a6a48" stroke-width="0.8"/>
+      <text x="${w * 0.23}" y="${-h * 0.47}" text-anchor="middle" font-family="Georgia, serif" font-size="${Math.max(6, size * 0.14)}" fill="#5c5b56">${remaining}</text>
+    </g>`;
+  }
+
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -517,6 +530,7 @@ const Scenes = (function () {
     sign: { size: 9.5, small: 7.6 },
     stops: { left: 262, right: 538 },
     personScale: 3.2,                     // a real person next to a real Little Free Library
+    deliveryX: 600,                       // where the van sets boxes down
     backdropOpts: {},
     draw(color) {
       return `
@@ -556,6 +570,7 @@ const Scenes = (function () {
     sign: { size: 10, small: 8 },
     stops: { left: 240, right: 560 },
     personScale: 2.3,
+    deliveryX: 620,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
@@ -604,6 +619,7 @@ const Scenes = (function () {
     sign: { size: 11, small: 8.5 },
     stops: { left: 232, right: 588 },
     personScale: 1.7,
+    deliveryX: 640,
     backdropOpts: { boardwalkX: 590, signX: 150 },
     draw(color) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -649,6 +665,7 @@ const Scenes = (function () {
     sign: { size: 10, small: 8 },
     stops: { left: 400, right: 636 },
     personScale: 1.25,
+    deliveryX: 690,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
@@ -725,6 +742,7 @@ const Scenes = (function () {
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
     personScale: 1.0,
+    deliveryX: 640,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -768,6 +786,7 @@ const Scenes = (function () {
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
     personScale: 1.0,
+    deliveryX: 640,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -814,6 +833,7 @@ const Scenes = (function () {
     sign: { size: 11, small: 9 },
     stops: { left: 205, right: 595 },
     personScale: 1.0,
+    deliveryX: 640,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1056,6 +1076,7 @@ const Scenes = (function () {
     sign: { size: 11, small: 9 },
     stops: { left: 235, right: 565 },
     personScale: 1.0,
+    deliveryX: 650,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1095,6 +1116,7 @@ const Scenes = (function () {
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
     personScale: 1.0,
+    deliveryX: 110,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1136,6 +1158,7 @@ const Scenes = (function () {
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
     personScale: 1.15,
+    deliveryX: 660,
     backdropOpts: {},
     draw(color) {
       let s = '';
@@ -1193,6 +1216,7 @@ const Scenes = (function () {
       <g class="building">${building.draw(color)}</g>
       <g class="books"></g>
       <g class="front">${building.front()}</g>
+      <g class="deliveries"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       <g class="effects"></g>
@@ -1225,7 +1249,11 @@ const Scenes = (function () {
     if (view === 'inside' && b.interior) return b.interior.personScale || 1;
     return b.personScale || 1;
   }
+  function deliveryXFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return b.deliveryX || 640;
+  }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor, deliveryXFor, deliveryBox };
 })();

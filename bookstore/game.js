@@ -2,8 +2,9 @@
    Runs The Salty Jellyfish.
 
    The idea in one breath: customers wander up to your shop, buy a book if there
-   is one, and pay you coins. You spend coins to restock. Save up, and move into
-   a bigger building.
+   is one, and pay you coins. You spend coins on boxes of books from the
+   wholesaler, which arrive the next morning. Save up, and move into a bigger
+   building.
 
    Reading guide:
      1. Settings and word lists
@@ -22,7 +23,6 @@
   // 1. Settings and word lists
   // =========================================================
   const SELL_PRICE = 3;          // coins earned per book sold
-  const RESTOCK_COST = 1;        // coins spent per book restocked
   const WALK_SPEED = 55;         // picture units per second
   const SAVE_KEY = 'saltyJellyfish.stageOne';
   const LIFETIME_KEY = 'saltyJellyfish.lifetime';   // counters across every shop on this device
@@ -39,6 +39,20 @@
     Autumn: ['#d9a441', 0.14, 0.06],
     Winter: ['#8b9cc9', 0.16, 0.08]
   };
+  // The wholesaler. Up to this many items are offered each day; each slot has a
+  // chance of being empty, and some mornings the van does not come at all.
+  const CATALOGUE_SLOTS = 3;
+  const SLOT_FILL_CHANCE = 0.75;
+  const NO_VAN_CHANCE = 0.08;
+  // Box sizes by shop stage: [small, medium, large] books per box.
+  const BOX_SIZES = { 1: [5, 10, 20], 2: [15, 30, 60], 3: [40, 80, 150], 4: [80, 160, 300] };
+  const BOX_PRICE_PER_BOOK = [1.2, 1.0, 0.8];     // small boxes cost more per book
+  const BOX_NAMES = [
+    'Box of paperbacks', 'Crate of hardbacks', 'Remainders from Hyannis', 'A neighbour\u2019s estate',
+    'Publisher\u2019s overstock', 'Library discards, good ones', 'Yard-sale haul', 'Returns from the ferry kiosk'
+  ];
+  const MYSTERY_CHANCE = 0.15;                    // a mystery box hides its size until opened
+
   // Journal lines for a new day, by season.
   const DAY_LINES = {
     Spring: ['Hydrangeas thinking about it.', 'Fog until ten, then glorious.', 'First tourists of the year, blinking.', 'Peepers loud in the marsh tonight.'],
@@ -199,6 +213,9 @@
   //   state.location  : which backdrop the building sits in
   //   state.view      : 'outside' or 'inside' (inside exists from stage three on)
   //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day) }
+  //   state.catalogue : { dayIndex, items: [{ id, name, books, price, mystery, ordered }] }
+  //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
+  //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery }]
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.sold      : lifetime books sold
@@ -222,8 +239,10 @@
   function freshState(shopName, location) {
     const books = [];
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock() };
+    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [] };
   }
+  // Days counted from the start of the game, so "tomorrow" is simply +1.
+  const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0 }; }
   const seasonName = () => SEASONS[state.clock.season];
   const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
@@ -305,6 +324,8 @@
     drawScene();
     drawHud();
     drawDate();
+    ensureCatalogue();
+    drawOrderForm();
     drawLog();
     drawGoal();
     customers = [];
@@ -326,6 +347,7 @@
     drawBooksInto(svg, state.books, state.building, state.view);
     fitSign(svg.querySelector('.box-sign'), state.shopName, state.building);
     applySeasonTint();
+    drawDeliveries();
     // The step-inside / step-outside button only exists for buildings with an interior.
     const toggle = $('view-toggle');
     toggle.classList.toggle('hidden', !building().interior);
@@ -370,23 +392,6 @@
     $('hud-coins').textContent = state.coins;
     $('hud-stock').textContent = `${booksInStock()} / ${capacity()}`;
     $('hud-sold').textContent = state.sold;
-
-    const empty = capacity() - booksInStock();
-    const button = $('restock-button');
-    if (empty === 0) {
-      button.disabled = true;
-      button.textContent = 'Restock';
-      $('restock-hint').textContent = 'Shelves are full.';
-    } else if (state.coins < RESTOCK_COST) {
-      button.disabled = true;
-      button.textContent = 'Restock';
-      $('restock-hint').textContent = `${empty} empty ${empty === 1 ? 'slot' : 'slots'}. You need at least ${RESTOCK_COST} coin to restock.`;
-    } else {
-      button.disabled = false;
-      const canAfford = Math.min(empty, Math.floor(state.coins / RESTOCK_COST));
-      button.textContent = `Restock ${canAfford} ${canAfford === 1 ? 'book' : 'books'} (${canAfford * RESTOCK_COST} coins)`;
-      $('restock-hint').textContent = `${empty} empty ${empty === 1 ? 'slot' : 'slots'}. Each book costs ${RESTOCK_COST} coin to restock and sells for ${SELL_PRICE}.`;
-    }
   }
 
   function drawLog() {
@@ -429,8 +434,9 @@
       } else {
         addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
       }
+      deliverOrders();
     }
-    if (changed) { drawLog(); save(); lastClockSave = now; }
+    if (changed) { ensureCatalogue(); drawOrderForm(); drawDeliveries(); drawLog(); save(); lastClockSave = now; }
     else if (now - lastClockSave > 15000) { save(); lastClockSave = now; }   // keep the clock roughly current
     drawDate();
   }
@@ -474,6 +480,7 @@
   function refresh() {
     drawBooksInto($('scene').querySelector('svg'), state.books, state.building, state.view);
     drawHud();
+    drawOrderForm();
     drawLog();
     drawGoal();
     save();
@@ -617,15 +624,121 @@
     refresh();
   }
 
-  function restock() {
-    const emptySlots = state.books.map((b, i) => (b ? -1 : i)).filter(i => i >= 0);
-    const canAfford = Math.floor(state.coins / RESTOCK_COST);
-    const n = Math.min(emptySlots.length, canAfford);
-    if (n <= 0) return;
-    for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
-    state.coins -= n * RESTOCK_COST;
-    addLog(`Restocked ${n} ${n === 1 ? 'book' : 'books'} for ${n * RESTOCK_COST} ${n * RESTOCK_COST === 1 ? 'coin' : 'coins'}. Shelves look hopeful again.`);
+  // =========================================================
+  // The wholesaler: today's catalogue, orders, and deliveries
+  // =========================================================
+  // Make sure there is a catalogue for today. A new one is written each morning.
+  function ensureCatalogue() {
+    if (state.catalogue && state.catalogue.dayIndex === dayIndex()) return;
+    const items = [];
+    if (Math.random() >= NO_VAN_CHANCE) {
+      const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
+      const names = BOX_NAMES.slice().sort(() => Math.random() - 0.5);   // shuffled, so no repeats today
+      for (let slot = 0; slot < CATALOGUE_SLOTS; slot++) {
+        if (Math.random() > SLOT_FILL_CHANCE) continue;
+        const tier = Math.floor(Math.random() * 3);
+        const books = sizes[tier];
+        const mystery = Math.random() < MYSTERY_CHANCE;
+        items.push({
+          id: 'i' + Math.random().toString(36).slice(2, 8),
+          name: mystery ? 'Mystery box' : names.pop(),
+          books,
+          // A mystery box is priced like a medium box at a discount; its size is decided when opened.
+          price: Math.max(1, Math.round(mystery ? sizes[1] * BOX_PRICE_PER_BOOK[1] * 0.7 : books * BOX_PRICE_PER_BOOK[tier])),
+          mystery,
+          ordered: false
+        });
+      }
+    }
+    state.catalogue = { dayIndex: dayIndex(), items };
+  }
+
+  function placeOrder(itemId) {
+    const item = (state.catalogue.items || []).find(i => i.id === itemId);
+    if (!item || item.ordered || state.coins < item.price) return;
+    state.coins -= item.price;
+    item.ordered = true;
+    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, arrives: dayIndex() + 1 });
+    addLog(item.mystery
+      ? `Ordered a mystery box for ${item.price} coins. Arrives tomorrow. Could be anything.`
+      : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives tomorrow.`);
+    bumpLifetime(life => { life.boxesOrdered = (life.boxesOrdered || 0) + 1; });
     refresh();
+  }
+
+  // Called each new morning: anything due today lands outside the shop.
+  function deliverOrders() {
+    const due = state.orders.filter(o => o.arrives <= dayIndex());
+    if (!due.length) return;
+    state.orders = state.orders.filter(o => o.arrives > dayIndex());
+    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery }));
+    addLog(`The van came. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
+  }
+
+  // Opening a box shelves as many books as fit. The rest wait in the box.
+  function openDelivery(id) {
+    const box = state.deliveries.find(d => d.id === id);
+    if (!box) return;
+    if (box.mystery) {
+      const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
+      box.books = randomFrom([sizes[0], sizes[0], sizes[1], sizes[2]]);   // usually small, sometimes a pleasant surprise
+      box.mystery = false;
+      box.name = 'Mystery box';
+    }
+    const emptySlots = state.books.map((b, i) => (b ? -1 : i)).filter(i => i >= 0);
+    const n = Math.min(emptySlots.length, box.books);
+    for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
+    box.books -= n;
+    if (n > 0) floatText(Scenes.deliveryXFor(state.building) + 20, Scenes.GROUND_Y - 30 * personScale(), `+${n} books`, '#2f6f6a');
+    if (box.books === 0) {
+      state.deliveries = state.deliveries.filter(d => d.id !== id);
+      addLog(`Opened the ${box.name.toLowerCase()}. ${n} books shelved.`);
+    } else if (n === 0) {
+      addLog(`Opened the ${box.name.toLowerCase()}. Shelves full. ${box.books} books wait in the box.`);
+    } else {
+      addLog(`Opened the ${box.name.toLowerCase()}. ${n} shelved, ${box.books} still in the box.`);
+    }
+    bumpLifetime(life => { life.boxesOpened = (life.boxesOpened || 0) + 1; });
+    refresh();
+    drawDeliveries();
+  }
+
+  // The order form panel.
+  function drawOrderForm() {
+    $('order-date').textContent = `${dateText()}. ${state.coins} coins in the tin.`;
+    const items = (state.catalogue && state.catalogue.items) || [];
+    const list = $('catalogue');
+    if (!items.length) {
+      list.innerHTML = `<li><span class="empty">The van didn\u2019t come today. Nothing on offer.</span></li>`;
+    } else {
+      list.innerHTML = items.map(item => {
+        const meta = item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
+        const action = item.ordered
+          ? `<span class="ordered">Ordered \u2713</span>`
+          : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
+        return `<li><div><span class="item-name${item.mystery ? ' mystery' : ''}">${item.name}</span><span class="item-meta">${meta}</span></div>${action}</li>`;
+      }).join('');
+    }
+    const pending = $('orders-pending');
+    pending.innerHTML = state.orders.length
+      ? `<h4>Arriving tomorrow</h4><ul>${state.orders.map(o => `<li><span>${o.name}${o.mystery ? '' : ` (${o.books} books)`}</span></li>`).join('')}</ul>`
+      : '';
+    const waiting = $('deliveries-list');
+    waiting.innerHTML = state.deliveries.length
+      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${d.mystery ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}">Open</button></li>`).join('')}</ul>`
+      : '';
+  }
+
+  // Boxes outside the shop. Only drawn in the outside view; the form lists them either way.
+  function drawDeliveries() {
+    const group = $('scene').querySelector('svg .deliveries');
+    if (!group) return;
+    if (state.view === 'inside') { group.innerHTML = ''; return; }
+    const size = Math.max(22, 16 * personScale());
+    const x0 = Scenes.deliveryXFor(state.building);
+    group.innerHTML = state.deliveries.map((d, i) =>
+      Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : d.books)
+    ).join('');
   }
 
   // =========================================================
@@ -755,6 +868,9 @@
       if (!data.stage) { data.stage = 1; data.building = 'lfl'; }
       if (!data.view) data.view = data.stage >= 3 ? 'inside' : 'outside';
       if (!data.clock) data.clock = freshClock();
+      if (!Array.isArray(data.orders)) data.orders = [];
+      if (!Array.isArray(data.deliveries)) data.deliveries = [];
+      if (!data.catalogue) data.catalogue = null;
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;
@@ -772,7 +888,18 @@
   function init() {
     $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
-    $('restock-button').addEventListener('click', restock);
+    // One listener for the whole form: Order buttons and Open buttons.
+    $('game-screen').addEventListener('click', (e) => {
+      const order = e.target.closest('[data-order]');
+      if (order) { placeOrder(order.dataset.order); return; }
+      const open = e.target.closest('[data-open]');
+      if (open) { openDelivery(open.dataset.open); return; }
+    });
+    // Clicking a box in the scene opens it.
+    $('scene').addEventListener('click', (e) => {
+      const box = e.target.closest('.delivery-box');
+      if (box) openDelivery(box.dataset.id);
+    });
     $('reset-button').addEventListener('click', reset);
     $('upgrade-button').addEventListener('click', openUpgradeScreen);
     $('confirm-upgrade').addEventListener('click', confirmUpgrade);
