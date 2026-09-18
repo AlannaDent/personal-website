@@ -340,6 +340,8 @@
 .inventory .item-name { display: block; font-family: Georgia, serif; color: var(--teal-dark); }
 .inventory .item-meta { display: block; font-size: 0.85rem; color: var(--ink-soft); }
 .inventory .empty { color: var(--ink-soft); font-style: italic; }
+.appeal { border-top: 1px dashed var(--line); padding-top: 0.6rem; }
+.appeal .stars { color: var(--mustard); letter-spacing: 0.1em; margin-right: 0.3em; }
 .swatch { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; vertical-align: -0.1em; margin-right: 0.3em; border: 1px solid rgba(0,0,0,0.15); }
 .catalogue li:last-child { border-bottom: none; }
 .catalogue .item-name { display: block; font-family: Georgia, serif; color: var(--teal-dark); }
