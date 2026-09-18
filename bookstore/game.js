@@ -401,6 +401,60 @@
     } catch (e) { /* counters are optional */ }
   }
 
+  // ---- Shared counters across all players ----
+  // Each device has a random ID, kept in the browser, so players can be counted without
+  // knowing who anyone is. Progress since the last report is sent as small numbers; the
+  // server caps each one. Any failure is ignored and the game plays on.
+  const DEVICE_KEY = 'saltyJellyfish.device';
+  const REPORT_FIELDS = ['shopsOpened', 'booksSold', 'coinsEarned', 'daysPlayed', 'boxesOpened', 'petsAdopted', 'coatsOfPaint'];
+  function deviceId() {
+    try {
+      let id = localStorage.getItem(DEVICE_KEY);
+      if (!id) {
+        id = 'd' + Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+        localStorage.setItem(DEVICE_KEY, id);
+      }
+      return id;
+    } catch (e) { return null; }
+  }
+  let reporting = false;
+  function reportProgress() {
+    const cfg = (typeof GLOBAL_STATS !== 'undefined') ? GLOBAL_STATS : null;
+    if (!cfg || !cfg.url || !cfg.key || reporting) return;
+    const id = deviceId();
+    if (!id) return;
+    let life;
+    try { life = loadLifetime(); } catch (e) { return; }
+    const reported = life.reported || {};
+    const delta = {};
+    let anything = false;
+    REPORT_FIELDS.forEach(f => {
+      delta[f] = Math.max(0, (life[f] || 0) - (reported[f] || 0));
+      if (delta[f] > 0) anything = true;
+    });
+    const best = life.bestShopSold || 0;
+    if (!anything && best <= (reported.bestShopSold || 0) && reported.everReported) return;
+    reporting = true;
+    fetch(cfg.url + '/rest/v1/rpc/record_progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key },
+      body: JSON.stringify({
+        p_device: id, p_shops: delta.shopsOpened, p_sold: delta.booksSold, p_coins: delta.coinsEarned,
+        p_days: delta.daysPlayed, p_boxes: delta.boxesOpened, p_pets: delta.petsAdopted, p_paint: delta.coatsOfPaint, p_best: best
+      })
+    })
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        // Remember what has been counted, so nothing is sent twice.
+        bumpLifetime(l => {
+          l.reported = { everReported: true, bestShopSold: best };
+          REPORT_FIELDS.forEach(f => { l.reported[f] = l[f] || 0; });
+        });
+      })
+      .catch(() => { /* try again another time */ })
+      .finally(() => { reporting = false; });
+  }
+
   // =========================================================
   // 3. Setup screen
   // =========================================================
@@ -466,6 +520,7 @@
     applyDaylight(true);
     customers = [];
     nextSpawnAt = performance.now() + Math.min(8000, nextArrivalGap());   // first customer before long
+    reportProgress();
     if (!running) {
       running = true;
       lastFrame = performance.now();
@@ -626,6 +681,7 @@
     customers = [];
     addLog(`Closed up for the night. ${randomFrom(NIGHT_LINES[seasonName()])}`);
     deliverOrders();
+    reportProgress();
     drawLog();
     drawOrderForm();
     drawDeliveries();
@@ -1461,6 +1517,7 @@
     if ((state.decor.pets || []).length) addLog(`${state.decor.pets.map(p => p.name).join(' and ')} came along and immediately went exploring.`);
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
+    reportProgress();
 
     customers = [];                       // the old crowd stays behind
     nextSpawnAt = performance.now() + 1500;
