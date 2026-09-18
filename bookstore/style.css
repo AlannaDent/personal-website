@@ -355,6 +355,23 @@
 .orders ul { list-style: none; padding: 0; margin: 0; }
 .orders li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.25rem 0; }
 .scene .delivery-box:hover rect:first-of-type { filter: brightness(1.06); }
+/* ---- Sketch mode ----
+   Every painted layer holds a colour copy (.fills) and an ink copy (.lines).
+   Off: ink hidden, colour keeps its outlines, gentle wobble. On: colour loses its
+   outlines and goes a little dusty; ink shows, wobbles more, and sits slightly off
+   the colour; paper grain over the top. People, boxes and decor are never touched. */
+svg .lines { display: none; }
+svg .fills { filter: url(#wobble); }
+svg .paper { display: none; pointer-events: none; }
+
+body.sketch svg .fills { filter: url(#wobbleFill); }
+body.sketch svg .fills * { stroke: none !important; }
+body.sketch svg .lines { display: inline; filter: url(#wobbleLine); transform: translate(1.6px, -1.1px); }
+body.sketch svg .lines * { fill: none !important; }
+body.sketch svg .paper { display: inline; opacity: 0.4; mix-blend-mode: multiply; }
+
+.style-toggle { right: auto; left: 0.8rem; }
+
 /* The colour washes and floating text sit over the picture; clicks must pass through them. */
 .scene .season-tint, .scene .daylight, .scene .effects { pointer-events: none; }
 .scene .delivery-box.waiting { cursor: default; }
