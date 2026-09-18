@@ -51,7 +51,10 @@
     <!-- The date line: which day of which season, and how far through the day we are. -->
     <div class="dateline">
       <span id="hud-date">Year 1 · Spring · Day 1</span>
+      <span id="hud-phase" class="phase">Sunrise</span>
       <div class="day-progress"><div id="day-bar"></div></div>
+      <!-- Shown at night. The next day starts only when the player is ready. -->
+      <button id="next-day-button" class="button primary small hidden" type="button">Begin Day 2</button>
     </div>
 
     <!-- HUD = "heads-up display", the row of numbers a player glances at. -->
@@ -81,7 +84,7 @@
           <ul id="catalogue" class="catalogue"></ul>
           <div id="orders-pending" class="orders"></div>
           <div id="deliveries-list" class="orders"></div>
-          <p class="hint">Orders arrive the next morning in boxes outside the shop. Click a box to open it.</p>
+          <p class="hint">The van comes at closing time and leaves boxes outside. Open them after dark, from here or by clicking a box.</p>
         </section>
 
         <!-- What the shop owns: paint, the chalkboard, plants. game.js fills the list. -->

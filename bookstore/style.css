@@ -131,6 +131,15 @@
   background: var(--mustard);
   transition: width 0.5s linear;
 }
+.phase {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  white-space: nowrap;
+}
+.dateline .button.small { white-space: nowrap; }
+.dateline.night { color: var(--navy); }
+.dateline.night #day-bar { background: var(--navy); }
 
 .hud {
   display: flex;
@@ -344,6 +353,10 @@
 .orders ul { list-style: none; padding: 0; margin: 0; }
 .orders li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.25rem 0; }
 .scene .delivery-box:hover rect:first-of-type { filter: brightness(1.06); }
+/* The colour washes and floating text sit over the picture; clicks must pass through them. */
+.scene .season-tint, .scene .daylight, .scene .effects { pointer-events: none; }
+.scene .delivery-box.waiting { cursor: default; }
+.button:disabled { cursor: not-allowed; }
 
 /* The upgrade button inside the Next goal panel. */
 .button.upgrade {

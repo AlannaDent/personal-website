@@ -211,6 +211,22 @@ const Scenes = (function () {
     return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
   }
 
+  // The time-of-day layer: a colour wash, a scatter of stars, and a glow from the
+  // shop's windows. The game sets their opacity as the day goes by.
+  function daylightLayer(glowX, glowY, glowRx, glowRy) {
+    let stars = '';
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    for (let i = 0; i < 34; i++) {
+      stars += `<circle cx="${(rnd() * 800).toFixed(0)}" cy="${(rnd() * 200).toFixed(0)}" r="${(0.8 + rnd() * 1.3).toFixed(1)}" fill="#f6f2e4"/>`;
+    }
+    return `<g class="daylight">
+      <rect class="sky-wash" width="${VIEW.width}" height="${VIEW.height}" fill="#1f2a5a" opacity="0"/>
+      <g class="stars" opacity="0">${stars}</g>
+      <ellipse class="window-glow" cx="${glowX}" cy="${glowY}" rx="${glowRx}" ry="${glowRy}" fill="url(#windowGlow)" opacity="0"/>
+    </g>`;
+  }
+
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -229,6 +245,10 @@ const Scenes = (function () {
         <stop offset="0" stop-color="${skyTop}"/>
         <stop offset="1" stop-color="${skyBottom}"/>
       </linearGradient>
+      <radialGradient id="windowGlow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#f2e6b8" stop-opacity="0.9"/>
+        <stop offset="1" stop-color="#f2e6b8" stop-opacity="0"/>
+      </radialGradient>
       <radialGradient id="roundWall" cx="0.5" cy="0.5" r="0.75">
         <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
         <stop offset="1" stop-color="#8a8f94" stop-opacity="0.35"/>
@@ -1294,6 +1314,7 @@ const Scenes = (function () {
       <g class="deliveries"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
+      ${daylightLayer(400, 320, 190, 110)}
       <g class="effects"></g>
     </svg>`;
   }
@@ -1306,6 +1327,7 @@ const Scenes = (function () {
       <g class="front">${interiorFront(style, building.sign.size)}</g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
+      ${daylightLayer(400, 240, 0, 0)}
       <g class="effects"></g>
     </svg>`;
   }
