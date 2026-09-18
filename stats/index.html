@@ -24,8 +24,9 @@
     <section class="card">
       <h2>The Salty Jellyfish, by the numbers</h2>
       <p class="intro">
-        Fun counters from the bookshop game. Everything on this page is read from this
-        browser only. Nothing is sent anywhere.
+        Fun counters from the bookshop game. The first two sections are read from this
+        browser only. The last is shared across everyone who plays: the game sends anonymous
+        totals under a random device ID, and never a name, an email or a shop name.
       </p>
     </section>
 
@@ -45,9 +46,9 @@
     <section class="card">
       <h2>Across all players</h2>
       <div id="global-stats" class="stat-grid"></div>
-      <p class="hint">
-        These need a small shared counter service so every player's browser can add to the
-        same totals. Coming later. Until then they are placeholders.
+      <p id="global-note" class="hint">
+        Shared by every player. Each game sends anonymous totals (books sold, shops opened,
+        days played) under a random device ID. No names, emails or shop names are stored.
       </p>
     </section>
   </main>
@@ -56,6 +57,7 @@
     <p>Made by hand, one small commit at a time.</p>
   </footer>
 
+  <script src="config.js"></script>
   <script src="stats.js"></script>
 </body>
 </html>

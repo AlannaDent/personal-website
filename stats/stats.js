@@ -67,10 +67,43 @@
     document.getElementById('shop-note').innerHTML = 'Nothing saved right now. <a href="../bookstore/index.html">Start a library.</a>';
   }
 
-  // ---- Across all players (placeholders until there is a shared counter service) ----
-  document.getElementById('global-stats').innerHTML =
-    stat('—', 'People who have played', 'coming', true) +
-    stat('—', 'Shops created', 'coming', true) +
-    stat('—', 'Books sold everywhere', 'coming', true) +
-    stat('—', 'Most books sold by one shop', 'coming', true);
+  // ---- Across all players ----
+  const globalGrid = document.getElementById('global-stats');
+  const globalNote = document.getElementById('global-note');
+  const DASH = '\u2014';
+  const placeholders = (why) =>
+    stat(DASH, 'People who have played', why, true) +
+    stat(DASH, 'Shops created', why, true) +
+    stat(DASH, 'Books sold everywhere', why, true) +
+    stat(DASH, 'Most books sold by one shop', why, true);
+  const cfg = (typeof GLOBAL_STATS !== 'undefined') ? GLOBAL_STATS : { url: '', key: '' };
+  if (!cfg.url || !cfg.key) {
+    globalGrid.innerHTML = placeholders('not connected');
+    globalNote.textContent = 'The shared counters are not connected on this copy of the site.';
+  } else {
+    globalGrid.innerHTML = placeholders('loading');
+    fetch(cfg.url + '/rest/v1/rpc/get_stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': cfg.key, 'Authorization': 'Bearer ' + cfg.key },
+      body: '{}'
+    })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(rows => {
+        const g = Array.isArray(rows) ? rows[0] : rows;
+        if (!g) throw new Error('empty');
+        globalGrid.innerHTML =
+          stat(number(g.players), 'People who have played') +
+          stat(number(g.shops_opened), 'Shops created') +
+          stat(number(g.books_sold), 'Books sold everywhere') +
+          stat(number(g.best_shop_sold), 'Most books sold by one shop') +
+          stat(number(g.pets_adopted), 'Pets adopted') +
+          stat(number(g.coats_of_paint), 'Coats of paint');
+        const when = g.updated_at ? new Date(g.updated_at) : null;
+        if (when && !isNaN(when)) globalNote.textContent += ` Last updated ${when.toLocaleString()}.`;
+      })
+      .catch(() => {
+        globalGrid.innerHTML = placeholders('unavailable right now');
+        globalNote.textContent = 'The shared counters could not be reached just now. The game itself is unaffected.';
+      });
+  }
 })();
