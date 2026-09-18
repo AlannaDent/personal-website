@@ -281,6 +281,7 @@
   //                     plants: [plant kinds owned], plantOut (the kind out front, or null) }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
+  //   state.reserve   : books in the back room, not yet on a shelf
   //   state.sold      : lifetime books sold
   //   state.log       : the last few journal lines
 
@@ -323,7 +324,7 @@
   function freshState(shopName, location) {
     const books = [];
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
+    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
   function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null }; }
   // Days counted from the start of the game, so "tomorrow" is simply +1.
@@ -481,7 +482,7 @@
   function drawHud() {
     $('hud-name').textContent = state.shopName;
     $('hud-coins').textContent = state.coins;
-    $('hud-stock').textContent = `${booksInStock()} / ${capacity()}`;
+    $('hud-stock').textContent = `${booksInStock()} / ${capacity()}` + (state.reserve ? ` +${state.reserve}` : '');
     $('hud-sold').textContent = state.sold;
   }
 
@@ -682,7 +683,7 @@
   // Each customer is a small object: where they are, which way they face,
   // and what they are doing ('arriving', 'browsing', or 'leaving').
   function spawnCustomer() {
-    const side = Math.random() < 0.5 ? 'left' : 'right';
+    const side = randomFrom(Scenes.sidesFor(state.building, state.view));
     const onSameSide = customers.filter(c => c.side === side).length;
     const stops = Scenes.stopsFor(state.building, state.view);
     const gap = 38 * personScale();                  // bigger people stand further apart
@@ -691,7 +692,7 @@
       look: randomFrom(CUSTOMER_LOOKS),
       side,
       x: side === 'left' ? -40 * personScale() : Scenes.VIEW.width + 40 * personScale(),
-      stopX: side === 'left' ? stops.left - onSameSide * gap : stops.right + onSameSide * gap,
+      stopX: side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap),
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0
@@ -736,7 +737,10 @@
     advanceClock(dt * 1000, now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
-    if (shopOpen && now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
+    // A building with only one side to stand on (the lighthouse) fits fewer at once.
+    const singleSided = Scenes.sidesFor(state.building, state.view).length === 1;
+    const maxOnScreen = singleSided ? Math.min(4, MAX_CUSTOMERS[state.stage]) : MAX_CUSTOMERS[state.stage];
+    if (shopOpen && now >= nextSpawnAt && customers.length < maxOnScreen) {
       spawnCustomer();
       nextSpawnAt = now + nextArrivalGap();
     }
@@ -891,19 +895,29 @@
     const emptySlots = state.books.map((b, i) => (b ? -1 : i)).filter(i => i >= 0);
     const n = Math.min(emptySlots.length, box.books);
     for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
-    box.books -= n;
-    if (n > 0) floatText(Scenes.deliveryXFor(state.building) + 20, Scenes.GROUND_Y - 30 * personScale(), `+${n} books`, '#2f6f6a');
-    if (box.books === 0) {
-      state.deliveries = state.deliveries.filter(d => d.id !== id);
-      addLog(`Opened the ${box.name.toLowerCase()}. ${n} books shelved.`);
-    } else if (n === 0) {
-      addLog(`Opened the ${box.name.toLowerCase()}. Shelves full. ${box.books} books wait in the box.`);
-    } else {
-      addLog(`Opened the ${box.name.toLowerCase()}. ${n} shelved, ${box.books} still in the box.`);
-    }
+    const spare = box.books - n;
+    state.reserve = (state.reserve || 0) + spare;
+    state.deliveries = state.deliveries.filter(d => d.id !== id);
+    floatText(Scenes.deliveryXFor(state.building) + 20, Scenes.GROUND_Y - 30 * personScale(), `+${box.books} books`, '#2f6f6a');
+    if (spare === 0) addLog(`Opened the ${box.name.toLowerCase()}. ${n} books shelved.`);
+    else if (n === 0) addLog(`Opened the ${box.name.toLowerCase()}. Shelves full, so all ${spare} went to the back room.`);
+    else addLog(`Opened the ${box.name.toLowerCase()}. ${n} shelved, ${spare} to the back room.`);
     bumpLifetime(life => { life.boxesOpened = (life.boxesOpened || 0) + 1; });
     refresh();
+    drawInventory();
     drawDeliveries();
+  }
+
+  // Move books from the back room onto empty shelves.
+  function shelveReserve() {
+    const emptySlots = state.books.map((b, i) => (b ? -1 : i)).filter(i => i >= 0);
+    const n = Math.min(emptySlots.length, state.reserve || 0);
+    if (n <= 0) return;
+    for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
+    state.reserve -= n;
+    addLog(`Shelved ${n} ${n === 1 ? 'book' : 'books'} from the back room.`);
+    refresh();
+    drawInventory();
   }
 
   // Paint goes in the cupboard; a sign or a plant goes straight out front.
@@ -958,6 +972,12 @@
   function drawInventory() {
     const decor = state.decor;
     const rows = [];
+    const onShelves = booksInStock();
+    const reserve = state.reserve || 0;
+    const room = capacity() - onShelves;
+    const canShelve = Math.min(room, reserve);
+    rows.push(`<li class="stock-row"><div class="item-row">${ICONS.books()}<div><span class="item-name">Books</span><span class="item-meta">${onShelves} on the shelves \u00b7 ${reserve} in the back room</span></div></div>` +
+      (canShelve > 0 ? `<button class="button small primary" data-shelve="1">Shelve ${canShelve}</button>` : `<span class="ordered">${reserve > 0 ? 'Shelves full' : room > 0 ? `${room} empty` : 'Full'}</span>`) + `</li>`);
     decor.paints.forEach(color => {
       const paint = PAINTS.find(p => p.color === color) || { name: 'Paint' };
       const current = decor.paint === color;
@@ -971,7 +991,8 @@
       const out = decor.plantOut === kind;
       rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${out ? 'By the door' : 'In the back'}</span></div></div><button class="button small" data-toggle="plant" data-plant="${kind}">${out ? 'Take in' : 'Put out'}</button></li>`);
     });
-    $('inventory').innerHTML = rows.length ? rows.join('') : `<li><span class="empty">Nothing yet. The van sometimes carries paint and decor.</span></li>`;
+    if (rows.length === 1) rows.push(`<li><span class="empty">No decor yet. The van sometimes carries paint, a sign and plants.</span></li>`);
+    $('inventory').innerHTML = rows.join('');
     const paint = PAINTS.find(p => p.color === decor.paint);
     $('inventory-hint').textContent = paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`;
     drawAppeal();
@@ -1125,6 +1146,10 @@
     const carried = state.books.filter(Boolean);
     const books = carried.slice(0, b.capacity);
     while (books.length < b.capacity) books.push(null);
+    // The back room comes too; if the new shelves have room, fill them from it.
+    let reserve = (state.reserve || 0) + Math.max(0, carried.length - b.capacity);
+    for (let i = 0; i < books.length && reserve > 0; i++) { if (!books[i]) { books[i] = randomFrom(BOOK_COLORS); reserve -= 1; } }
+    state.reserve = reserve;
 
     state.coins -= goal.cost;
     state.stage = b.stage;
@@ -1209,6 +1234,7 @@
       if (!Array.isArray(data.deliveries)) data.deliveries = [];
       if (!data.catalogue) data.catalogue = null;
       if (!data.decor) data.decor = freshDecor();
+      if (typeof data.reserve !== 'number') data.reserve = 0;
       // Earlier saves counted plants and buckets; now they are lists of kinds and colours.
       if (typeof data.decor.plants === 'number') {
         data.decor.plants = data.decor.plants > 0 ? ['snake'] : [];
@@ -1226,10 +1252,23 @@
     location.reload();
   }
 
+  // ---- Sketch mode: the hand-painted look, on by default, remembered per device ----
+  const SKETCH_KEY = 'saltyJellyfish.sketch';
+  function sketchOn() {
+    try { return localStorage.getItem(SKETCH_KEY) !== 'off'; } catch (e) { return true; }
+  }
+  function applySketch(on) {
+    document.body.classList.toggle('sketch', on);
+    $('style-toggle').textContent = on ? 'Sketch: on' : 'Sketch: off';
+    try { localStorage.setItem(SKETCH_KEY, on ? 'on' : 'off'); } catch (e) { /* fine */ }
+  }
+
   // =========================================================
   // Wire up the buttons and go.
   // =========================================================
   function init() {
+    applySketch(sketchOn());
+    $('style-toggle').addEventListener('click', () => applySketch(!document.body.classList.contains('sketch')));
     $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
     // One listener for the whole form: Order buttons and Open buttons.
@@ -1240,6 +1279,8 @@
       if (open) { openDelivery(open.dataset.open); return; }
       const paint = e.target.closest('[data-paint]');
       if (paint) { paintBuilding(paint.dataset.paint); return; }
+      const shelve = e.target.closest('[data-shelve]');
+      if (shelve) { shelveReserve(); return; }
       const toggle = e.target.closest('[data-toggle]');
       if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant); return; }
     });
