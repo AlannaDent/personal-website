@@ -341,6 +341,30 @@
 .inventory .item-meta { display: block; font-size: 0.85rem; color: var(--ink-soft); }
 .inventory .empty { color: var(--ink-soft); font-style: italic; }
 .appeal { border-top: 1px dashed var(--line); padding-top: 0.6rem; }
+/* Renaming a pet: a small pencil beside the name, and a text box while editing. */
+.pencil {
+  font: inherit;
+  font-size: 0.85em;
+  background: none;
+  border: none;
+  padding: 0 0.2em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.pencil:hover { color: var(--brick); }
+.rename {
+  font: inherit;
+  font-family: Georgia, serif;
+  color: var(--teal-dark);
+  width: 11em;
+  max-width: 100%;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+.rename:focus { outline: 2px solid var(--mustard); border-color: transparent; }
 .appeal .stars { color: var(--mustard); letter-spacing: 0.1em; margin-right: 0.3em; }
 .swatch { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; vertical-align: -0.1em; margin-right: 0.3em; border: 1px solid rgba(0,0,0,0.15); }
 .catalogue li:last-child { border-bottom: none; }

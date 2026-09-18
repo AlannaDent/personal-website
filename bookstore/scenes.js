@@ -211,8 +211,56 @@ const Scenes = (function () {
       <rect x="-5.6" y="-9.4" width="11.2" height="2" rx="0.6" fill="#c9d6dd"/>
     </g>`;
   }
+  // A ZZ plant: upright stems lined with glossy oval leaflets, in a dark pot.
+  function zzPlant(x, y, scale) {
+    const stem = (lean, h) => {
+      let out = `<path d="M0 -9 q${lean * 0.5} -${h * 0.5} ${lean} -${h}" stroke="#2f5230" stroke-width="1" fill="none"/>`;
+      for (let i = 1; i <= 5; i++) {
+        const t = i / 5.5, px = lean * t * t, py = -9 - h * t;
+        out += `<ellipse cx="${px - 3}" cy="${py}" rx="3.2" ry="1.7" fill="#3f6b3a" stroke="#c9d9b8" stroke-width="0.3" transform="rotate(-25 ${px - 3} ${py})"/><ellipse cx="${px + 3}" cy="${py + 1}" rx="3.2" ry="1.7" fill="#4f7a4a" stroke="#c9d9b8" stroke-width="0.3" transform="rotate(25 ${px + 3} ${py + 1})"/>`;
+      }
+      return out;
+    };
+    return `<g class="plant zz-plant" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="8" ry="1.4" fill="#000" opacity="0.12"/>
+      ${stem(-6, 24)}${stem(5, 28)}${stem(0, 20)}
+      <path d="M-6.5 -9.5 l1.5 9.5 h10 l1.5 -9.5 z" fill="#3a3f44" stroke="#2b2a28" stroke-width="0.6"/>
+      <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#5c5b56"/>
+    </g>`;
+  }
+  // An inch plant: purple-and-green striped leaves trailing over the pot's rim.
+  function inchPlant(x, y, scale) {
+    const leaf = (cx, cy, rot, len) => `<g transform="translate(${cx} ${cy}) rotate(${rot})"><ellipse rx="${len}" ry="1.9" fill="#6b4f8a"/><line x1="-${len * 0.8}" y1="0" x2="${len * 0.8}" y2="0" stroke="#9fd0c4" stroke-width="0.7" opacity="0.9"/><line x1="-${len * 0.7}" y1="-0.9" x2="${len * 0.7}" y2="-0.9" stroke="#c98ab3" stroke-width="0.5" opacity="0.8"/></g>`;
+    let leaves = '';
+    [[-7, -12, -40, 5], [-9, -6, -70, 4.5], [7, -12, 40, 5], [9, -6, 70, 4.5], [0, -14, 0, 5], [-4, -16, -20, 4.5], [4, -16, 20, 4.5], [-11, -1, -95, 4], [11, -1, 95, 4]].forEach(([cx, cy, r, l]) => { leaves += leaf(cx, cy, r, l); });
+    return `<g class="plant inch-plant" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="8" ry="1.4" fill="#000" opacity="0.12"/>
+      <path d="M-6.5 -9.5 l1.5 9.5 h10 l1.5 -9.5 z" fill="#e9e2cf" stroke="#b5aea0" stroke-width="0.6"/>
+      <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#d9d0bf"/>
+      ${leaves}
+    </g>`;
+  }
+  // A fern: arching fronds with fine leaflets, in a terracotta pot.
+  function fern(x, y, scale) {
+    const frond = (rot, len) => {
+      let out = `<g transform="rotate(${rot})"><path d="M0 -9 q${len * 0.2} -${len * 0.7} ${len * 0.55} -${len}" stroke="#4f7a4a" stroke-width="0.8" fill="none"/>`;
+      for (let i = 1; i <= 6; i++) {
+        const t = i / 6.5, px = len * 0.55 * t * t * 1.1, py = -9 - len * t * (1 - 0.15 * t);
+        out += `<ellipse cx="${px - 2.2}" cy="${py}" rx="2.4" ry="0.9" fill="#6a955f" transform="rotate(-35 ${px - 2.2} ${py})"/><ellipse cx="${px + 2.2}" cy="${py}" rx="2.4" ry="0.9" fill="#4f7a4a" transform="rotate(35 ${px + 2.2} ${py})"/>`;
+      }
+      return out + '</g>';
+    };
+    let fronds = '';
+    [-60, -35, -12, 10, 32, 58].forEach((r, i) => { fronds += frond(r, 18 + (i % 2) * 4); });
+    return `<g class="plant fern" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="8" ry="1.4" fill="#000" opacity="0.12"/>
+      ${fronds}
+      <path d="M-6.5 -9.5 l1.5 9.5 h10 l1.5 -9.5 z" fill="#b8734f" stroke="#8a5a3a" stroke-width="0.6"/>
+      <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#a05f3e"/>
+    </g>`;
+  }
   // One entry point for every plant the shop can own.
-  const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid };
+  const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid, zz: zzPlant, inch: inchPlant, fern };
   function plant(kind, x, y, scale) {
     return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
   }
@@ -231,6 +279,109 @@ const Scenes = (function () {
       <g class="stars" opacity="0">${stars}</g>
       <ellipse class="window-glow" cx="${glowX}" cy="${glowY}" rx="${glowRx}" ry="${glowRy}" fill="url(#windowGlow)" opacity="0"/>
     </g>`;
+  }
+
+  // =========================================================
+  // Pets
+  // =========================================================
+  // Small animals drawn facing right with their feet at y = 0. The game positions,
+  // flips and scales them. pose is 'stand', 'sit' or 'nap'.
+  const PET_COLORS = {
+    cat: {
+      white: { body: '#f4f1e8', dark: '#c9c3b6', chest: null },
+      black: { body: '#2b2a28', dark: '#151413', chest: null },
+      tuxedo: { body: '#2b2a28', dark: '#151413', chest: '#f4f1e8' },
+      gray: { body: '#8a8f94', dark: '#5c5b56', chest: null },
+      brown: { body: '#8a6248', dark: '#5a4030', chest: null },
+      tabby: { body: '#b08a5a', dark: '#6b4a3a', chest: '#e9e2cf', stripes: true }
+    },
+    dog: {
+      brown: { body: '#8a6248', dark: '#5a4030' },
+      black: { body: '#2b2a28', dark: '#151413' },
+      white: { body: '#f4f1e8', dark: '#c9c3b6' },
+      yellow: { body: '#e0c48a', dark: '#b08a5a' }
+    },
+    crab: { red: { body: '#b6413a', dark: '#7a2a24' } }
+  };
+
+  function catSvg(c, pose) {
+    const eye = pose === 'nap' ? `<g stroke="#2b2a28" stroke-width="0.6"><line x1="7" y1="-12.5" x2="8.5" y2="-12.5"/><line x1="10" y1="-12.5" x2="11.5" y2="-12.5"/></g>` : `<g fill="#3b7a3a"><circle cx="7.5" cy="-13" r="0.9"/><circle cx="10.5" cy="-13" r="0.9"/></g>`;
+    const stripes = c.stripes ? `<g stroke="${c.dark}" stroke-width="0.9" opacity="0.8"><line x1="-4" y1="-11" x2="-3" y2="-4"/><line x1="0" y1="-12" x2="1" y2="-4"/><line x1="4" y1="-11" x2="5" y2="-5"/></g>` : '';
+    if (pose === 'nap') {
+      return `<ellipse cx="0" cy="0" rx="11" ry="1.6" fill="#000" opacity="0.12"/>
+        <path d="M-11 -3 q-4 -6 3 -6" stroke="${c.body}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="0" cy="-4" rx="10" ry="4" fill="${c.body}"/>${stripes}
+        <circle cx="8" cy="-7" r="4.2" fill="${c.body}"/><polygon points="5,-10 5.5,-14 8,-10.5" fill="${c.body}"/><polygon points="11,-10 12,-14 9,-10.5" fill="${c.body}"/>
+        <g stroke="#2b2a28" stroke-width="0.6"><line x1="6.5" y1="-7" x2="8" y2="-7"/><line x1="9.5" y1="-7" x2="11" y2="-7"/></g>
+        <text x="13" y="-13" font-family="Georgia, serif" font-size="4" fill="#5d5a54" opacity="0.8">z</text><text x="16" y="-17" font-family="Georgia, serif" font-size="3" fill="#5d5a54" opacity="0.6">z</text>`;
+    }
+    if (pose === 'sit') {
+      return `<ellipse cx="0" cy="0" rx="8" ry="1.6" fill="#000" opacity="0.12"/>
+        <path d="M-5 -2 q-8 2 -6 -6" stroke="${c.body}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="0" cy="-8" rx="6" ry="8.5" fill="${c.body}"/>${stripes}
+        ${c.chest ? `<ellipse cx="1" cy="-7" rx="3.2" ry="5" fill="${c.chest}"/>` : ''}
+        <g fill="${c.body}"><ellipse cx="-3" cy="-1" rx="2.2" ry="1.4"/><ellipse cx="3" cy="-1" rx="2.2" ry="1.4"/></g>
+        ${c.chest ? `<g fill="${c.chest}"><ellipse cx="-3" cy="-1" rx="1.6" ry="1"/><ellipse cx="3" cy="-1" rx="1.6" ry="1"/></g>` : ''}
+        <circle cx="2" cy="-18" r="4.5" fill="${c.body}"/><polygon points="-1.5,-21 -1,-25.5 2,-21.5" fill="${c.body}"/><polygon points="5.5,-21 6.5,-25.5 3,-21.5" fill="${c.body}"/>
+        <g fill="#3b7a3a"><circle cx="0.8" cy="-18.5" r="0.9"/><circle cx="3.8" cy="-18.5" r="0.9"/></g><circle cx="2.3" cy="-16.5" r="0.6" fill="#d98c9c"/>`;
+    }
+    return `<ellipse cx="0" cy="0" rx="10" ry="1.6" fill="#000" opacity="0.12"/>
+      <path d="M-9 -8 q-5 -2 -5 -9" stroke="${c.body}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <g fill="${c.body}"><rect x="-8" y="-5" width="2.4" height="5"/><rect x="-4" y="-5" width="2.4" height="5"/><rect x="2" y="-5" width="2.4" height="5"/><rect x="5.5" y="-5" width="2.4" height="5"/></g>
+      ${c.chest ? `<g fill="${c.chest}"><rect x="-8" y="-1.5" width="2.4" height="1.5"/><rect x="5.5" y="-1.5" width="2.4" height="1.5"/></g>` : ''}
+      <ellipse cx="0" cy="-8" rx="9.5" ry="5" fill="${c.body}"/>${stripes}
+      ${c.chest ? `<ellipse cx="5" cy="-7" rx="3" ry="3.4" fill="${c.chest}"/>` : ''}
+      <circle cx="9" cy="-12.5" r="4.5" fill="${c.body}"/><polygon points="5.5,-15.5 6,-20 9,-16" fill="${c.body}"/><polygon points="12.5,-15.5 13.5,-20 10,-16" fill="${c.body}"/>
+      ${eye}<circle cx="12" cy="-11.5" r="0.6" fill="#d98c9c"/>`;
+  }
+
+  function dogSvg(c, pose) {
+    const eyes = pose === 'nap' ? `<g stroke="#2b2a28" stroke-width="0.6"><line x1="8" y1="-14" x2="9.5" y2="-14"/></g>` : `<circle cx="9.5" cy="-14.5" r="1" fill="#2b2a28"/>`;
+    if (pose === 'nap') {
+      return `<ellipse cx="0" cy="0" rx="12" ry="1.8" fill="#000" opacity="0.12"/>
+        <path d="M-12 -4 q-3 -6 2 -7" stroke="${c.body}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="0" cy="-4.5" rx="11" ry="4.5" fill="${c.body}"/>
+        <circle cx="9" cy="-7.5" r="5" fill="${c.body}"/><ellipse cx="6" cy="-6" rx="2.2" ry="4" fill="${c.dark}"/>
+        <circle cx="13.5" cy="-6" r="2.2" fill="${c.dark}"/><circle cx="14.5" cy="-6.5" r="0.7" fill="#2b2a28"/>
+        <g stroke="#2b2a28" stroke-width="0.6"><line x1="8" y1="-9" x2="9.5" y2="-9"/></g>
+        <text x="14" y="-14" font-family="Georgia, serif" font-size="4" fill="#5d5a54" opacity="0.8">z</text><text x="17" y="-18" font-family="Georgia, serif" font-size="3" fill="#5d5a54" opacity="0.6">z</text>`;
+    }
+    if (pose === 'sit') {
+      return `<ellipse cx="0" cy="0" rx="9" ry="1.8" fill="#000" opacity="0.12"/>
+        <path d="M-6 -3 q-7 3 -8 -4" stroke="${c.body}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="0" cy="-9" rx="7" ry="9.5" fill="${c.body}"/>
+        <g fill="${c.body}"><ellipse cx="-3.5" cy="-1" rx="2.6" ry="1.6"/><ellipse cx="3.5" cy="-1" rx="2.6" ry="1.6"/></g>
+        <circle cx="3" cy="-20" r="5.2" fill="${c.body}"/><ellipse cx="-0.5" cy="-18" rx="2.2" ry="4.2" fill="${c.dark}"/>
+        <circle cx="7.5" cy="-18.5" r="2.4" fill="${c.dark}"/><circle cx="8.5" cy="-19" r="0.7" fill="#2b2a28"/>
+        <circle cx="4" cy="-21.5" r="1" fill="#2b2a28"/><ellipse cx="7" cy="-16" rx="1.2" ry="1.8" fill="#d98c9c"/>`;
+    }
+    return `<ellipse cx="0" cy="0" rx="11" ry="1.8" fill="#000" opacity="0.12"/>
+      <path d="M-10 -9 q-3 -4 -1 -9" stroke="${c.body}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <g fill="${c.body}"><rect x="-8.5" y="-6" width="2.8" height="6"/><rect x="-4" y="-6" width="2.8" height="6"/><rect x="2" y="-6" width="2.8" height="6"/><rect x="6" y="-6" width="2.8" height="6"/></g>
+      <ellipse cx="0" cy="-9" rx="10.5" ry="5.5" fill="${c.body}"/>
+      <circle cx="10" cy="-14" r="5.2" fill="${c.body}"/><ellipse cx="6.5" cy="-12" rx="2.2" ry="4.2" fill="${c.dark}"/>
+      <circle cx="14.5" cy="-12.5" r="2.4" fill="${c.dark}"/><circle cx="15.5" cy="-13" r="0.7" fill="#2b2a28"/>
+      ${eyes}<ellipse cx="14" cy="-10" rx="1.2" ry="1.8" fill="#d98c9c"/>`;
+  }
+
+  function crabSvg(c, pose) {
+    const zz = pose === 'nap' ? `<text x="9" y="-11" font-family="Georgia, serif" font-size="4" fill="#5d5a54" opacity="0.8">z</text>` : '';
+    const eyes = pose === 'nap' ? `<g stroke="#2b2a28" stroke-width="0.6"><line x1="-3.5" y1="-11" x2="-2" y2="-11"/><line x1="2" y1="-11" x2="3.5" y2="-11"/></g>` : `<g fill="#2b2a28"><circle cx="-2.8" cy="-11.5" r="1"/><circle cx="2.8" cy="-11.5" r="1"/></g>`;
+    return `<ellipse cx="0" cy="0" rx="10" ry="1.6" fill="#000" opacity="0.12"/>
+      <g stroke="${c.dark}" stroke-width="1.4" fill="none" stroke-linecap="round"><path d="M-6 -4 l-4 3 l-1 1"/><path d="M-7 -6 l-5 1 l-2 1.5"/><path d="M-6 -8 l-5 -1 l-2 1"/><path d="M6 -4 l4 3 l1 1"/><path d="M7 -6 l5 1 l2 1.5"/><path d="M6 -8 l5 -1 l2 1"/></g>
+      <ellipse cx="0" cy="-6" rx="8" ry="4.6" fill="${c.body}"/>
+      <g stroke="${c.body}" stroke-width="1.8" fill="none"><path d="M-6 -9 q-5 -3 -8 -1"/><path d="M6 -9 q5 -3 8 -1"/></g>
+      <g fill="${c.body}"><circle cx="-14" cy="-10.5" r="2.6"/><circle cx="14" cy="-10.5" r="2.6"/></g>
+      <g fill="${c.dark}"><path d="M-15 -12.5 l-1.5 -2.5 l2.5 1z"/><path d="M15 -12.5 l1.5 -2.5 l-2.5 1z"/></g>
+      <g stroke="${c.dark}" stroke-width="0.9"><line x1="-2.8" y1="-9" x2="-2.8" y2="-12"/><line x1="2.8" y1="-9" x2="2.8" y2="-12"/></g>${eyes}
+      <path d="M-1.5 -8 q1.5 1.2 3 0" stroke="#2b2a28" stroke-width="0.5" fill="none"/>${zz}`;
+  }
+
+  function petSvg(pet, pose) {
+    const c = (PET_COLORS[pet.kind] || PET_COLORS.cat)[pet.color] || Object.values(PET_COLORS[pet.kind] || PET_COLORS.cat)[0];
+    if (pet.kind === 'dog') return dogSvg(c, pose);
+    if (pet.kind === 'crab') return crabSvg(c, pose);
+    return catSvg(c, pose);
   }
 
   // A plain sign board with an empty text element the game fills with the shop name.
@@ -1387,6 +1538,7 @@ const Scenes = (function () {
       <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
       <g class="decor"></g>
       <g class="deliveries"></g>
+      <g class="pets"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 320, 190, 110)}
@@ -1401,6 +1553,7 @@ const Scenes = (function () {
       <g class="books"></g>
       ${painted('front', interiorFront(style, building.sign.size))}
       <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
+      <g class="pets"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 240, 0, 0)}
@@ -1447,5 +1600,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, petSvg, PET_COLORS };
 })();
