@@ -31,7 +31,7 @@ const Scenes = (function () {
   const LOCATIONS = [
     {
       id: 'beach',
-      name: 'By the beach entrance',
+      name: 'On the beach',
       blurb: 'Sand in the hinges, salt on the glass. Beach readers are loyal readers.',
       boxColor: '#a9b5b7'               // faded grey-blue paint for the library box
     },
@@ -43,9 +43,15 @@ const Scenes = (function () {
     },
     {
       id: 'street',
-      name: 'On the high street corner',
+      name: 'In town',
       blurb: 'Shops either side and a little white church. Foot traffic guaranteed.',
       boxColor: '#b08a82'               // faded dusty red
+    },
+    {
+      id: 'dock',
+      name: 'On the dock',
+      blurb: 'Gulls, halyards, and a bait shop that opens at five. Fishermen read more than you\u2019d think.',
+      boxColor: '#8fa3ad'               // faded harbour blue
     }
   ];
 
@@ -241,6 +247,28 @@ const Scenes = (function () {
         <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="3" result="noise"/>
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
+      <!-- Sketch mode. The colour layer: a little dustier and warmer, loosely placed. -->
+      <filter id="wobbleFill" x="-3%" y="-3%" width="106%" height="106%">
+        <feColorMatrix in="SourceGraphic" type="saturate" values="0.88" result="dusty"/>
+        <feColorMatrix in="dusty" type="matrix" values="1.05 0 0 0 0.01  0 1 0 0 0.005  0 0 0.93 0 0  0 0 0 1 0" result="warm"/>
+        <!-- Watercolour pooling: pigment gathers where a wash ends, so each shape gets a slightly darker rim. -->
+        <feMorphology in="warm" operator="erode" radius="1.1" result="inner"/>
+        <feComposite in="warm" in2="inner" operator="out" result="rim"/>
+        <feColorMatrix in="rim" type="matrix" values="0.72 0 0 0 0  0 0.72 0 0 0  0 0 0.72 0 0  0 0 0 0.55 0" result="darkRim"/>
+        <feMerge result="pooled"><feMergeNode in="warm"/><feMergeNode in="darkRim"/></feMerge>
+        <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="3" result="noise"/>
+        <feDisplacementMap in="pooled" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <!-- Sketch mode. The ink layer: a scratchier wobble, so lines waver and vary. -->
+      <filter id="wobbleLine" x="-3%" y="-3%" width="106%" height="106%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="11" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="B"/>
+      </filter>
+      <!-- Sketch mode. Paper grain, generated rather than loaded from a file. -->
+      <filter id="paperGrain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="5" result="noise"/>
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.93  0 0 0 0 0.90  0 0 0 0 0.82  0 0 0 0.55 0"/>
+      </filter>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="${skyTop}"/>
         <stop offset="1" stop-color="${skyBottom}"/>
@@ -409,6 +437,47 @@ const Scenes = (function () {
     return s;
   }
 
+  // A boat dock: water, planks, a bait and tackle shop to the left, a little sailboat
+  // moored to the right. The library box stands on the dock.
+  function dock() {
+    let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
+    s += cloud(180, 70, 55) + cloud(560, 100, 50);
+    s += seagull(420, 120) + seagull(470, 105) + seagull(700, 150);
+    // far shore and water
+    s += `<rect x="0" y="230" width="800" height="12" fill="#8fa68a"/><g fill="#f4f1e8"><rect x="300" y="218" width="12" height="12"/><rect x="340" y="222" width="8" height="8"/></g><polygon points="298,218 306,208 314,218" fill="#5a5f66"/>`;
+    s += `<rect x="0" y="242" width="800" height="208" fill="#6f8fa0"/>`;
+    s += `<g stroke="#9fb8c4" stroke-width="2" fill="none" stroke-linecap="round"><path d="M240 270 q15 -4 30 0"/><path d="M420 300 q15 -4 30 0"/><path d="M300 340 q15 -4 30 0"/><path d="M500 262 q15 -4 30 0"/><path d="M760 330 q15 -4 30 0"/></g>`;
+    // the sailboat, moored to the right
+    s += `<rect x="656" y="60" width="6" height="272" fill="#7a5a3e"/>`;
+    s += `<polygon points="662,64 662,76 686,70" fill="#b6413a"/>`;
+    s += `<path d="M659 96 q22 90 6 210 z" fill="#e9e2cf" stroke="#c9b28a" stroke-width="1"/>`;
+    s += `<g stroke="#c9b28a" stroke-width="1.2" opacity="0.8"><line x1="659" y1="64" x2="590" y2="330"/><line x1="659" y1="64" x2="740" y2="326"/></g>`;
+    s += `<rect x="612" y="298" width="96" height="6" fill="#5a4030"/>`;
+    s += `<path d="M566 332 Q580 372 630 374 L740 374 Q766 350 776 326 L730 330 Z" fill="#f4f1e8" stroke="#8a8f94" stroke-width="1.5"/>`;
+    s += `<path d="M578 344 L766 340" stroke="#2b3f5c" stroke-width="5"/>`;
+    s += `<text x="700" y="362" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#2b3f5c" letter-spacing="1">DOG-EAR</text>`;
+    s += `<path d="M566 332 q-30 10 -40 40" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
+    // the dock: planks with pilings and a rope rail
+    s += `<rect x="0" y="372" width="800" height="78" fill="#b39a6f"/>`;
+    s += `<g stroke="#9c845c" stroke-width="2">${[388, 406, 424, 442].map(y => `<line x1="0" y1="${y}" x2="800" y2="${y}"/>`).join('')}</g>`;
+    s += `<g fill="#7d6b58"><rect x="520" y="330" width="14" height="46"/><rect x="760" y="336" width="14" height="40"/><rect x="230" y="340" width="12" height="36"/></g>`;
+    s += `<path d="M534 344 Q650 372 760 350" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
+    // bait and tackle shop, left, on the dock
+    s += `<rect x="20" y="256" width="190" height="116" fill="#a8a08f" stroke="#6b665c" stroke-width="1.5"/>`;
+    s += hLines(20, 210, 266, 368, 7, 0.08);
+    s += `<polygon points="10,260 115,200 220,260" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+    s += `<rect x="170" y="212" width="12" height="30" fill="#a86b5f"/>`;
+    s += `<rect x="42" y="282" width="126" height="20" fill="#f3eee2" stroke="#6b665c" stroke-width="1.5"/>`;
+    s += `<text x="105" y="297" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="#2b3f5c" letter-spacing="1">BAIT &amp; TACKLE</text>`;
+    s += `<rect x="40" y="312" width="52" height="40" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="3"/><line x1="66" y1="312" x2="66" y2="352" stroke="#f4f1e8" stroke-width="2"/>`;
+    s += `<rect x="130" y="308" width="40" height="64" fill="#2b3f5c"/><rect x="138" y="316" width="24" height="22" fill="#dfe8ea"/>`;
+    // a hanging buoy and a coil of rope
+    s += `<line x1="112" y1="312" x2="112" y2="332" stroke="#3a3f44" stroke-width="1.5"/><ellipse cx="112" cy="344" rx="8" ry="12" fill="#e59a5c"/><rect x="104" y="340" width="16" height="6" fill="#f4f1e8"/>`;
+    s += `<circle cx="300" cy="392" r="9" fill="none" stroke="#c9b28a" stroke-width="4"/>`;
+    s += `<rect x="30" y="382" width="30" height="16" fill="#8b6f4e" stroke="#5a4a42"/><g stroke="#5a4a42" stroke-width="1"><line x1="30" y1="390" x2="60" y2="390"/><line x1="40" y1="382" x2="40" y2="398"/><line x1="50" y1="382" x2="50" y2="398"/></g>`;
+    return s;
+  }
+
   // ---- Stage three streets: the same high street, dressed in one architectural style ----
 
   // Dark timbers over a cream wall, for Tudor gables. (x, y, w, h) is the wall.
@@ -564,11 +633,12 @@ const Scenes = (function () {
     return s;
   }
 
-  const BACKDROPS = { beach, park, street, street2, street3dutch, street3cape, street3tudor, green, cliff, harbor };
+  const BACKDROPS = { beach, park, street, dock, street2, street3dutch, street3cape, street3tudor, green, cliff, harbor };
   const SKIES = {
     beach: ['#b9d3dc', '#eef0e6'],
     park: ['#c9dde4', '#eef3ea'],
     street: ['#cddfe6', '#f1efe4'],
+    dock: ['#c6d8e0', '#eef0e6'],
     street2: ['#cddfe6', '#f1efe4'],
     street3dutch: ['#c6dbe4', '#f1efe4'],
     street3cape: ['#cfe0e6', '#f3f0e6'],
@@ -1206,6 +1276,7 @@ const Scenes = (function () {
     door: { x: 455, y: 365 },
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
+    sides: ['left'],                      // the other side is the cliff
     personScale: 1.0,
     deliveryX: 110,
     signX: 560, plantX: 376,
@@ -1304,12 +1375,16 @@ const Scenes = (function () {
     const loc = LOCATIONS.find(l => l.id === locId);
     const color = paintColor || building.paint || (loc && loc.boxColor) || '#a9b5b7';
     const [skyTop, skyBottom] = SKIES[locId];
+    const backdrop = BACKDROPS[locId](building.backdropOpts || {});
+    const bldg = building.draw(color);
+    const front = building.front();
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
-      <g class="backdrop" filter="url(#wobble)">${BACKDROPS[locId](building.backdropOpts || {})}</g>
-      <g class="building">${building.draw(color)}</g>
+      ${painted('backdrop', backdrop)}
+      ${painted('building', bldg)}
       <g class="books"></g>
-      <g class="front">${building.front()}</g>
+      ${painted('front', front)}
+      <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
       <g class="decor"></g>
       <g class="deliveries"></g>
       <g class="customers"></g>
@@ -1322,15 +1397,25 @@ const Scenes = (function () {
     const style = INTERIORS[building.id];
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs('#ffffff', '#ffffff')}
-      <g class="backdrop" filter="url(#wobble)">${interior(style, building.interior.shelves)}</g>
+      ${painted('backdrop', interior(style, building.interior.shelves))}
       <g class="books"></g>
-      <g class="front">${interiorFront(style, building.sign.size)}</g>
+      ${painted('front', interiorFront(style, building.sign.size))}
+      <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 240, 0, 0)}
       <g class="effects"></g>
     </svg>`;
   }
+  // A painted layer draws its content twice: once as colour (fills only) and once as
+  // ink (outlines only). Normally the ink layer is hidden and the colour layer keeps
+  // its outlines, so the picture looks as it always did. In sketch mode the page's
+  // stylesheet shows both, wobbles them differently and offsets the ink a little,
+  // the way hand-inked lines never quite sit on the paint beneath them.
+  function painted(name, content) {
+    return `<g class="${name}"><g class="fills">${content}</g><g class="lines" aria-hidden="true">${content}</g></g>`;
+  }
+
   // The shelf layout for a view: the exterior's windows, or the interior wall.
   function shelvesFor(buildingId, view) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
@@ -1339,6 +1424,12 @@ const Scenes = (function () {
   function stopsFor(buildingId, view) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return (view === 'inside' && b.interior) ? b.interior.stops : b.stops;
+  }
+  // Which sides customers may arrive from. Inside, always both.
+  function sidesFor(buildingId, view) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    if (view === 'inside' && b.interior) return ['left', 'right'];
+    return b.sides || ['left', 'right'];
   }
   // How big people are drawn in this view. 1 is the size that suits a house.
   function personScaleFor(buildingId, view) {
@@ -1356,5 +1447,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant };
 })();

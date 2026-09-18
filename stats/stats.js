@@ -11,6 +11,7 @@
 
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
   const STAGE_NAMES = { 1: 'Little Free Library', 2: 'Shed', 3: 'Real shop', 4: 'The Big One' };
+  // (Locations are not shown on this page; buildings are.)
   const BUILDING_NAMES = {
     lfl: 'Little Free Library', 'garden-shed': 'Garden shed', container: 'Storage container', garage: 'Garage bookshop',
     'dutch-colonial': 'Dutch colonial', 'cape-cod': 'Cape Cod cottage', tudor: 'Tudor revival',
