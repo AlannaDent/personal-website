@@ -42,7 +42,6 @@
   // The wholesaler. Up to this many items are offered each day; each slot has a
   // chance of being empty, and some mornings the van does not come at all.
   const CATALOGUE_SLOTS = 3;
-  const SLOT_FILL_CHANCE = 0.75;
   const NO_VAN_CHANCE = 0.08;
   // Box sizes by shop stage: [small, medium, large] books per box.
   const BOX_SIZES = { 1: [5, 10, 20], 2: [15, 30, 60], 3: [40, 80, 150], 4: [80, 160, 300] };
@@ -52,8 +51,30 @@
     'Publisher\u2019s overstock', 'Library discards, good ones', 'Yard-sale haul', 'Returns from the ferry kiosk'
   ];
   const MYSTERY_CHANCE = 0.15;                    // a mystery box hides its size until opened
-  // Paint and decor also turn up in the catalogue now and then.
-  const DECOR_CHANCE = 0.45;                      // chance a day's catalogue includes one decor item
+  // How the three slots are filled each morning: a book box almost always in the first,
+  // decor most of the time in the others, and now and then a pet.
+  const BOOK_SLOT_CHANCE = 0.95;                  // slot one carries a book box
+  const DECOR_SLOT_CHANCE = 0.7;                  // slots two and three carry decor when there is any left to buy
+  const SPARE_BOOK_CHANCE = 0.5;                  // otherwise, another book box (else the slot is empty)
+  const PET_DAILY_CHANCE = 0.15;                  // about one or two pets a season
+  const MAX_PETS = 3;
+
+  // Pets. Colours and names are chosen when the pet is offered.
+  const PET_KINDS = {
+    cat: { name: 'cat', price: 30, colors: ['white', 'black', 'tuxedo', 'gray', 'brown', 'tabby'], meta: 'wants the sunny shelf', speed: 34 },
+    dog: { name: 'dog', price: 35, colors: ['brown', 'black', 'white', 'yellow'], meta: 'good with customers, they say', speed: 50 },
+    crab: { name: 'crab', price: 20, colors: ['red'], meta: 'red, obviously', speed: 24 }
+  };
+  const PET_COLOR_NAMES = { white: 'White', black: 'Black', tuxedo: 'Tuxedo', gray: 'Grey', brown: 'Brown', tabby: 'Tabby', yellow: 'Yellow lab', red: 'Red' };
+  const PET_NAMES = ['Biscuit', 'Mabel', 'Captain', 'Pickles', 'Scallop', 'Fog', 'Barnacle', 'Marlow', 'Pippin', 'Hazel', 'Otis', 'Juniper', 'Wendell', 'Clementine', 'Gus', 'Nell', 'Salty', 'Moby', 'Quahog', 'Tilly'];
+  const PET_ADOPTED = {
+    cat: ['has opinions about the top shelf.', 'chose the window seat within a minute.', 'inspected every box and approved none.'],
+    dog: ['greeted three customers before lunch.', 'has already found the warmest patch of floor.', 'wagged at the van. Wags at everything.'],
+    crab: ['scuttled under the counter and claimed it.', 'is red, obviously.', 'clicked at a customer. Friendly, we think.']
+  };
+  const PET_GREET_LINES = ['stopped to pet {pet}.', 'crouched down to say hello to {pet}.', 'was thoroughly inspected by {pet}.'];
+  const PET_PLAY_LINES = ['{a} and {b} chased each other round the sign.', '{a} and {b} were caught playing when they should have been napping.', '{a} tried to teach {b} a game. {b} had a different game in mind.'];
+  const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
     { color: '#2f6f6a', name: 'Harbour Teal' },
@@ -65,7 +86,10 @@
     { kind: 'snake', name: 'Snake plant', price: 8, line: 'Set it by the door. Very hard to kill, apparently.' },
     { kind: 'monstera', name: 'Monstera', price: 14, line: 'Enormous leaves. Already reaching for the window.' },
     { kind: 'spider', name: 'Spider plant', price: 7, line: 'Came with three babies dangling off it. Free plants.' },
-    { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect”. Can do.' }
+    { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect”. Can do.' },
+    { kind: 'zz', name: 'ZZ plant', price: 10, line: 'Glossy, upright, unbothered. Thrives on being ignored.' },
+    { kind: 'inch', name: 'Inch plant', price: 6, line: 'Purple and striped, already trailing over the rim. Grows an inch a week, allegedly.' },
+    { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist.' }
   ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
     [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }],
@@ -77,11 +101,15 @@
     mystery: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" fill="#c9a97a" stroke="#8a6a48"/><rect x="10" y="7" width="4" height="13" fill="#e9e2cf"/><text x="12" y="17" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#5c5b56">?</text></svg>`,
     paint: (color) => `<svg class="icon" viewBox="0 0 24 24"><path d="M5 9h14l-1.6 11H6.6z" fill="${color}" stroke="#8a8f94" stroke-width="0.8"/><rect x="4" y="7" width="16" height="3" rx="0.6" fill="#8a8f94"/><path d="M8 7a4 4 0 0 1 8 0" stroke="#8a8f94" stroke-width="1.5" fill="none"/></svg>`,
     sign: () => `<svg class="icon" viewBox="0 0 24 24"><polygon points="7,3 17,3 20,21 4,21" fill="#7d6b58"/><rect x="7.5" y="5" width="9" height="10" fill="#2f3a36"/><line x1="9.5" y1="9" x2="14.5" y2="9" stroke="#f4efe4" stroke-width="1"/><line x1="10" y1="12" x2="14" y2="12" stroke="#f4efe4" stroke-width="0.8" opacity="0.7"/></svg>`,
+    pet: (pet) => `<svg class="icon" viewBox="-16 -26 32 30">${Scenes.petSvg(pet, 'sit')}</svg>`,
     plant: (kind) => ({
       snake: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-7h6l1 7z" fill="#b8734f"/><g fill="#4f7a4a" stroke="#d9c46a" stroke-width="0.5"><path d="M10 14q-2-5 0-11q2 6 1 11z"/><path d="M13 14q2-6 1-12q-3 6-2 12z"/><path d="M11.5 14q-1-7 1-13q1 7 0 13z"/></g></svg>`,
       monstera: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-6h6l1 6z" fill="#8a8f94"/><g fill="#3f6b3a"><ellipse cx="8" cy="9" rx="4" ry="5" transform="rotate(-25 8 9)"/><ellipse cx="16" cy="9" rx="4" ry="5" transform="rotate(25 16 9)"/><ellipse cx="12" cy="6" rx="3.5" ry="5"/></g><g stroke="#c9d9b8" stroke-width="0.8"><line x1="12" y1="2" x2="12" y2="10"/><line x1="8" y1="5" x2="8" y2="13"/><line x1="16" y1="5" x2="16" y2="13"/></g></svg>`,
       spider: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#e9e2cf"/><g stroke="#7fa563" stroke-width="2" fill="none" stroke-linecap="round"><path d="M12 16q-6-4-9-2"/><path d="M12 16q6-4 9-2"/><path d="M12 16q-4-7-2-11"/><path d="M12 16q4-7 2-11"/><path d="M12 16q0-8 0-12"/></g></svg>`,
-      orchid: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-4h4l1 4z" fill="#dfe8ea"/><path d="M12 17q1-8 5-13" stroke="#4f7a4a" stroke-width="1.2" fill="none"/><g fill="#d98c9c"><circle cx="15" cy="9" r="2.6"/><circle cx="17.5" cy="4.5" r="2.4"/><circle cx="13" cy="13" r="2.2"/></g><g fill="#b6413a"><circle cx="15" cy="9" r="0.8"/><circle cx="17.5" cy="4.5" r="0.7"/><circle cx="13" cy="13" r="0.7"/></g><path d="M11 17q-5-1-6-5q4 0 6 5z" fill="#4f7a4a"/></svg>`
+      orchid: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-4h4l1 4z" fill="#dfe8ea"/><path d="M12 17q1-8 5-13" stroke="#4f7a4a" stroke-width="1.2" fill="none"/><g fill="#d98c9c"><circle cx="15" cy="9" r="2.6"/><circle cx="17.5" cy="4.5" r="2.4"/><circle cx="13" cy="13" r="2.2"/></g><g fill="#b6413a"><circle cx="15" cy="9" r="0.8"/><circle cx="17.5" cy="4.5" r="0.7"/><circle cx="13" cy="13" r="0.7"/></g><path d="M11 17q-5-1-6-5q4 0 6 5z" fill="#4f7a4a"/></svg>`,
+      zz: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#3a3f44"/><g stroke="#2f5230" stroke-width="1" fill="none"><path d="M12 16q-2-6-4-12"/><path d="M12 16q2-6 4-12"/></g><g fill="#3f6b3a"><ellipse cx="9" cy="6" rx="2.2" ry="1.2" transform="rotate(-30 9 6)"/><ellipse cx="10" cy="10" rx="2.2" ry="1.2" transform="rotate(-30 10 10)"/><ellipse cx="15" cy="6" rx="2.2" ry="1.2" transform="rotate(30 15 6)"/><ellipse cx="14" cy="10" rx="2.2" ry="1.2" transform="rotate(30 14 10)"/><ellipse cx="11" cy="13" rx="2" ry="1.1" transform="rotate(-30 11 13)"/><ellipse cx="13" cy="13" rx="2" ry="1.1" transform="rotate(30 13 13)"/></g></svg>`,
+      inch: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-6h4l1 6z" fill="#e9e2cf" stroke="#b5aea0" stroke-width="0.5"/><g fill="#6b4f8a"><ellipse cx="7" cy="12" rx="4" ry="1.6" transform="rotate(-40 7 12)"/><ellipse cx="17" cy="12" rx="4" ry="1.6" transform="rotate(40 17 12)"/><ellipse cx="12" cy="8" rx="4" ry="1.6"/><ellipse cx="5" cy="17" rx="3.5" ry="1.5" transform="rotate(-80 5 17)"/><ellipse cx="19" cy="17" rx="3.5" ry="1.5" transform="rotate(80 19 17)"/></g><g stroke="#9fd0c4" stroke-width="0.6"><line x1="9" y1="8" x2="15" y2="8"/><line x1="5" y1="14" x2="9" y2="10"/><line x1="19" y1="14" x2="15" y2="10"/></g></svg>`,
+      fern: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#b8734f"/><g stroke="#4f7a4a" stroke-width="0.9" fill="none"><path d="M12 16q-5-4-8-10"/><path d="M12 16q5-4 8-10"/><path d="M12 16q0-6 0-12"/></g><g fill="#6a955f"><ellipse cx="8" cy="10" rx="2" ry="0.8" transform="rotate(-50 8 10)"/><ellipse cx="6" cy="8" rx="2" ry="0.8" transform="rotate(-50 6 8)"/><ellipse cx="16" cy="10" rx="2" ry="0.8" transform="rotate(50 16 10)"/><ellipse cx="18" cy="8" rx="2" ry="0.8" transform="rotate(50 18 8)"/><ellipse cx="11" cy="9" rx="2" ry="0.8" transform="rotate(-30 11 9)"/><ellipse cx="13" cy="9" rx="2" ry="0.8" transform="rotate(30 13 9)"/><ellipse cx="11" cy="6" rx="1.6" ry="0.7" transform="rotate(-30 11 6)"/><ellipse cx="13" cy="6" rx="1.6" ry="0.7" transform="rotate(30 13 6)"/></g></svg>`
     }[kind] || '')
   };
 
@@ -257,8 +285,11 @@
     { desc: 'A man in a mustard raincoat', coat: '#c99a3a', hat: null, scarf: null, prop: null, propColor: null },
     { desc: 'A girl in a beret', coat: '#2f6f6a', hat: '#a5443a', scarf: null, prop: 'basket', propColor: '#c9a86a', small: true },
     { desc: 'A jogger who slowed down', coat: '#8a9bb3', hat: null, scarf: null, prop: null, propColor: null },
-    { desc: 'Someone walking a very patient dog', coat: '#6b5b7a', hat: '#2b2a28', scarf: null, prop: 'tote', propColor: '#a5443a' }
+    { desc: 'Someone walking a very patient dog', coat: '#6b5b7a', hat: '#2b2a28', scarf: null, prop: null, propColor: null, companion: { kind: 'dog', colors: ['yellow', 'brown', 'white'] } },
+    { desc: 'A man with a small scruffy dog', coat: '#8a6248', hat: '#5a4030', scarf: null, prop: null, propColor: null, companion: { kind: 'dog', colors: ['brown', 'black'], small: true } },
+    { desc: 'A girl with a crab in a bucket', coat: '#d98c9c', hat: null, scarf: null, prop: 'basket', propColor: '#8a8f94', small: true, companion: { kind: 'crab', colors: ['red'], carried: true } }
   ];
+  const SNIFF_LINES = ['{pet} and the visiting {kind} sniffed noses and agreed on something.', '{pet} met the visiting {kind}. Circling ensued. Then friendship.', '{pet} and the visiting {kind} had a long conversation nobody else could follow.'];
 
   // =========================================================
   // 2. The game state
@@ -278,7 +309,8 @@
   //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
   //   state.decor     : what the shop owns and shows: { paint (colour on the walls or null),
   //                     paints: [colours owned, kept for good], signs, signOut,
-  //                     plants: [plant kinds owned], plantOut (the kind out front, or null) }
+  //                     plants: [plant kinds owned], plantOut (the kind out front, or null),
+  //                     pets: [{ id, kind, color, name }], petsOut: [ids out and about] }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.reserve   : books in the back room, not yet on a shelf
@@ -302,6 +334,7 @@
     if (d.signOut) a += APPEAL.sign;
     if (d.plantOut) a += APPEAL.plantOut;
     a += APPEAL.extraPlant * Math.max(0, (d.plants || []).length - 1);
+    a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
   }
   // Roughly how many customers today's shop can expect.
@@ -326,7 +359,7 @@
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
     return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
-  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null }; }
+  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null, pets: [], petsOut: [] }; }
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
@@ -435,6 +468,7 @@
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books, state.building, state.view);
     drawDecor();
+    syncPets();
     const plate = svg.querySelector('.box-sign:not(.chalk)');
     if (plate) fitSign(plate, state.shopName, state.building);
     applySeasonTint();
@@ -657,6 +691,7 @@
     drawBooksInto($('scene').querySelector('svg'), state.books, state.building, state.view);
     drawHud();
     drawOrderForm();
+    drawInventory();
     drawLog();
     drawGoal();
     save();
@@ -687,9 +722,11 @@
     const onSameSide = customers.filter(c => c.side === side).length;
     const stops = Scenes.stopsFor(state.building, state.view);
     const gap = 38 * personScale();                  // bigger people stand further apart
+    const look = randomFrom(CUSTOMER_LOOKS);
     const c = {
       id: 'c' + Math.random().toString(36).slice(2, 8),
-      look: randomFrom(CUSTOMER_LOOKS),
+      look,
+      companion: look.companion ? { kind: look.companion.kind, color: randomFrom(look.companion.colors), small: !!look.companion.small, carried: !!look.companion.carried } : null,
       side,
       x: side === 'left' ? -40 * personScale() : Scenes.VIEW.width + 40 * personScale(),
       stopX: side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap),
@@ -719,7 +756,29 @@
     if (L.scarf) body += `<rect x="-10" y="-33" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="-31" width="5" height="12" fill="${L.scarf}"/>`;
     if (L.prop === 'tote') body += `<rect x="13" y="-22" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -22 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
     if (L.prop === 'basket') body += `<path d="M13 -20 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -20 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    body += companionSvg(c);
     return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
+  }
+
+  // A visiting animal beside its person: a dog on a lead trotting behind (sitting while
+  // its person browses), or a crab riding in the bucket.
+  function companionSvg(c) {
+    const k = c.companion;
+    if (!k) return '';
+    const pet = { kind: k.kind, color: k.color };
+    if (k.carried) {
+      // peeking out of the basket the girl carries
+      return `<g transform="translate(19 -21) scale(0.28)">${Scenes.petSvg(pet, 'sit')}</g>`;
+    }
+    const pose = c.state === 'browsing' ? 'sit' : 'stand';
+    const s = k.small ? 0.36 : 0.48;
+    return `<line x1="-13" y1="-20" x2="-22" y2="${-9 * s - 2}" stroke="#7d6b58" stroke-width="0.9"/>
+      <g transform="translate(-24 0) scale(${s})">${Scenes.petSvg(pet, pose)}</g>`;
+  }
+  // Redraw a customer in place (used when its companion changes pose).
+  function redrawCustomer(c) {
+    const el = document.getElementById(c.id);
+    if (el) el.outerHTML = customerSvg(c);
   }
 
   function moveCustomerElement(c, bob) {
@@ -729,12 +788,113 @@
     el.setAttribute('transform', `translate(${c.x} ${Scenes.GROUND_Y - bob}) scale(${c.dir * scale} ${scale})`);
   }
 
+  // ---- Pets out and about ----
+  // Each pet out front is a small actor: where it is, what it is doing, and until when.
+  // States: 'wander' (walking to a spot), 'sit', 'nap', 'greet' (beside a customer),
+  // 'play' (with another pet). Nothing here is saved; pets pick up where they like.
+  let petActors = [];
+  const petScale = () => personScale() * 0.9;
+  function petBounds() { return state.view === 'inside' ? [150, 650] : [70, 730]; }
+
+  // Rebuild the actors from the save: called when the scene is drawn or pets change.
+  function syncPets() {
+    const svg = $('scene').querySelector('svg');
+    if (!svg) return;
+    const out = (state.decor.pets || []).filter(p => (state.decor.petsOut || []).includes(p.id));
+    petActors = petActors.filter(a => out.some(p => p.id === a.pet.id));
+    out.forEach(p => {
+      if (!petActors.some(a => a.pet.id === p.id)) {
+        const [lo, hi] = petBounds();
+        petActors.push({ pet: p, x: lo + Math.random() * (hi - lo), dir: 1, state: 'sit', until: performance.now() + 1500, targetX: null, pose: null, partner: null, lastLogDay: -1 });
+      }
+    });
+    const group = svg.querySelector('.pets');
+    group.innerHTML = petActors.map(a => `<g id="${a.pet.id}" class="pet"></g>`).join('');
+    petActors.forEach(a => { a.pose = null; renderPet(a); });
+  }
+
+  function renderPet(a) {
+    const el = document.getElementById(a.pet.id);
+    if (!el) return;
+    const pose = a.state === 'nap' ? 'nap' : (a.state === 'sit' || a.state === 'greet') ? 'sit' : 'stand';
+    if (pose !== a.pose) { el.innerHTML = Scenes.petSvg(a.pet, pose); a.pose = pose; }
+    const s = petScale();
+    const flip = a.pet.kind === 'crab' ? 1 : a.dir;      // crabs face the viewer and scuttle sideways
+    const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s : 0;
+    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - bob).toFixed(1)}) scale(${flip * s} ${s})`);
+  }
+
+  function petJournal(a, line) {
+    if (a.lastLogDay === dayIndex()) return;           // one note per pet per day is plenty
+    a.lastLogDay = dayIndex();
+    addLog(line);
+    drawLog();
+    save();
+  }
+
+  function updatePets(dt, now) {
+    if (!petActors.length) return;
+    const [lo, hi] = petBounds();
+    const night = state.clock.night;
+    petActors.forEach(a => {
+      const info = PET_KINDS[a.pet.kind];
+      if (a.state === 'wander') {
+        const speed = info.speed * (0.7 + 0.3 * personScale());
+        if (a.targetX === null) a.targetX = lo + Math.random() * (hi - lo);
+        const dx = a.targetX - a.x;
+        a.dir = dx >= 0 ? 1 : -1;
+        if (Math.abs(dx) < speed * dt) {
+          a.x = a.targetX; a.targetX = null;
+          if (a.partner) { a.state = 'play'; a.until = now + 2500 + Math.random() * 1500; }
+          else if (a.greeting) {
+            a.state = 'greet'; a.until = now + 3000; a.greeting = false;
+            floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
+            const t = a.greetTarget;
+            if (t && t.companion && !t.companion.carried && t.state === 'browsing') floatText(t.x - t.dir * 24 * personScale(), Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
+            a.greetTarget = null;
+          }
+          else if (Math.random() < (night ? 0.7 : 0.3)) { a.state = 'nap'; a.until = now + 8000 + Math.random() * 8000; if (!night && Math.random() < 0.5) petJournal(a, randomFrom(PET_NAP_LINES).replace('{pet}', a.pet.name)); }
+          else { a.state = 'sit'; a.until = now + 2000 + Math.random() * 4000; }
+        } else {
+          a.x += Math.sign(dx) * speed * dt;
+        }
+      } else if (now >= a.until) {
+        if (a.state === 'play' && a.partner) { const p = a.partner; a.partner = null; if (p.partner === a) p.partner = null; }
+        a.state = 'wander';
+        a.targetX = null;
+        // Sometimes wander toward a browsing customer to be petted.
+        const browsing = customers.filter(c => c.state === 'browsing');
+        const withAnimals = browsing.filter(c => c.companion && !c.companion.carried);
+        if (!night && browsing.length && Math.random() < (withAnimals.length ? 0.7 : 0.35)) {
+          const c = withAnimals.length ? randomFrom(withAnimals) : randomFrom(browsing);
+          const beside = c.companion && !c.companion.carried ? -c.dir * 30 * personScale() : (Math.random() < 0.5 ? -1 : 1) * 26 * personScale();
+          a.targetX = Math.max(lo, Math.min(hi, c.x + beside));
+          a.greeting = true;
+          a.greetTarget = c;
+          if (c.companion && !c.companion.carried) petJournal(a, randomFrom(SNIFF_LINES).split('{pet}').join(a.pet.name).replace('{kind}', PET_KINDS[c.companion.kind].name));
+          else if (Math.random() < 0.5) petJournal(a, `${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
+        }
+      }
+    });
+    // Two pets who are both wandering may decide to play.
+    const free = petActors.filter(a => a.state === 'wander' && !a.partner && !a.greeting);
+    if (free.length >= 2 && !night && Math.random() < 0.0004) {   // per frame: a game every minute or so
+      const [a, b] = free.sort(() => Math.random() - 0.5);
+      const meet = Math.max(lo, Math.min(hi, (a.x + b.x) / 2));
+      a.partner = b; b.partner = a;
+      a.targetX = meet - 10 * petScale(); b.targetX = meet + 10 * petScale();
+      petJournal(a, randomFrom(PET_PLAY_LINES).split('{a}').join(a.pet.name).split('{b}').join(b.pet.name));
+    }
+    petActors.forEach(renderPet);
+  }
+
   // The loop. The browser calls this about 60 times a second.
   function tick(now) {
     if (!running) return;
     const dt = Math.min(0.1, (now - lastFrame) / 1000);   // seconds since last frame, capped
     lastFrame = now;
     advanceClock(dt * 1000, now);
+    updatePets(dt, now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
@@ -756,6 +916,7 @@
           c.x = c.stopX;
           c.state = 'browsing';
           c.browseUntil = now + 1800 + Math.random() * 1800;
+          if (c.companion) redrawCustomer(c);
           moveCustomerElement(c, 0);
         }
       } else if (c.state === 'browsing') {
@@ -763,6 +924,7 @@
           completeVisit(c);
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
+          if (c.companion) redrawCustomer(c);
         }
       } else if (c.state === 'leaving') {
         c.x += c.dir * speed * dt;
@@ -813,37 +975,47 @@
   function ensureCatalogue() {
     if (state.catalogue && state.catalogue.dayIndex === dayIndex()) return;
     const items = [];
+    const newId = () => 'i' + Math.random().toString(36).slice(2, 8);
     if (Math.random() >= NO_VAN_CHANCE) {
       const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
       const names = BOX_NAMES.slice().sort(() => Math.random() - 0.5);   // shuffled, so no repeats today
-      for (let slot = 0; slot < CATALOGUE_SLOTS; slot++) {
-        if (Math.random() > SLOT_FILL_CHANCE) continue;
+      const bookBox = () => {
         const tier = Math.floor(Math.random() * 3);
         const books = sizes[tier];
         const mystery = Math.random() < MYSTERY_CHANCE;
-        items.push({
-          id: 'i' + Math.random().toString(36).slice(2, 8),
-          name: mystery ? 'Mystery box' : names.pop(),
-          books,
+        return {
+          id: newId(), kind: 'books', name: mystery ? 'Mystery box' : names.pop(), books,
           // A mystery box is priced like a medium box at a discount; its size is decided when opened.
           price: Math.max(1, Math.round(mystery ? sizes[1] * BOX_PRICE_PER_BOOK[1] * 0.7 : books * BOX_PRICE_PER_BOOK[tier])),
-          mystery,
-          ordered: false
-        });
-      }
-    }
-    // Now and then the van also carries paint or decor. Signs and plants are not offered
-    // again once the shop owns one.
-    if (items.length || Math.random() < DECOR_CHANCE) {
+          mystery, ordered: false
+        };
+      };
       const owned = state.decor || freshDecor();
-      const choices = DECOR_ITEMS.filter(d =>
+      const decorChoices = DECOR_ITEMS.filter(d =>
         !(d.kind === 'sign' && owned.signs > 0) &&
         !(d.kind === 'plant' && owned.plants.includes(d.plant)) &&
         !(d.kind === 'paint' && owned.paints.includes(d.color)));
-      if (choices.length && Math.random() < DECOR_CHANCE) {
-        const d = randomFrom(choices);
-        const item = { id: 'i' + Math.random().toString(36).slice(2, 8), kind: d.kind, name: d.name, books: 0, price: d.price, mystery: false, ordered: false, color: d.color || null, plant: d.plant || null };
-        if (items.length >= CATALOGUE_SLOTS) items[items.length - 1] = item; else items.push(item);
+      const decorItem = () => {
+        const d = decorChoices.splice(Math.floor(Math.random() * decorChoices.length), 1)[0];
+        return { id: newId(), kind: d.kind, name: d.name, books: 0, price: d.price, mystery: false, ordered: false, color: d.color || null, plant: d.plant || null };
+      };
+      const petItem = () => {
+        const kind = randomFrom(Object.keys(PET_KINDS));
+        const info = PET_KINDS[kind];
+        const color = randomFrom(info.colors);
+        const taken = (owned.pets || []).map(p => p.name);
+        const name = randomFrom(PET_NAMES.filter(n => !taken.includes(n)).concat(taken.length ? [] : PET_NAMES));
+        return { id: newId(), kind: 'pet', name: `${PET_COLOR_NAMES[color]} ${info.name} \u00b7 ${name}`, books: 0, price: info.price, mystery: false, ordered: false, pet: { kind, color, name } };
+      };
+      // Slot one: books, almost always.
+      if (Math.random() < BOOK_SLOT_CHANCE) items.push(bookBox());
+      // A pet, now and then, while there is room for one.
+      const petToday = (owned.pets || []).length < MAX_PETS && Math.random() < PET_DAILY_CHANCE;
+      // Slots two and three: decor most of the time, else another box, else empty.
+      for (let slot = 1; slot < CATALOGUE_SLOTS; slot++) {
+        if (petToday && slot === CATALOGUE_SLOTS - 1) { items.push(petItem()); continue; }
+        if (decorChoices.length && Math.random() < DECOR_SLOT_CHANCE) items.push(decorItem());
+        else if (Math.random() < SPARE_BOOK_CHANCE) items.push(bookBox());
       }
     }
     state.catalogue = { dayIndex: dayIndex(), items };
@@ -858,8 +1030,9 @@
     // order at night and it arrives tomorrow night.
     const arrives = dayIndex() + (state.clock.night ? 1 : 0);
     const when = state.clock.night ? 'tomorrow night' : 'tonight';
-    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, arrives });
-    if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives ${when}.`);
+    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, pet: item.pet || null, arrives });
+    if (item.kind === 'pet') addLog(`Arranged to adopt a ${item.name.toLowerCase().replace(' \u00b7 ', ' called ')} for ${item.price} coins. The carrier arrives ${when}.`);
+    else if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives ${when}.`);
     else addLog(item.mystery
       ? `Ordered a mystery box for ${item.price} coins. Arrives ${when}. Could be anything.`
       : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives ${when}.`);
@@ -872,7 +1045,7 @@
     const due = state.orders.filter(o => o.arrives <= dayIndex());
     if (!due.length) return;
     state.orders = state.orders.filter(o => o.arrives > dayIndex());
-    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null }));
+    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null, pet: o.pet || null }));
     addLog(`The van came at closing. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
   }
 
@@ -938,6 +1111,18 @@
       if (!decor.plants.includes(kind)) decor.plants.push(kind);
       decor.plantOut = kind;                // the newest plant takes the spot by the door
       addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}`);
+    } else if (box.kind === 'pet' && box.pet) {
+      if ((decor.pets || []).length >= MAX_PETS) { addLog('The carrier came, but three is the limit. Sent back with apologies and a biscuit.'); }
+      else {
+        const pet = { id: 'p' + Math.random().toString(36).slice(2, 8), kind: box.pet.kind, color: box.pet.color, name: box.pet.name };
+        decor.pets = decor.pets || [];
+        decor.petsOut = decor.petsOut || [];
+        decor.pets.push(pet);
+        decor.petsOut.push(pet.id);
+        addLog(`Opened the carrier: a ${PET_COLOR_NAMES[pet.color].toLowerCase()} ${PET_KINDS[pet.kind].name} called ${pet.name}. ${pet.name} ${randomFrom(PET_ADOPTED[pet.kind])}`);
+        bumpLifetime(life => { life.petsAdopted = (life.petsAdopted || 0) + 1; });
+        syncPets();
+      }
     }
     bumpLifetime(life => { life.boxesOpened = (life.boxesOpened || 0) + 1; });
     drawDecor();
@@ -959,10 +1144,37 @@
     drawInventory();
     refresh();
   }
-  function toggleDecor(kind, plantKind) {
+  // ---- Renaming a pet ----
+  const PET_NAME_MAX = 15;
+  let renamingPet = null;
+  function startRename(petId) {
+    renamingPet = petId;
+    drawInventory();
+  }
+  function finishRename(petId, value) {
+    if (renamingPet !== petId) return;
+    renamingPet = null;
+    const pet = (state.decor.pets || []).find(p => p.id === petId);
+    const name = value === null ? '' : value.trim().slice(0, PET_NAME_MAX);
+    if (pet && name && name !== pet.name) {
+      const old = pet.name;
+      pet.name = name;
+      addLog(`${old} is now ${name}. ${name} didn\u2019t mind.`);
+      drawLog();
+      save();
+    }
+    drawInventory();
+  }
+
+  function toggleDecor(kind, plantKind, petId) {
     if (kind === 'sign' && state.decor.signs > 0) state.decor.signOut = !state.decor.signOut;
     if (kind === 'plant' && state.decor.plants.includes(plantKind)) {
       state.decor.plantOut = state.decor.plantOut === plantKind ? null : plantKind;   // one plant out at a time
+    }
+    if (kind === 'pet' && petId) {
+      const out = state.decor.petsOut || [];
+      state.decor.petsOut = out.includes(petId) ? out.filter(id => id !== petId) : out.concat([petId]);
+      syncPets();
     }
     drawDecor();
     drawInventory();
@@ -991,8 +1203,26 @@
       const out = decor.plantOut === kind;
       rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${out ? 'By the door' : 'In the back'}</span></div></div><button class="button small" data-toggle="plant" data-plant="${kind}">${out ? 'Take in' : 'Put out'}</button></li>`);
     });
-    if (rows.length === 1) rows.push(`<li><span class="empty">No decor yet. The van sometimes carries paint, a sign and plants.</span></li>`);
+    (decor.pets || []).forEach(pet => {
+      const out = (decor.petsOut || []).includes(pet.id);
+      const nameCell = renamingPet === pet.id
+        ? `<input class="rename" type="text" maxlength="${PET_NAME_MAX}" value="${pet.name.replace(/"/g, '&quot;')}" data-rename-input="${pet.id}" aria-label="New name">`
+        : `<span class="item-name">${pet.name} <button class="pencil" data-rename="${pet.id}" title="Rename ${pet.name}" aria-label="Rename ${pet.name}">\u270e</button></span>`;
+      rows.push(`<li><div class="item-row">${ICONS.pet(pet)}<div>${nameCell}<span class="item-meta">${PET_COLOR_NAMES[pet.color]} ${PET_KINDS[pet.kind].name} \u00b7 ${out ? 'out and about' : 'asleep on the boxes in the back'}</span></div></div><button class="button small" data-toggle="pet" data-pet="${pet.id}">${out ? 'Take in' : 'Put out'}</button></li>`);
+    });
+    if (rows.length === 1) rows.push(`<li><span class="empty">No decor yet. The van sometimes carries paint, a sign, plants, and once in a while a pet.</span></li>`);
     $('inventory').innerHTML = rows.join('');
+    // While renaming, focus the box and wire up Enter, Escape and clicking away.
+    const box = $('inventory').querySelector('[data-rename-input]');
+    if (box) {
+      box.focus();
+      box.select();
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') finishRename(box.dataset.renameInput, box.value);
+        if (e.key === 'Escape') finishRename(box.dataset.renameInput, null);
+      });
+      box.addEventListener('blur', () => finishRename(box.dataset.renameInput, box.value));
+    }
     const paint = PAINTS.find(p => p.color === decor.paint);
     $('inventory-hint').textContent = paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`;
     drawAppeal();
@@ -1063,9 +1293,10 @@
         const kind = item.kind || 'books';
         const meta = kind === 'paint' ? `one bucket \u00b7 ${item.price} coins`
           : kind === 'sign' ? `A-frame, chalk included \u00b7 ${item.price} coins`
+          : kind === 'pet' ? `${PET_KINDS[item.pet.kind].meta} \u00b7 ${item.price} coins`
           : kind === 'plant' ? `terracotta pot \u00b7 ${item.price} coins`
           : item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
-        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
+        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
           : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
@@ -1091,7 +1322,7 @@
     const size = Math.max(22, 16 * personScale());
     const x0 = Scenes.deliveryXFor(state.building);
     group.innerHTML = state.deliveries.map((d, i) =>
-      Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : (d.kind && d.kind !== 'books') ? '\u2605' : d.books)
+      Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : d.kind === 'pet' ? '\u2665' : (d.kind && d.kind !== 'books') ? '\u2605' : d.books)
     ).join('');
     if (!state.clock.night) group.querySelectorAll('.delivery-box').forEach(b => b.classList.add('waiting'));
   }
@@ -1160,6 +1391,7 @@
     state.decor.paint = null;             // the new place wears its own paint until you change it
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
     if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
+    if ((state.decor.pets || []).length) addLog(`${state.decor.pets.map(p => p.name).join(' and ')} came along and immediately went exploring.`);
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
 
@@ -1241,6 +1473,8 @@
         data.decor.plantOut = data.decor.plantOut ? 'snake' : null;
       }
       if (Array.isArray(data.decor.paints)) data.decor.paints = data.decor.paints.filter((c, i, a) => a.indexOf(c) === i);
+      if (!Array.isArray(data.decor.pets)) data.decor.pets = [];
+      if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;
@@ -1282,7 +1516,9 @@
       const shelve = e.target.closest('[data-shelve]');
       if (shelve) { shelveReserve(); return; }
       const toggle = e.target.closest('[data-toggle]');
-      if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant); return; }
+      if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant, toggle.dataset.pet); return; }
+      const rename = e.target.closest('[data-rename]');
+      if (rename) { startRename(rename.dataset.rename); return; }
     });
     // Clicking a box in the scene opens it.
     $('scene').addEventListener('click', (e) => {
