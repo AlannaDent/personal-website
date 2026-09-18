@@ -173,7 +173,15 @@
   const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
   const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, max: 2.2 };
   const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
-  const BUY_CHANCE = 0.85;                // the rest browse and leave
+  const BUY_CHANCE = 0.85;                // the rest browse and leave, when the shelves are full
+  // Well-stocked shelves draw people in. At empty shelves footfall falls to STOCK_FLOOR of
+  // normal and buying to BUY_FLOOR of normal; both scale up smoothly to full shelves.
+  const STOCK_FLOOR = 0.35;
+  const BUY_FLOOR = 0.55;
+  const THIN_SHELF_LINES = [
+    'Shelves looked a bit thin. Said they\u2019d come back.', 'Peered at the gaps on the shelves and drifted off.',
+    'Found nothing that grabbed them. Not much to grab.', 'Asked when the next delivery was.'
+  ];
   const BROWSED_LINES = [
     'Browsed every shelf. Bought nothing. Smiled anyway.', 'Read half a chapter standing up, then put it back.',
     'Asked if we had it in paperback. We did not.', 'Just looking, thanks. Looked for a long time.',
@@ -337,9 +345,13 @@
     a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
   }
-  // Roughly how many customers today's shop can expect.
+  // How full the shelves are, 0 to 1.
+  const shelfFill = () => booksInStock() / Math.max(1, capacity());
+  // Footfall multiplier from stock: full shelves 1, empty shelves STOCK_FLOOR.
+  const stockPull = () => STOCK_FLOOR + (1 - STOCK_FLOOR) * shelfFill();
+  // Roughly how many customers today's shop can expect, at the current stock level.
   function expectedCustomersToday() {
-    return BASE_CUSTOMERS_PER_DAY[state.stage] * appeal() * SEASON_FOOTFALL[seasonName()];
+    return BASE_CUSTOMERS_PER_DAY[state.stage] * appeal() * SEASON_FOOTFALL[seasonName()] * stockPull();
   }
   // Time until the next arrival: the open hours spread over today's expected
   // visitors, give or take. Returns milliseconds.
@@ -364,6 +376,8 @@
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
   const dayFraction = () => Math.min(1, state.clock.ms / DAY_MS);
+  // About one winter day in three is a snow day. Fixed per day so it survives a reload.
+  const isSnowDay = () => seasonName() === 'Winter' && ((dayIndex() * 7919) % 3 === 0);
   const phaseName = () => state.clock.night ? 'Night' : PHASES.find(p => dayFraction() < p.until).name;
   const seasonName = () => SEASONS[state.clock.season];
   const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
@@ -581,6 +595,8 @@
     glow.setAttribute('opacity', glowOpacity.toFixed(2));
   }
   function applySeasonTint() {
+    SEASONS.forEach(s => document.body.classList.remove('season-' + s.toLowerCase()));
+    document.body.classList.add('season-' + seasonName().toLowerCase());
     const tint = $('scene').querySelector('svg .season-tint');
     if (!tint) return;
     const [color, outside, inside] = SEASON_TINT[seasonName()];
@@ -639,6 +655,8 @@
     } else {
       addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
     }
+    if (isSnowDay()) addLog('Snow today. The kind that squeaks underfoot.');
+    weather = [];
     ensureCatalogue();
     nextSpawnAt = performance.now() + Math.min(8000, nextArrivalGap());
     drawOrderForm();
@@ -766,14 +784,17 @@
     const k = c.companion;
     if (!k) return '';
     const pet = { kind: k.kind, color: k.color };
+    // The person's group is already scaled by personScale (and 0.8 for a child), so the
+    // animal's own factor here brings it to the same size as the shop's pets (0.9 x person).
+    const personFactor = c.look.small ? 0.8 : 1;
     if (k.carried) {
       // peeking out of the basket the girl carries
-      return `<g transform="translate(19 -21) scale(0.28)">${Scenes.petSvg(pet, 'sit')}</g>`;
+      return `<g transform="translate(20 -22) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
     const pose = c.state === 'browsing' ? 'sit' : 'stand';
-    const s = k.small ? 0.36 : 0.48;
-    return `<line x1="-13" y1="-20" x2="-22" y2="${-9 * s - 2}" stroke="#7d6b58" stroke-width="0.9"/>
-      <g transform="translate(-24 0) scale(${s})">${Scenes.petSvg(pet, pose)}</g>`;
+    const s = (k.small ? 0.72 : 0.9) / personFactor;
+    return `<line x1="-13" y1="-20" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
+      <g transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
   function redrawCustomer(c) {
@@ -888,6 +909,48 @@
     petActors.forEach(renderPet);
   }
 
+  // ---- Weather: leaves on the wind in autumn, snow on winter snow days ----
+  let weather = [];             // particles: { x, y, vx, vy, phase, size, color, kind, rot }
+  let nextGustAt = 0;
+  let lastWeatherDraw = 0;
+  const LEAF_COLORS = ['#c9782e', '#a5443a', '#d9a441', '#b85c2a'];
+
+  function updateWeather(dt, now) {
+    if (state.view === 'inside') { weather = []; return; }
+    const season = seasonName();
+    // Autumn: every so often a gust carries a handful of leaves across the scene.
+    if (season === 'Autumn' && !state.clock.night && now >= nextGustAt) {
+      const count = 8 + Math.floor(Math.random() * 7);
+      for (let i = 0; i < count; i++) {
+        weather.push({ kind: 'leaf', x: 820 + Math.random() * 160, y: 100 + Math.random() * 260, vx: -(130 + Math.random() * 90), vy: 26 + Math.random() * 30, phase: Math.random() * 6.3, size: 4 + Math.random() * 3, color: randomFrom(LEAF_COLORS), rot: Math.random() * 360 });
+      }
+      nextGustAt = now + 12000 + Math.random() * 16000;
+    }
+    // Winter snow days: keep a steady scatter of flakes drifting down, day and night.
+    if (isSnowDay()) {
+      const flakes = weather.filter(p => p.kind === 'flake').length;
+      for (let i = flakes; i < 42; i++) {
+        weather.push({ kind: 'flake', x: Math.random() * 800, y: flakes === 0 ? Math.random() * 450 : -10, vx: -6 + Math.random() * 12, vy: 22 + Math.random() * 30, phase: Math.random() * 6.3, size: 1.2 + Math.random() * 1.8, color: '#f6f4ee', rot: 0 });
+      }
+    }
+    // Move everything, retire what has left the scene, recycle flakes at the bottom.
+    weather = weather.filter(p => {
+      p.phase += dt * (p.kind === 'leaf' ? 5 : 1.6);
+      p.x += (p.vx + Math.sin(p.phase) * (p.kind === 'leaf' ? 40 : 14)) * dt;
+      p.y += p.vy * dt + (p.kind === 'leaf' ? Math.cos(p.phase) * 18 * dt : 0);
+      if (p.kind === 'leaf') p.rot += 240 * dt;
+      if (p.kind === 'flake' && p.y > 445) { if (!isSnowDay()) return false; p.y = -6; p.x = Math.random() * 800; return true; }
+      return p.x > -40 && p.y < 460;
+    });
+    if (now - lastWeatherDraw < 50) return;         // draw at about 20 frames a second
+    lastWeatherDraw = now;
+    const group = $('scene').querySelector('svg .weather');
+    if (!group) return;
+    group.innerHTML = weather.map(p => p.kind === 'leaf'
+      ? `<ellipse cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" rx="${p.size.toFixed(1)}" ry="${(p.size * 0.55).toFixed(1)}" fill="${p.color}" transform="rotate(${p.rot.toFixed(0)} ${p.x.toFixed(0)} ${p.y.toFixed(0)})"/>`
+      : `<circle cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" r="${p.size.toFixed(1)}" fill="${p.color}" opacity="0.9"/>`).join('');
+  }
+
   // The loop. The browser calls this about 60 times a second.
   function tick(now) {
     if (!running) return;
@@ -895,6 +958,7 @@
     lastFrame = now;
     advanceClock(dt * 1000, now);
     updatePets(dt, now);
+    updateWeather(dt, now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
@@ -946,8 +1010,9 @@
   // What happens when a customer finishes browsing.
   function completeVisit(c) {
     const stocked = state.books.map((b, i) => (b ? i : -1)).filter(i => i >= 0);
-    if (stocked.length > 0 && Math.random() > BUY_CHANCE) {
-      addLog(`${c.look.desc}. ${randomFrom(BROWSED_LINES)}`);
+    const buyChance = BUY_CHANCE * (BUY_FLOOR + (1 - BUY_FLOOR) * shelfFill());
+    if (stocked.length > 0 && Math.random() > buyChance) {
+      addLog(`${c.look.desc}. ${shelfFill() < 0.5 && Math.random() < 0.6 ? randomFrom(THIN_SHELF_LINES) : randomFrom(BROWSED_LINES)}`);
       floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
       state.books[randomFrom(stocked)] = null;
@@ -1238,8 +1303,10 @@
     if (!d.plantOut) missing.push('a plant by the door');
     const season = SEASON_FOOTFALL[seasonName()];
     const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
+    const fill = shelfFill();
+    const stockNote = fill >= 0.9 ? ' Full shelves draw them in.' : fill >= 0.5 ? ` Shelves ${Math.round(fill * 100)}% full: some walk on by.` : fill > 0 ? ` Shelves only ${Math.round(fill * 100)}% full: most walk on by.` : ' Empty shelves. Hardly anyone stops.';
     const stars = '\u2605'.repeat(Math.round((appeal() - 1) / (APPEAL.max - 1) * 4)) + '\u2606'.repeat(4 - Math.round((appeal() - 1) / (APPEAL.max - 1) * 4));
-    $('appeal-note').innerHTML = `<span class="stars">${stars}</span> About <strong>${expected}</strong> ${expected === 1 ? 'customer' : 'customers'} a day.${seasonNote}` +
+    $('appeal-note').innerHTML = `<span class="stars">${stars}</span> About <strong>${expected}</strong> ${expected === 1 ? 'customer' : 'customers'} a day.${seasonNote}${stockNote}` +
       (missing.length ? ` More would come for ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : ' The shop is as inviting as it gets.');
   }
 
