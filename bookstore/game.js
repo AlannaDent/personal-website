@@ -138,7 +138,19 @@
   };
   const STAGE_TAGLINES = { 1: 'Stage one: the Little Free Library', 2: 'Stage two: the Shed', 3: 'Stage three: A Real Shop', 4: 'Stage four: The Big One' };
   const MAX_CUSTOMERS = { 1: 3, 2: 4, 3: 5, 4: 6 };              // people on screen at once
-  const SPAWN_GAP = { 1: [3500, 7500], 2: [2800, 6000], 3: [2200, 5000], 4: [1800, 4200] }; // ms between arrivals, min and max
+
+  // Footfall. Customers trickle in at a base rate per stage, multiplied by the shop's
+  // appeal (decor) and the season. Even a fully decorated shop in high summer should
+  // fall short of selling out: the maximum is about 17 sales against 20 books at stage one.
+  const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
+  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, max: 2.2 };
+  const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
+  const BUY_CHANCE = 0.85;                // the rest browse and leave
+  const BROWSED_LINES = [
+    'Browsed every shelf. Bought nothing. Smiled anyway.', 'Read half a chapter standing up, then put it back.',
+    'Asked if we had it in paperback. We did not.', 'Just looking, thanks. Looked for a long time.',
+    'Photographed the shop. Did not buy the book.', 'Left a bookmark in something. Will be back for it, probably.'
+  ];
 
   // Small print under the stage title. One is chosen at random on each page load,
   // from the list for the building the player is in.
@@ -281,6 +293,27 @@
   const $ = (id) => document.getElementById(id);
   const randomFrom = (list) => list[Math.floor(Math.random() * list.length)];
   const building = () => Scenes.BUILDINGS[state.building];
+  // How inviting the shop looks, from 1 (bare) to APPEAL.max (everything out front).
+  function appeal() {
+    const d = state.decor || freshDecor();
+    let a = 1;
+    if (d.paint) a += APPEAL.paint;
+    if (d.signOut) a += APPEAL.sign;
+    if (d.plantOut) a += APPEAL.plantOut;
+    a += APPEAL.extraPlant * Math.max(0, (d.plants || []).length - 1);
+    return Math.min(APPEAL.max, a);
+  }
+  // Roughly how many customers today's shop can expect.
+  function expectedCustomersToday() {
+    return BASE_CUSTOMERS_PER_DAY[state.stage] * appeal() * SEASON_FOOTFALL[seasonName()];
+  }
+  // Time until the next arrival: the open hours spread over today's expected
+  // visitors, give or take. Returns milliseconds.
+  function nextArrivalGap() {
+    const openMs = DAY_MS * LAST_CUSTOMER_AT;
+    const gap = openMs / Math.max(1, expectedCustomersToday());
+    return gap * (0.6 + Math.random() * 0.8);
+  }
   // How big people are drawn right now (see personScale in scenes.js).
   const personScale = () => Scenes.personScaleFor(state.building, state.view);
   const customerScale = (c) => personScale() * (c.look.small ? 0.8 : 1);
@@ -384,7 +417,7 @@
     drawGoal();
     applyDaylight(true);
     customers = [];
-    nextSpawnAt = performance.now() + 1500;   // first customer arrives soon
+    nextSpawnAt = performance.now() + Math.min(8000, nextArrivalGap());   // first customer before long
     if (!running) {
       running = true;
       lastFrame = performance.now();
@@ -572,9 +605,10 @@
       addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
     }
     ensureCatalogue();
-    nextSpawnAt = performance.now() + 1500;
+    nextSpawnAt = performance.now() + Math.min(8000, nextArrivalGap());
     drawOrderForm();
     drawDeliveries();
+    drawAppeal();
     drawLog();
     drawDate();
     applyDaylight(true);
@@ -608,7 +642,7 @@
     } else {
       $('goal-text').textContent = `${state.coins} of ${goal.cost} coins saved.`;
       upgradeButton.classList.add('hidden');
-      $('goal-hint').textContent = goal.next ? 'Paint and decor arrive in a later stage.' : 'Stage four is still being built.';
+      $('goal-hint').textContent = goal.next ? 'Decor brings more customers. Keep an eye on the order form.' : 'Stage four is still being built.';
     }
   }
 
@@ -704,8 +738,7 @@
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     if (shopOpen && now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
       spawnCustomer();
-      const [min, max] = SPAWN_GAP[state.stage];
-      nextSpawnAt = now + min + Math.random() * (max - min);
+      nextSpawnAt = now + nextArrivalGap();
     }
 
     customers.forEach(c => {
@@ -747,7 +780,10 @@
   // What happens when a customer finishes browsing.
   function completeVisit(c) {
     const stocked = state.books.map((b, i) => (b ? i : -1)).filter(i => i >= 0);
-    if (stocked.length > 0) {
+    if (stocked.length > 0 && Math.random() > BUY_CHANCE) {
+      addLog(`${c.look.desc}. ${randomFrom(BROWSED_LINES)}`);
+      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
+    } else if (stocked.length > 0) {
       state.books[randomFrom(stocked)] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
@@ -938,6 +974,22 @@
     $('inventory').innerHTML = rows.length ? rows.join('') : `<li><span class="empty">Nothing yet. The van sometimes carries paint and decor.</span></li>`;
     const paint = PAINTS.find(p => p.color === decor.paint);
     $('inventory-hint').textContent = paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`;
+    drawAppeal();
+  }
+
+  // The footfall line under the inventory: how many to expect, and what would help.
+  function drawAppeal() {
+    const expected = Math.round(expectedCustomersToday());
+    const d = state.decor;
+    const missing = [];
+    if (!d.paint) missing.push('a coat of paint');
+    if (!d.signOut) missing.push('the chalkboard out front');
+    if (!d.plantOut) missing.push('a plant by the door');
+    const season = SEASON_FOOTFALL[seasonName()];
+    const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
+    const stars = '\u2605'.repeat(Math.round((appeal() - 1) / (APPEAL.max - 1) * 4)) + '\u2606'.repeat(4 - Math.round((appeal() - 1) / (APPEAL.max - 1) * 4));
+    $('appeal-note').innerHTML = `<span class="stars">${stars}</span> About <strong>${expected}</strong> ${expected === 1 ? 'customer' : 'customers'} a day.${seasonNote}` +
+      (missing.length ? ` More would come for ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : ' The shop is as inviting as it gets.');
   }
 
   // The chalkboard and the plant, drawn outside the shop when they are out.
