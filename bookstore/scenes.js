@@ -384,6 +384,43 @@ const Scenes = (function () {
     return catSvg(c, pose);
   }
 
+  // Bare winter branches, fanning up from the top of a trunk. Hidden except in winter.
+  function bareBranches(x, y, s) {
+    return `<g class="bare" stroke="#5a4030" stroke-width="${4 * s}" fill="none" stroke-linecap="round" transform="translate(${x} ${y}) scale(${s})">
+      <path d="M0 0 q-22 -40 -48 -56"/><path d="M0 0 q16 -46 42 -64"/><path d="M0 0 q-2 -52 -6 -84"/>
+      <path d="M-14 -26 q-16 -8 -34 -10" stroke-width="${2.6 * s}"/><path d="M12 -30 q14 -14 30 -20" stroke-width="${2.6 * s}"/>
+      <path d="M-30 -42 q-8 -14 -6 -26" stroke-width="${2 * s}"/><path d="M26 -50 q10 -10 8 -26" stroke-width="${2 * s}"/><path d="M-4 -60 q6 -12 18 -16" stroke-width="${2 * s}"/>
+    </g>`;
+  }
+
+  // Seasonal touches on the ground and in the sky. Each group is shown by the page
+  // stylesheet only in its season. grassy: whether wildflowers make sense here.
+  function seasonalLayer(grassy) {
+    let seed = 41;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    let leaves = '';
+    const leafColors = ['#c9782e', '#a5443a', '#d9a441', '#b85c2a'];
+    for (let i = 0; i < 30; i++) {
+      const x = rnd() * 800, y = 382 + rnd() * 52, r = rnd() * 360;
+      leaves += `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="5" ry="2.6" fill="${leafColors[i % 4]}" transform="rotate(${r.toFixed(0)} ${x.toFixed(0)} ${y.toFixed(0)})"/>`;
+    }
+    let drifts = '';
+    [[60, 404, 90, 9], [230, 412, 70, 7], [400, 420, 110, 10], [600, 406, 80, 8], [760, 416, 90, 9], [130, 434, 120, 8], [520, 438, 130, 9]].forEach(([cx, cy, rx, ry]) => {
+      drifts += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#f6f4ee" opacity="0.92"/>`;
+    });
+    let flowers = '';
+    if (grassy) {
+      const petals = ['#d98c9c', '#e8c46a', '#ffffff', '#9b7f9c', '#b6413a'];
+      for (let i = 0; i < 26; i++) {
+        const x = rnd() * 800, y = 380 + rnd() * 50;
+        flowers += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${x.toFixed(0)}" y2="${(y - 6).toFixed(0)}" stroke="#4f7a4a" stroke-width="1"/><circle cx="${x.toFixed(0)}" cy="${(y - 7).toFixed(0)}" r="2.2" fill="${petals[i % 5]}"/>`;
+      }
+    }
+    const sun = `<circle cx="690" cy="72" r="46" fill="#f6d9a8" opacity="0.28"/><circle cx="690" cy="72" r="26" fill="#f6d9a8"/><g stroke="#f6d9a8" stroke-width="2" opacity="0.6">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="${(690 + 34 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y1="${(72 + 34 * Math.sin(a * Math.PI / 180)).toFixed(0)}" x2="${(690 + 44 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y2="${(72 + 44 * Math.sin(a * Math.PI / 180)).toFixed(0)}"/>`).join('')}</g>`;
+    return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g><g class="summer-sun">${sun}</g>`;
+  }
+  const GRASSY = ['park', 'green', 'street2', 'cliff'];
+
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -475,7 +512,7 @@ const Scenes = (function () {
   function park() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(520, 70, 55) + cloud(240, 100, 45);
-    s += `<path d="M0 255 Q60 215 120 250 T240 245 T360 255 T480 240 T600 255 T720 245 T800 255 L800 300 L0 300 Z" fill="#7f9a68"/>`;
+    s += `<path class="leaf-line" d="M0 255 Q60 215 120 250 T240 245 T360 255 T480 240 T600 255 T720 245 T800 255 L800 300 L0 300 Z" fill="#7f9a68"/>`;
     s += `<rect x="0" y="290" width="800" height="160" fill="#9dbb6f"/>`;
     s += `<path d="M0 340 C200 320 500 360 800 335 L800 450 L0 450 Z" fill="#a6c277"/>`;
     s += `<path d="M0 425 C200 408 600 408 800 425 L800 440 C600 424 200 424 0 440 Z" fill="#d5c7a2"/>`;
@@ -491,8 +528,9 @@ const Scenes = (function () {
       <g stroke="#8a7f92" stroke-width="2"><line x1="742" y1="285" x2="768" y2="285"/><line x1="748" y1="265" x2="768" y2="265"/><line x1="754" y1="245" x2="768" y2="245"/></g>
     </g>`;
     s += `<rect x="70" y="250" width="22" height="150" fill="#7a5a3e"/>`;
-    s += `<g fill="#6f9556"><circle cx="80" cy="200" r="70"/><circle cx="40" cy="235" r="48"/><circle cx="125" cy="220" r="55"/></g>`;
-    s += `<g fill="#7fa563"><circle cx="70" cy="180" r="40"/><circle cx="115" cy="205" r="30"/></g>`;
+    s += bareBranches(81, 250, 1);
+    s += `<g class="leaf" fill="#6f9556"><circle cx="80" cy="200" r="70"/><circle cx="40" cy="235" r="48"/><circle cx="125" cy="220" r="55"/></g>`;
+    s += `<g class="leaf alt" fill="#7fa563"><circle cx="70" cy="180" r="40"/><circle cx="115" cy="205" r="30"/></g>`;
     s += `<g fill="#8b6f4e">
       <rect x="120" y="340" width="150" height="12"/><rect x="120" y="300" width="150" height="10"/><rect x="120" y="318" width="150" height="8"/>
       <rect x="128" y="350" width="9" height="50"/><rect x="253" y="350" width="9" height="50"/>
@@ -577,8 +615,9 @@ const Scenes = (function () {
     s += `<g transform="translate(-560 0)">${taffyShop()}</g>`;
     // tree behind the fence, right
     s += `<rect x="712" y="240" width="18" height="135" fill="#7a5a3e"/>`;
-    s += `<g fill="#6f9556"><circle cx="720" cy="200" r="58"/><circle cx="685" cy="230" r="38"/><circle cx="758" cy="222" r="42"/></g>`;
-    s += `<g fill="#7fa563"><circle cx="712" cy="185" r="32"/><circle cx="750" cy="205" r="22"/></g>`;
+    s += bareBranches(721, 240, 0.85);
+    s += `<g class="leaf" fill="#6f9556"><circle cx="720" cy="200" r="58"/><circle cx="685" cy="230" r="38"/><circle cx="758" cy="222" r="42"/></g>`;
+    s += `<g class="leaf alt" fill="#7fa563"><circle cx="712" cy="185" r="32"/><circle cx="750" cy="205" r="22"/></g>`;
     // lawn behind the fence
     s += `<rect x="600" y="345" width="200" height="30" fill="#9dbb6f"/>`;
     s += picketFence(600, 800, 375);
@@ -736,12 +775,13 @@ const Scenes = (function () {
   function green() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(140, 70, 55) + cloud(660, 95, 60);
-    s += `<path d="M0 262 Q80 232 160 258 T320 252 T480 262 T640 250 T800 262 L800 300 L0 300 Z" fill="#7f9a68"/>`;
+    s += `<path class="leaf-line" d="M0 262 Q80 232 160 258 T320 252 T480 262 T640 250 T800 262 L800 300 L0 300 Z" fill="#7f9a68"/>`;
     s += `<rect x="0" y="292" width="800" height="160" fill="#9dbb6f"/>`;
     [[70, 200], [730, 205]].forEach(([cx, cy]) => {
       s += `<rect x="${cx - 12}" y="${cy + 40}" width="24" height="160" fill="#7a5a3e"/>`;
-      s += `<g fill="#6f9556"><circle cx="${cx}" cy="${cy}" r="72"/><circle cx="${cx - 45}" cy="${cy + 40}" r="46"/><circle cx="${cx + 48}" cy="${cy + 30}" r="52"/></g>`;
-      s += `<g fill="#7fa563"><circle cx="${cx - 10}" cy="${cy - 22}" r="40"/><circle cx="${cx + 36}" cy="${cy}" r="28"/></g>`;
+      s += bareBranches(cx, cy + 40, 1.05);
+      s += `<g class="leaf" fill="#6f9556"><circle cx="${cx}" cy="${cy}" r="72"/><circle cx="${cx - 45}" cy="${cy + 40}" r="46"/><circle cx="${cx + 48}" cy="${cy + 30}" r="52"/></g>`;
+      s += `<g class="leaf alt" fill="#7fa563"><circle cx="${cx - 10}" cy="${cy - 22}" r="40"/><circle cx="${cx + 36}" cy="${cy}" r="28"/></g>`;
     });
     s += `<polygon points="370,400 430,400 470,450 330,450" fill="#d5c7a2"/>`;
     s += picketFence(0, 330, 400) + picketFence(470, 800, 400);
@@ -1532,6 +1572,7 @@ const Scenes = (function () {
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
       ${painted('backdrop', backdrop)}
+      ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
       ${painted('building', bldg)}
       <g class="books"></g>
       ${painted('front', front)}
@@ -1540,6 +1581,7 @@ const Scenes = (function () {
       <g class="deliveries"></g>
       <g class="pets"></g>
       <g class="customers"></g>
+      <g class="weather"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 320, 190, 110)}
       <g class="effects"></g>
