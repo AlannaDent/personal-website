@@ -141,6 +141,76 @@ const Scenes = (function () {
     </g>`;
   }
 
+  // ---- Decor the player can buy ----
+  // An A-frame chalkboard with the shop name in chalk. (x, y) is the bottom centre;
+  // scale follows the people so it reads as about waist-high.
+  function chalkboard(x, y, scale) {
+    return `<g class="chalkboard" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="13" ry="1.6" fill="#000" opacity="0.12"/>
+      <g stroke="#7d6b58" stroke-width="2.2" stroke-linecap="round"><line x1="-12" y1="0" x2="-7" y2="-29"/><line x1="12" y1="0" x2="7" y2="-29"/><line x1="-8" y1="-8" x2="8" y2="-8"/></g>
+      <rect x="-11.5" y="-31" width="23" height="24" rx="1.2" fill="#7d6b58"/>
+      <rect x="-10" y="-29.5" width="20" height="21" fill="#2f3a36"/>
+      <text class="box-sign chalk" x="0" y="-21" text-anchor="middle" font-family="Caveat, 'Bradley Hand', cursive" font-size="5" fill="#f4efe4"></text>
+      <text class="chalk-line2" x="0" y="-15.5" text-anchor="middle" font-family="Caveat, 'Bradley Hand', cursive" font-size="5" fill="#f4efe4"></text>
+      <line x1="-6" y1="-13" x2="6" y2="-13" stroke="#f4efe4" stroke-width="0.7" opacity="0.6"/>
+      <text x="0" y="-9.5" text-anchor="middle" font-family="Caveat, cursive" font-size="3.2" fill="#f4efe4" opacity="0.85">open</text>
+    </g>`;
+  }
+  // A snake plant in a terracotta pot. (x, y) is the bottom centre.
+  function snakePlant(x, y, scale) {
+    const leaf = (dx, h, lean) => `<path d="M${dx} -9 q${lean - 2} ${-h * 0.45} ${lean} ${-h} q${2 - lean * 0.4} ${h * 0.55} ${-lean + 1.5} ${h}z" fill="#4f7a4a" stroke="#d9c46a" stroke-width="0.6"/>`;
+    return `<g class="plant snake-plant" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="8" ry="1.4" fill="#000" opacity="0.12"/>
+      ${leaf(-3, 22, -2)}${leaf(3, 26, 2)}${leaf(0, 30, 0.5)}${leaf(-5, 18, -3)}${leaf(5, 20, 3)}
+      <path d="M-6.5 -9.5 l1.5 9.5 h10 l1.5 -9.5 z" fill="#b8734f" stroke="#8a5a3a" stroke-width="0.6"/>
+      <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#a05f3e"/>
+    </g>`;
+  }
+
+  // A monstera: a few big, split leaves on stems, in a wide pot.
+  function monstera(x, y, scale) {
+    const leaf = (cx, cy, r, rot) => `<g transform="translate(${cx} ${cy}) rotate(${rot})"><path d="M0 0 C-${r * 0.9} -${r * 0.3} -${r * 0.9} -${r * 1.5} 0 -${r * 1.7} C${r * 0.9} -${r * 1.5} ${r * 0.9} -${r * 0.3} 0 0 z" fill="#3f6b3a" stroke="#2f5230" stroke-width="0.5"/><g stroke="#c9d9b8" stroke-width="0.9" opacity="0.9"><line x1="0" y1="-1" x2="0" y2="-${r * 1.5}"/><line x1="-${r * 0.7}" y1="-${r * 0.6}" x2="0" y2="-${r * 0.9}"/><line x1="${r * 0.7}" y1="-${r * 0.6}" x2="0" y2="-${r * 0.9}"/><line x1="-${r * 0.7}" y1="-${r * 1.1}" x2="0" y2="-${r * 1.3}"/><line x1="${r * 0.7}" y1="-${r * 1.1}" x2="0" y2="-${r * 1.3}"/></g></g>`;
+    return `<g class="plant monstera" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="10" ry="1.6" fill="#000" opacity="0.12"/>
+      <g stroke="#3f6b3a" stroke-width="1.4" fill="none"><path d="M0 -10 q-4 -8 -9 -12"/><path d="M0 -10 q4 -9 8 -14"/><path d="M0 -10 q0 -9 1 -18"/></g>
+      ${leaf(-9, -22, 7, -30)}${leaf(8, -24, 7.5, 28)}${leaf(1, -28, 6.5, 0)}
+      <path d="M-8 -11 l1.5 11 h13 l1.5 -11 z" fill="#8a8f94" stroke="#5c5b56" stroke-width="0.6"/>
+      <rect x="-8.8" y="-12.6" width="17.6" height="2.4" rx="0.6" fill="#6f7478"/>
+    </g>`;
+  }
+  // A spider plant: arching striped leaves and a couple of dangling plantlets.
+  function spiderPlant(x, y, scale) {
+    const blade = (rot, len) => `<g transform="rotate(${rot})"><path d="M0 -9 q${len * 0.35} -${len * 0.6} ${len * 0.9} -${len * 0.35} q-${len * 0.5} ${len * 0.1} -${len * 0.9} ${len * 0.35}z" fill="#7fa563" stroke="#e9e2cf" stroke-width="0.5"/></g>`;
+    let leaves = '';
+    [-70, -50, -30, -12, 8, 28, 48, 68].forEach((rot, i) => { leaves += blade(rot, 14 + (i % 3) * 3); });
+    return `<g class="plant spider-plant" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="9" ry="1.5" fill="#000" opacity="0.12"/>
+      ${leaves}
+      <g stroke="#c9d9b8" stroke-width="0.6" fill="none"><path d="M-6 -12 q-8 4 -10 12"/><path d="M7 -12 q8 3 9 12"/></g>
+      <g fill="#7fa563"><path d="M-16 0 l-2 -4 l2 -1 l2 1 z"/><path d="M-16 0 l-3 1 l2 -3z"/><path d="M16 0 l-2 -4 l2 -1 l2 1 z"/><path d="M16 0 l3 1 l-2 -3z"/></g>
+      <path d="M-6 -10 l1 8 h10 l1 -8 z" fill="#e9e2cf" stroke="#b5aea0" stroke-width="0.6"/>
+      <rect x="-6.8" y="-11.5" width="13.6" height="2.2" rx="0.6" fill="#d9d0bf"/>
+    </g>`;
+  }
+  // An orchid: two broad leaves, a tall stem, and a run of pink blooms.
+  function orchid(x, y, scale) {
+    const bloom = (cx, cy, r) => `<g transform="translate(${cx} ${cy})"><g fill="#d98c9c">${[0, 72, 144, 216, 288].map(a => `<ellipse cx="${r * Math.cos(a * Math.PI / 180)}" cy="${r * Math.sin(a * Math.PI / 180)}" rx="${r * 0.7}" ry="${r * 0.45}" transform="rotate(${a} ${r * Math.cos(a * Math.PI / 180)} ${r * Math.sin(a * Math.PI / 180)})"/>`).join('')}</g><circle r="${r * 0.35}" fill="#b6413a"/><circle r="${r * 0.15}" fill="#f2e6b8"/></g>`;
+    return `<g class="plant orchid" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="7" ry="1.3" fill="#000" opacity="0.12"/>
+      <g fill="#4f7a4a" stroke="#2f5230" stroke-width="0.4"><path d="M-1 -8 q-9 -2 -11 -8 q7 -1 11 5z"/><path d="M1 -8 q9 -3 10 -9 q-7 0 -10 6z"/></g>
+      <path d="M0 -9 q1 -10 3 -18 q1 -6 5 -12" stroke="#4f7a4a" stroke-width="1.1" fill="none"/>
+      <line x1="0" y1="-9" x2="2" y2="-26" stroke="#7d6b58" stroke-width="0.7" opacity="0.7"/>
+      ${bloom(2.5, -20, 2.4)}${bloom(4.5, -27, 2.6)}${bloom(7.5, -34, 2.6)}${bloom(9.5, -39.5, 2.2)}
+      <path d="M-5 -8 l1 8 h8 l1 -8 z" fill="#dfe8ea" stroke="#9fb0c4" stroke-width="0.6"/>
+      <rect x="-5.6" y="-9.4" width="11.2" height="2" rx="0.6" fill="#c9d6dd"/>
+    </g>`;
+  }
+  // One entry point for every plant the shop can own.
+  const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid };
+  function plant(kind, x, y, scale) {
+    return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
+  }
+
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -528,9 +598,10 @@ const Scenes = (function () {
       { bottom: 318, firstX: 353, step: 9.5, width: 8, count: 10, minH: 26, varH: 9 }
     ],
     sign: { size: 9.5, small: 7.6 },
-    stops: { left: 262, right: 538 },
+    stops: { left: 212, right: 588 },
     personScale: 3.2,                     // a real person next to a real Little Free Library
-    deliveryX: 600,                       // where the van sets boxes down
+    deliveryX: 660,                       // where the van sets boxes down
+    signX: 308, plantX: 492,              // where the chalkboard and a plant stand
     backdropOpts: {},
     draw(color) {
       return `
@@ -551,8 +622,7 @@ const Scenes = (function () {
         <polygon points="352,242 382,242 352,292" fill="#fff" opacity="0.25"/>
         <rect x="350" y="240" width="100" height="80" fill="none" stroke="#5c5b56" stroke-width="2"/>
         <rect x="443" y="274" width="3" height="12" fill="#2f2f2f"/>
-        <g fill="#2f2f2f"><rect x="352" y="250" width="4" height="6"/><rect x="352" y="304" width="4" height="6"/></g>
-        ${signBoard(360, 336, 80, 18, this.sign.size)}`;
+        <g fill="#2f2f2f"><rect x="352" y="250" width="4" height="6"/><rect x="352" y="304" width="4" height="6"/></g>`;
     }
   };
 
@@ -571,6 +641,7 @@ const Scenes = (function () {
     stops: { left: 240, right: 560 },
     personScale: 2.3,
     deliveryX: 620,
+    signX: 520, plantX: 282,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
@@ -600,7 +671,6 @@ const Scenes = (function () {
       s += `<g stroke="#6a6a60" stroke-width="1.5" opacity="0.7"><line x1="302" y1="252" x2="326" y2="388"/><line x1="498" y1="252" x2="474" y2="388"/></g>`;
       s += `<g fill="#2f2f2f"><rect x="322" y="316" width="3" height="10"/><rect x="475" y="316" width="3" height="10"/></g>`;
       s += `<rect x="330" y="250" width="140" height="140" fill="none" stroke="#3e352e" stroke-width="2"/>`;
-      s += signBoard(345, 232, 110, 16, this.sign.size);
       return s;
     }
   };
@@ -620,6 +690,7 @@ const Scenes = (function () {
     stops: { left: 232, right: 588 },
     personScale: 1.7,
     deliveryX: 640,
+    signX: 560, plantX: 262,
     backdropOpts: { boardwalkX: 590, signX: 150 },
     draw(color) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -639,14 +710,11 @@ const Scenes = (function () {
       this.shelves.forEach(sh => { s += `<rect x="310" y="${sh.bottom}" width="200" height="2.5" fill="#8a7460"/>`; });
       // end-door locking bars, right end
       s += `<g stroke="#2f3a3a" stroke-width="3"><line x1="533" y1="258" x2="533" y2="392"/><line x1="538" y1="258" x2="538" y2="392"/></g>`;
-      // sign posts on the roof
-      s += `<g fill="#7d6b58"><rect x="352" y="232" width="4" height="18"/><rect x="464" y="232" width="4" height="18"/></g>`;
       return s;
     },
     front() {
       let s = `<rect x="310" y="270" width="200" height="120" fill="none" stroke="#2f3a3a" stroke-width="2.5"/>`;
       s += `<rect x="306" y="392" width="208" height="5" fill="#4f6262"/>`;
-      s += signBoard(340, 228, 140, 20, this.sign.size);
       return s;
     }
   };
@@ -666,6 +734,7 @@ const Scenes = (function () {
     stops: { left: 400, right: 636 },
     personScale: 1.25,
     deliveryX: 690,
+    signX: 604, plantX: 428,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
@@ -697,9 +766,7 @@ const Scenes = (function () {
       return s;
     },
     front() {
-      let s = `<rect x="440" y="290" width="140" height="106" fill="none" stroke="#3e352e" stroke-width="2"/>`;
-      s += signBoard(455, 268, 110, 15, this.sign.size);
-      return s;
+      return `<rect x="440" y="290" width="140" height="106" fill="none" stroke="#3e352e" stroke-width="2"/>`;
     }
   };
 
@@ -743,6 +810,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
+    signX: 582, plantX: 216,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -768,7 +836,7 @@ const Scenes = (function () {
       return s;
     },
     front() {
-      return shopFrontGlass('#f4f1e8') + signBoard(330, 264, 140, 18, this.sign.size);
+      return shopFrontGlass('#f4f1e8');
     }
   };
 
@@ -787,6 +855,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
+    signX: 582, plantX: 216,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -815,7 +884,7 @@ const Scenes = (function () {
       return s;
     },
     front() {
-      return shopFrontGlass('#f4f1e8') + signBoard(330, 266, 140, 17, this.sign.size);
+      return shopFrontGlass('#f4f1e8');
     }
   };
 
@@ -834,6 +903,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
+    signX: 582, plantX: 216,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -863,7 +933,7 @@ const Scenes = (function () {
       // dark mullions across the shop windows, in the Tudor manner
       let s = shopFrontGlass('#3d2a22');
       s += `<g stroke="#3d2a22" stroke-width="2" opacity="0.85">${[272, 305, 338, 462, 495, 528].map(x => `<line x1="${x}" y1="285" x2="${x}" y2="395"/>`).join('')}</g>`;
-      return s + signBoard(330, 262, 140, 18, this.sign.size);
+      return s;
     }
   };
 
@@ -1077,6 +1147,7 @@ const Scenes = (function () {
     stops: { left: 235, right: 565 },
     personScale: 1.0,
     deliveryX: 650,
+    signX: 566, plantX: 236,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1099,7 +1170,7 @@ const Scenes = (function () {
       s += hydrangeas(258, 384) + hydrangeas(500, 384);
       return s;
     },
-    front() { return signBoard(330, 216, 140, 18, this.sign.size); }
+    front() { return ''; }
   };
 
   BUILDINGS.lighthouse = {
@@ -1117,6 +1188,7 @@ const Scenes = (function () {
     stops: { left: 250, right: 590 },
     personScale: 1.0,
     deliveryX: 110,
+    signX: 560, plantX: 376,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1141,7 +1213,7 @@ const Scenes = (function () {
       s += `<rect x="436" y="396" width="40" height="4" fill="#9a948a"/>`;
       return s;
     },
-    front() { return signBoard(386, 290, 140, 16, this.sign.size); }
+    front() { return ''; }
   };
 
   BUILDINGS.ship = {
@@ -1159,6 +1231,7 @@ const Scenes = (function () {
     stops: { left: 250, right: 560 },
     personScale: 1.15,
     deliveryX: 660,
+    signX: 610, plantX: 160,
     backdropOpts: {},
     draw(color) {
       let s = '';
@@ -1189,7 +1262,7 @@ const Scenes = (function () {
       s += `<path d="M205 366 Q150 380 128 372" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
       return s;
     },
-    front() { return signBoard(240, 282, 120, 16, this.sign.size); }
+    front() { return ''; }
   };
 
 
@@ -1203,12 +1276,13 @@ const Scenes = (function () {
   // fills the empty .books and .customers groups as the game runs.
   // view is 'outside' (default) or 'inside'. Inside is only available for
   // buildings that define an interior.
-  function render(locationId, buildingId, view) {
+  // paintColor, if given, is the player's own coat of paint on the walls.
+  function render(locationId, buildingId, view, paintColor) {
     const building = BUILDINGS[buildingId] || BUILDINGS.lfl;
     if (view === 'inside' && building.interior) return renderInterior(building);
     const locId = BACKDROPS[locationId] ? locationId : 'park';
     const loc = LOCATIONS.find(l => l.id === locId);
-    const color = building.paint || (loc && loc.boxColor) || '#a9b5b7';
+    const color = paintColor || building.paint || (loc && loc.boxColor) || '#a9b5b7';
     const [skyTop, skyBottom] = SKIES[locId];
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
@@ -1216,6 +1290,7 @@ const Scenes = (function () {
       <g class="building">${building.draw(color)}</g>
       <g class="books"></g>
       <g class="front">${building.front()}</g>
+      <g class="decor"></g>
       <g class="deliveries"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
@@ -1253,7 +1328,11 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return b.deliveryX || 640;
   }
+  function decorSpotsFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return { signX: b.signX || 300, plantX: b.plantX || 500 };
+  }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor, deliveryXFor, deliveryBox };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant };
 })();

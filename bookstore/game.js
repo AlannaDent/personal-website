@@ -52,6 +52,38 @@
     'Publisher\u2019s overstock', 'Library discards, good ones', 'Yard-sale haul', 'Returns from the ferry kiosk'
   ];
   const MYSTERY_CHANCE = 0.15;                    // a mystery box hides its size until opened
+  // Paint and decor also turn up in the catalogue now and then.
+  const DECOR_CHANCE = 0.45;                      // chance a day's catalogue includes one decor item
+  const PAINTS = [
+    { color: '#a5443a', name: 'Cranberry' },
+    { color: '#2f6f6a', name: 'Harbour Teal' },
+    { color: '#d9a441', name: 'Mustard' },
+    { color: '#2b3f5c', name: 'Nantucket Navy' },
+    { color: '#d98c9c', name: 'Hydrangea Pink' }
+  ];
+  const PLANTS = [
+    { kind: 'snake', name: 'Snake plant', price: 8, line: 'Set it by the door. Very hard to kill, apparently.' },
+    { kind: 'monstera', name: 'Monstera', price: 14, line: 'Enormous leaves. Already reaching for the window.' },
+    { kind: 'spider', name: 'Spider plant', price: 7, line: 'Came with three babies dangling off it. Free plants.' },
+    { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect”. Can do.' }
+  ];
+  const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
+    [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }],
+    PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price }))
+  );
+  // Small pictures for the order form and inventory.
+  const ICONS = {
+    books: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="5" height="13" fill="#b7736b"/><rect x="9" y="4" width="5" height="16" fill="#6f8a99"/><rect x="15" y="9" width="5" height="11" fill="#a9a06b"/><rect x="3" y="20" width="17" height="1.5" fill="#8a7460"/></svg>`,
+    mystery: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" fill="#c9a97a" stroke="#8a6a48"/><rect x="10" y="7" width="4" height="13" fill="#e9e2cf"/><text x="12" y="17" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#5c5b56">?</text></svg>`,
+    paint: (color) => `<svg class="icon" viewBox="0 0 24 24"><path d="M5 9h14l-1.6 11H6.6z" fill="${color}" stroke="#8a8f94" stroke-width="0.8"/><rect x="4" y="7" width="16" height="3" rx="0.6" fill="#8a8f94"/><path d="M8 7a4 4 0 0 1 8 0" stroke="#8a8f94" stroke-width="1.5" fill="none"/></svg>`,
+    sign: () => `<svg class="icon" viewBox="0 0 24 24"><polygon points="7,3 17,3 20,21 4,21" fill="#7d6b58"/><rect x="7.5" y="5" width="9" height="10" fill="#2f3a36"/><line x1="9.5" y1="9" x2="14.5" y2="9" stroke="#f4efe4" stroke-width="1"/><line x1="10" y1="12" x2="14" y2="12" stroke="#f4efe4" stroke-width="0.8" opacity="0.7"/></svg>`,
+    plant: (kind) => ({
+      snake: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-7h6l1 7z" fill="#b8734f"/><g fill="#4f7a4a" stroke="#d9c46a" stroke-width="0.5"><path d="M10 14q-2-5 0-11q2 6 1 11z"/><path d="M13 14q2-6 1-12q-3 6-2 12z"/><path d="M11.5 14q-1-7 1-13q1 7 0 13z"/></g></svg>`,
+      monstera: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-6h6l1 6z" fill="#8a8f94"/><g fill="#3f6b3a"><ellipse cx="8" cy="9" rx="4" ry="5" transform="rotate(-25 8 9)"/><ellipse cx="16" cy="9" rx="4" ry="5" transform="rotate(25 16 9)"/><ellipse cx="12" cy="6" rx="3.5" ry="5"/></g><g stroke="#c9d9b8" stroke-width="0.8"><line x1="12" y1="2" x2="12" y2="10"/><line x1="8" y1="5" x2="8" y2="13"/><line x1="16" y1="5" x2="16" y2="13"/></g></svg>`,
+      spider: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#e9e2cf"/><g stroke="#7fa563" stroke-width="2" fill="none" stroke-linecap="round"><path d="M12 16q-6-4-9-2"/><path d="M12 16q6-4 9-2"/><path d="M12 16q-4-7-2-11"/><path d="M12 16q4-7 2-11"/><path d="M12 16q0-8 0-12"/></g></svg>`,
+      orchid: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-4h4l1 4z" fill="#dfe8ea"/><path d="M12 17q1-8 5-13" stroke="#4f7a4a" stroke-width="1.2" fill="none"/><g fill="#d98c9c"><circle cx="15" cy="9" r="2.6"/><circle cx="17.5" cy="4.5" r="2.4"/><circle cx="13" cy="13" r="2.2"/></g><g fill="#b6413a"><circle cx="15" cy="9" r="0.8"/><circle cx="17.5" cy="4.5" r="0.7"/><circle cx="13" cy="13" r="0.7"/></g><path d="M11 17q-5-1-6-5q4 0 6 5z" fill="#4f7a4a"/></svg>`
+    }[kind] || '')
+  };
 
   // Journal lines for a new day, by season.
   const DAY_LINES = {
@@ -215,7 +247,10 @@
   //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day) }
   //   state.catalogue : { dayIndex, items: [{ id, name, books, price, mystery, ordered }] }
   //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
-  //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery }]
+  //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
+  //   state.decor     : what the shop owns and shows: { paint (colour on the walls or null),
+  //                     paints: [colours owned, kept for good], signs, signOut,
+  //                     plants: [plant kinds owned], plantOut (the kind out front, or null) }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a colour (a book) or null (empty)
   //   state.sold      : lifetime books sold
@@ -239,8 +274,9 @@
   function freshState(shopName, location) {
     const books = [];
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
-    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [] };
+    return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
+  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null }; }
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0 }; }
@@ -287,7 +323,6 @@
       // Show the preview box full of books, with a placeholder name.
       const svg = card.querySelector('svg');
       drawBooksInto(svg, freshState('', loc.id).books, 'lfl', 'outside');
-      fitSign(svg.querySelector('.box-sign'), 'your library', 'lfl');
 
       card.addEventListener('click', () => {
         chosenLocation = loc.id;
@@ -326,6 +361,7 @@
     drawDate();
     ensureCatalogue();
     drawOrderForm();
+    drawInventory();
     drawLog();
     drawGoal();
     customers = [];
@@ -342,10 +378,12 @@
   // =========================================================
   function drawScene() {
     if (!building().interior) state.view = 'outside';
-    $('scene').innerHTML = Scenes.render(state.location, state.building, state.view);
+    $('scene').innerHTML = Scenes.render(state.location, state.building, state.view, state.decor.paint);
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books, state.building, state.view);
-    fitSign(svg.querySelector('.box-sign'), state.shopName, state.building);
+    drawDecor();
+    const plate = svg.querySelector('.box-sign:not(.chalk)');
+    if (plate) fitSign(plate, state.shopName, state.building);
     applySeasonTint();
     drawDeliveries();
     // The step-inside / step-outside button only exists for buildings with an interior.
@@ -650,6 +688,20 @@
         });
       }
     }
+    // Now and then the van also carries paint or decor. Signs and plants are not offered
+    // again once the shop owns one.
+    if (items.length || Math.random() < DECOR_CHANCE) {
+      const owned = state.decor || freshDecor();
+      const choices = DECOR_ITEMS.filter(d =>
+        !(d.kind === 'sign' && owned.signs > 0) &&
+        !(d.kind === 'plant' && owned.plants.includes(d.plant)) &&
+        !(d.kind === 'paint' && owned.paints.includes(d.color)));
+      if (choices.length && Math.random() < DECOR_CHANCE) {
+        const d = randomFrom(choices);
+        const item = { id: 'i' + Math.random().toString(36).slice(2, 8), kind: d.kind, name: d.name, books: 0, price: d.price, mystery: false, ordered: false, color: d.color || null, plant: d.plant || null };
+        if (items.length >= CATALOGUE_SLOTS) items[items.length - 1] = item; else items.push(item);
+      }
+    }
     state.catalogue = { dayIndex: dayIndex(), items };
   }
 
@@ -658,8 +710,9 @@
     if (!item || item.ordered || state.coins < item.price) return;
     state.coins -= item.price;
     item.ordered = true;
-    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, arrives: dayIndex() + 1 });
-    addLog(item.mystery
+    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, arrives: dayIndex() + 1 });
+    if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives tomorrow.`);
+    else addLog(item.mystery
       ? `Ordered a mystery box for ${item.price} coins. Arrives tomorrow. Could be anything.`
       : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives tomorrow.`);
     bumpLifetime(life => { life.boxesOrdered = (life.boxesOrdered || 0) + 1; });
@@ -671,7 +724,7 @@
     const due = state.orders.filter(o => o.arrives <= dayIndex());
     if (!due.length) return;
     state.orders = state.orders.filter(o => o.arrives > dayIndex());
-    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery }));
+    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null }));
     addLog(`The van came. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
   }
 
@@ -679,6 +732,7 @@
   function openDelivery(id) {
     const box = state.deliveries.find(d => d.id === id);
     if (!box) return;
+    if (box.kind && box.kind !== 'books') { openDecorBox(box); return; }
     if (box.mystery) {
       const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
       box.books = randomFrom([sizes[0], sizes[0], sizes[1], sizes[2]]);   // usually small, sometimes a pleasant surprise
@@ -703,6 +757,112 @@
     drawDeliveries();
   }
 
+  // Paint goes in the cupboard; a sign or a plant goes straight out front.
+  function openDecorBox(box) {
+    state.deliveries = state.deliveries.filter(d => d.id !== box.id);
+    const decor = state.decor;
+    if (box.kind === 'paint') {
+      if (!decor.paints.includes(box.color)) decor.paints.push(box.color);
+      const paint = PAINTS.find(p => p.color === box.color);
+      addLog(`Opened the box: a bucket of ${paint ? paint.name : 'paint'}. Into the cupboard. It will never run out; that is how paint works here.`);
+    } else if (box.kind === 'sign') {
+      decor.signs += 1;
+      decor.signOut = true;
+      addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it and put it out front.`);
+    } else if (box.kind === 'plant') {
+      const kind = box.plant || 'snake';
+      const info = PLANTS.find(p => p.kind === kind) || PLANTS[0];
+      if (!decor.plants.includes(kind)) decor.plants.push(kind);
+      decor.plantOut = kind;                // the newest plant takes the spot by the door
+      addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}`);
+    }
+    bumpLifetime(life => { life.boxesOpened = (life.boxesOpened || 0) + 1; });
+    drawDecor();
+    drawInventory();
+    refresh();
+    drawDeliveries();
+  }
+
+  // ---- The inventory: paint, sign, plant ----
+  const buildingWord = () => ({ 1: 'library box', 2: 'shed', 3: 'shop', 4: 'shop' })[state.stage] || 'shop';
+
+  function paintBuilding(color) {
+    if (!state.decor.paints.includes(color) || state.decor.paint === color) return;
+    state.decor.paint = color;
+    const paint = PAINTS.find(p => p.color === color);
+    addLog(`Painted the ${buildingWord()} ${paint ? paint.name : 'a new colour'}. Two coats. Very satisfying.`);
+    bumpLifetime(life => { life.coatsOfPaint = (life.coatsOfPaint || 0) + 1; });
+    drawScene();
+    drawInventory();
+    refresh();
+  }
+  function toggleDecor(kind, plantKind) {
+    if (kind === 'sign' && state.decor.signs > 0) state.decor.signOut = !state.decor.signOut;
+    if (kind === 'plant' && state.decor.plants.includes(plantKind)) {
+      state.decor.plantOut = state.decor.plantOut === plantKind ? null : plantKind;   // one plant out at a time
+    }
+    drawDecor();
+    drawInventory();
+    save();
+  }
+
+  function drawInventory() {
+    const decor = state.decor;
+    const rows = [];
+    decor.paints.forEach(color => {
+      const paint = PAINTS.find(p => p.color === color) || { name: 'Paint' };
+      const current = decor.paint === color;
+      rows.push(`<li><div class="item-row">${ICONS.paint(color)}<div><span class="item-name">${paint.name} paint</span><span class="item-meta">${current ? 'On the walls now' : 'In the cupboard'}</span></div></div>${current ? '<span class="ordered">Current</span>' : `<button class="button small primary" data-paint="${color}">Paint the ${buildingWord()}</button>`}</li>`);
+    });
+    if (decor.signs > 0) {
+      rows.push(`<li><div class="item-row">${ICONS.sign()}<div><span class="item-name">Chalkboard sign</span><span class="item-meta">${decor.signOut ? 'Out front, with the shop name' : 'In the back'}</span></div></div><button class="button small" data-toggle="sign">${decor.signOut ? 'Take in' : 'Put out'}</button></li>`);
+    }
+    decor.plants.forEach(kind => {
+      const info = PLANTS.find(p => p.kind === kind) || { name: kind };
+      const out = decor.plantOut === kind;
+      rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${out ? 'By the door' : 'In the back'}</span></div></div><button class="button small" data-toggle="plant" data-plant="${kind}">${out ? 'Take in' : 'Put out'}</button></li>`);
+    });
+    $('inventory').innerHTML = rows.length ? rows.join('') : `<li><span class="empty">Nothing yet. The van sometimes carries paint and decor.</span></li>`;
+    const paint = PAINTS.find(p => p.color === decor.paint);
+    $('inventory-hint').textContent = paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`;
+  }
+
+  // The chalkboard and the plant, drawn outside the shop when they are out.
+  function drawDecor() {
+    const group = $('scene').querySelector('svg .decor');
+    if (!group) return;
+    if (state.view === 'inside') { group.innerHTML = ''; return; }
+    const spots = Scenes.decorSpotsFor(state.building);
+    const scale = personScale() * 0.75;
+    let out = '';
+    if (state.decor.signOut) out += Scenes.chalkboard(spots.signX, Scenes.GROUND_Y, scale);
+    if (state.decor.plantOut) out += Scenes.plant(state.decor.plantOut, spots.plantX, Scenes.GROUND_Y, scale);
+    group.innerHTML = out;
+    // The shop name in chalk: one line if short, otherwise split at a space near the middle.
+    const chalk = group.querySelector('.chalk');
+    const line2 = group.querySelector('.chalk-line2');
+    if (chalk && line2) {
+      const name = state.shopName.length > 26 ? state.shopName.slice(0, 25) + '\u2026' : state.shopName;
+      if (name.length <= 11) {
+        chalk.setAttribute('y', -18); chalk.setAttribute('font-size', 6); chalk.textContent = name; line2.textContent = '';
+      } else {
+        const words = name.split(' ');
+        let first = '', rest = name;
+        if (words.length > 1) {
+          let best = 1, bestDiff = Infinity;
+          for (let i = 1; i < words.length; i++) {
+            const a = words.slice(0, i).join(' ').length, b = words.slice(i).join(' ').length;
+            if (Math.abs(a - b) < bestDiff) { bestDiff = Math.abs(a - b); best = i; }
+          }
+          first = words.slice(0, best).join(' '); rest = words.slice(best).join(' ');
+        } else { first = name.slice(0, Math.ceil(name.length / 2)); rest = name.slice(Math.ceil(name.length / 2)); }
+        const size = Math.max(first.length, rest.length) > 13 ? 3.8 : 4.8;
+        chalk.setAttribute('y', -21.5); chalk.setAttribute('font-size', size); chalk.textContent = first;
+        line2.setAttribute('font-size', size); line2.textContent = rest;
+      }
+    }
+  }
+
   // The order form panel.
   function drawOrderForm() {
     $('order-date').textContent = `${dateText()}. ${state.coins} coins in the tin.`;
@@ -712,20 +872,25 @@
       list.innerHTML = `<li><span class="empty">The van didn\u2019t come today. Nothing on offer.</span></li>`;
     } else {
       list.innerHTML = items.map(item => {
-        const meta = item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
+        const kind = item.kind || 'books';
+        const meta = kind === 'paint' ? `one bucket \u00b7 ${item.price} coins`
+          : kind === 'sign' ? `A-frame, chalk included \u00b7 ${item.price} coins`
+          : kind === 'plant' ? `terracotta pot \u00b7 ${item.price} coins`
+          : item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
+        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
           : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
-        return `<li><div><span class="item-name${item.mystery ? ' mystery' : ''}">${item.name}</span><span class="item-meta">${meta}</span></div>${action}</li>`;
+        return `<li><div class="item-row">${icon}<div><span class="item-name${item.mystery ? ' mystery' : ''}">${item.name}</span><span class="item-meta">${meta}</span></div></div>${action}</li>`;
       }).join('');
     }
     const pending = $('orders-pending');
     pending.innerHTML = state.orders.length
-      ? `<h4>Arriving tomorrow</h4><ul>${state.orders.map(o => `<li><span>${o.name}${o.mystery ? '' : ` (${o.books} books)`}</span></li>`).join('')}</ul>`
+      ? `<h4>Arriving tomorrow</h4><ul>${state.orders.map(o => `<li><span>${o.name}${(o.mystery || (o.kind && o.kind !== 'books')) ? '' : ` (${o.books} books)`}</span></li>`).join('')}</ul>`
       : '';
     const waiting = $('deliveries-list');
     waiting.innerHTML = state.deliveries.length
-      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${d.mystery ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}">Open</button></li>`).join('')}</ul>`
+      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${(d.mystery || (d.kind && d.kind !== 'books')) ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}">Open</button></li>`).join('')}</ul>`
       : '';
   }
 
@@ -737,7 +902,7 @@
     const size = Math.max(22, 16 * personScale());
     const x0 = Scenes.deliveryXFor(state.building);
     group.innerHTML = state.deliveries.map((d, i) =>
-      Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : d.books)
+      Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : (d.kind && d.kind !== 'books') ? '\u2605' : d.books)
     ).join('');
   }
 
@@ -773,7 +938,6 @@
       const full = [];
       for (let i = 0; i < b.capacity; i++) full.push(randomFrom(BOOK_COLORS));
       drawBooksInto(svg, full, id, 'outside');
-      fitSign(svg.querySelector('.box-sign'), state.shopName, id);
       card.addEventListener('click', () => {
         chosenBuilding = id;
         holder.querySelectorAll('.location-card').forEach(c => c.classList.toggle('selected', c === card));
@@ -799,7 +963,9 @@
     state.location = b.location;
     state.books = books;
     state.view = 'outside';
+    state.decor.paint = null;             // the new place wears its own paint until you change it
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
+    if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
 
@@ -809,6 +975,7 @@
     setStageText();
     drawScene();
     drawHud();
+    drawInventory();
     drawLog();
     drawGoal();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -871,6 +1038,13 @@
       if (!Array.isArray(data.orders)) data.orders = [];
       if (!Array.isArray(data.deliveries)) data.deliveries = [];
       if (!data.catalogue) data.catalogue = null;
+      if (!data.decor) data.decor = freshDecor();
+      // Earlier saves counted plants and buckets; now they are lists of kinds and colours.
+      if (typeof data.decor.plants === 'number') {
+        data.decor.plants = data.decor.plants > 0 ? ['snake'] : [];
+        data.decor.plantOut = data.decor.plantOut ? 'snake' : null;
+      }
+      if (Array.isArray(data.decor.paints)) data.decor.paints = data.decor.paints.filter((c, i, a) => a.indexOf(c) === i);
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;
@@ -894,6 +1068,10 @@
       if (order) { placeOrder(order.dataset.order); return; }
       const open = e.target.closest('[data-open]');
       if (open) { openDelivery(open.dataset.open); return; }
+      const paint = e.target.closest('[data-paint]');
+      if (paint) { paintBuilding(paint.dataset.paint); return; }
+      const toggle = e.target.closest('[data-toggle]');
+      if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant); return; }
     });
     // Clicking a box in the scene opens it.
     $('scene').addEventListener('click', (e) => {
