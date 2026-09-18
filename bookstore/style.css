@@ -379,6 +379,22 @@
 .orders ul { list-style: none; padding: 0; margin: 0; }
 .orders li { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.25rem 0; }
 .scene .delivery-box:hover rect:first-of-type { filter: brightness(1.06); }
+/* ---- Seasons ----
+   The page carries a season class; trees, ground and sky respond. */
+.bare { display: none; }
+.seasonal .autumn-leaves, .seasonal .snow-drifts, .seasonal .wildflowers, .seasonal .summer-sun { display: none; }
+body.season-spring .wildflowers { display: inline; }
+body.season-summer .summer-sun { display: inline; }
+body.season-autumn .autumn-leaves { display: inline; }
+body.season-autumn .leaf { fill: #c9782e; }
+body.season-autumn .leaf.alt { fill: #a5443a; }
+body.season-autumn .leaf-line { fill: #b58a4a; }
+body.season-winter .snow-drifts { display: inline; }
+body.season-winter .leaf { display: none; }
+body.season-winter .bare { display: inline; }
+body.season-winter .leaf-line { fill: #8a8078; }
+svg .weather { pointer-events: none; }
+
 /* ---- Sketch mode ----
    Every painted layer holds a colour copy (.fills) and an ink copy (.lines).
    Off: ink hidden, colour keeps its outlines, gentle wobble. On: colour loses its
