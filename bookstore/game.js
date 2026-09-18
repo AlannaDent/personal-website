@@ -92,6 +92,21 @@
     Autumn: ['Cranberry bogs going red.', 'The light is gold and everyone is calm.', 'Half the shops shuttered for the season. Not us.', 'Sweater weather. Reading weather.'],
     Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbour froze at the edges.', 'Wind off the water. Kettle on.']
   };
+  // What the journal says at closing time, by season.
+  const NIGHT_LINES = {
+    Spring: ['Peepers loud in the marsh.', 'Fog rolling back in off the water.', 'Left the porch light on for the moths.'],
+    Summer: ['Fireflies over the green.', 'Band concert still going somewhere.', 'Warm enough to read on the step.'],
+    Autumn: ['Woodsmoke. Somebody\u2019s first fire of the year.', 'Dark by supper now.', 'Wind knocking the sign about.'],
+    Winter: ['Snow starting. Quietest sound there is.', 'Harbour lights and not much else.', 'Kettle, blanket, a chapter or two.']
+  };
+  // How the day is lit, as a fraction of the way through it.
+  const PHASES = [
+    { until: 0.12, name: 'Sunrise' },
+    { until: 0.72, name: 'Daytime' },
+    { until: 0.92, name: 'Sunset' },
+    { until: 1.01, name: 'Dusk' }
+  ];
+  const LAST_CUSTOMER_AT = 0.86;         // nobody new arrives after this point in the day
   const SEASON_LINES = {
     Spring: 'Spring arrived. The town shook itself off.',
     Summer: 'Summer arrived, and with it the whole eastern seaboard.',
@@ -244,7 +259,8 @@
   //   state.building  : 'lfl' | 'garden-shed' | 'container' | 'garage'
   //   state.location  : which backdrop the building sits in
   //   state.view      : 'outside' or 'inside' (inside exists from stage three on)
-  //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day) }
+  //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day),
+  //                       night (true once the day has ended and the game is paused) }
   //   state.catalogue : { dayIndex, items: [{ id, name, books, price, mystery, ordered }] }
   //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
   //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
@@ -279,7 +295,9 @@
   function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null }; }
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
-  function freshClock() { return { year: 1, season: 0, day: 1, ms: 0 }; }
+  function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
+  const dayFraction = () => Math.min(1, state.clock.ms / DAY_MS);
+  const phaseName = () => state.clock.night ? 'Night' : PHASES.find(p => dayFraction() < p.until).name;
   const seasonName = () => SEASONS[state.clock.season];
   const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
 
@@ -364,6 +382,7 @@
     drawInventory();
     drawLog();
     drawGoal();
+    applyDaylight(true);
     customers = [];
     nextSpawnAt = performance.now() + 1500;   // first customer arrives soon
     if (!running) {
@@ -385,6 +404,7 @@
     const plate = svg.querySelector('.box-sign:not(.chalk)');
     if (plate) fitSign(plate, state.shopName, state.building);
     applySeasonTint();
+    applyDaylight(true);
     drawDeliveries();
     // The step-inside / step-outside button only exists for buildings with an interior.
     const toggle = $('view-toggle');
@@ -439,7 +459,58 @@
   // The date line above the HUD and the thin bar that fills through the day.
   function drawDate() {
     $('hud-date').textContent = dateText();
-    $('day-bar').style.width = Math.min(100, (state.clock.ms / DAY_MS) * 100) + '%';
+    $('hud-phase').textContent = phaseName();
+    $('day-bar').style.width = (dayFraction() * 100) + '%';
+    const night = state.clock.night;
+    document.querySelector('.dateline').classList.toggle('night', night);
+    const button = $('next-day-button');
+    button.classList.toggle('hidden', !night);
+    if (night) button.textContent = `Begin Day ${state.clock.day % DAYS_PER_SEASON + 1}`;
+  }
+
+  // Mix two hex colours. t is 0 for a, 1 for b.
+  function mixColor(a, b, t) {
+    const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
+    const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
+    return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  }
+
+  // The light over the scene for this moment of the day. Called every frame,
+  // but only touches the picture a few times a second unless forced.
+  let lastDaylightAt = 0;
+  function applyDaylight(force) {
+    const now = performance.now();
+    if (!force && now - lastDaylightAt < 250) return;
+    lastDaylightAt = now;
+    const svg = $('scene').querySelector('svg');
+    if (!svg) return;
+    const wash = svg.querySelector('.sky-wash');
+    const stars = svg.querySelector('.stars');
+    const glow = svg.querySelector('.window-glow');
+    if (!wash) return;
+    const inside = state.view === 'inside';
+    const t = dayFraction();
+    let color = '#1f2a5a', opacity = 0, starOpacity = 0, glowOpacity = 0;
+    if (state.clock.night) {
+      color = '#1f2a5a'; opacity = inside ? 0.22 : 0.58; starOpacity = inside ? 0 : 0.9; glowOpacity = inside ? 0 : 0.8;
+    } else if (t < 0.12) {                                  // sunrise: warm and fading
+      color = '#f6b98a'; opacity = 0.28 * (1 - t / 0.12);
+    } else if (t < 0.72) {                                  // daytime: clear
+      opacity = 0;
+    } else if (t < 0.92) {                                  // sunset: gold deepening to violet
+      const u = (t - 0.72) / 0.2;
+      color = mixColor('#f6a86a', '#8a5a8a', u); opacity = 0.06 + 0.26 * u;
+      glowOpacity = inside ? 0 : 0.35 * u;
+    } else {                                                // dusk: settling into night
+      const u = (t - 0.92) / 0.08;
+      color = mixColor('#8a5a8a', '#1f2a5a', u); opacity = 0.32 + 0.24 * u;
+      starOpacity = inside ? 0 : 0.9 * u; glowOpacity = inside ? 0 : 0.35 + 0.45 * u;
+    }
+    if (inside && !state.clock.night) opacity *= 0.45;
+    wash.setAttribute('fill', color);
+    wash.setAttribute('opacity', opacity.toFixed(3));
+    stars.setAttribute('opacity', starOpacity.toFixed(2));
+    glow.setAttribute('opacity', glowOpacity.toFixed(2));
   }
   function applySeasonTint() {
     const tint = $('scene').querySelector('svg .season-tint');
@@ -449,34 +520,66 @@
     tint.setAttribute('opacity', state.view === 'inside' ? inside : outside);
   }
 
-  // Called by the game loop as time passes. Rolls the day, season and year over.
+  // Called by the game loop as time passes. The day runs to nightfall, then the
+  // game waits for the player to begin the next one.
   let lastClockSave = 0;
   function advanceClock(dtMs, now) {
     const c = state.clock;
+    if (c.night) return;
     c.ms += dtMs;
-    let changed = false;
-    while (c.ms >= DAY_MS) {
-      c.ms -= DAY_MS;
-      c.day += 1;
-      changed = true;
-      bumpLifetime(life => { life.daysPlayed += 1; });
-      if (c.day > DAYS_PER_SEASON) {
-        c.day = 1;
-        c.season = (c.season + 1) % SEASONS.length;
-        if (c.season === 0) {
-          c.year += 1;
-          addLog(`Year ${c.year}. Still here. Still open.`);
-        }
-        addLog(SEASON_LINES[seasonName()]);
-        applySeasonTint();
-      } else {
-        addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
-      }
-      deliverOrders();
-    }
-    if (changed) { ensureCatalogue(); drawOrderForm(); drawDeliveries(); drawLog(); save(); lastClockSave = now; }
-    else if (now - lastClockSave > 15000) { save(); lastClockSave = now; }   // keep the clock roughly current
+    if (c.ms >= DAY_MS) {
+      c.ms = DAY_MS;
+      nightfall(now);
+    } else if (now - lastClockSave > 15000) { save(); lastClockSave = now; }   // keep the clock roughly current
     drawDate();
+    applyDaylight(false);
+  }
+
+  // Closing time: the shop empties and the clock stops.
+  function nightfall(now) {
+    state.clock.night = true;
+    customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
+    customers = [];
+    addLog(`Closed up for the night. ${randomFrom(NIGHT_LINES[seasonName()])}`);
+    deliverOrders();
+    drawLog();
+    drawOrderForm();
+    drawDeliveries();
+    drawDate();
+    applyDaylight(true);
+    save();
+    lastClockSave = now || performance.now();
+  }
+
+  // Sunrise: the player begins the next day. The van comes, the catalogue changes.
+  function beginDay() {
+    const c = state.clock;
+    if (!c.night) return;
+    c.night = false;
+    c.ms = 0;
+    c.day += 1;
+    bumpLifetime(life => { life.daysPlayed += 1; });
+    if (c.day > DAYS_PER_SEASON) {
+      c.day = 1;
+      c.season = (c.season + 1) % SEASONS.length;
+      if (c.season === 0) {
+        c.year += 1;
+        addLog(`Year ${c.year}. Still here. Still open.`);
+      }
+      addLog(SEASON_LINES[seasonName()]);
+      applySeasonTint();
+    } else {
+      addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
+    }
+    ensureCatalogue();
+    nextSpawnAt = performance.now() + 1500;
+    drawOrderForm();
+    drawDeliveries();
+    drawLog();
+    drawDate();
+    applyDaylight(true);
+    save();
+    lastClockSave = performance.now();
   }
 
   function drawGoal() {
@@ -598,7 +701,8 @@
     lastFrame = now;
     advanceClock(dt * 1000, now);
 
-    if (now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
+    const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
+    if (shopOpen && now >= nextSpawnAt && customers.length < MAX_CUSTOMERS[state.stage]) {
       spawnCustomer();
       const [min, max] = SPAWN_GAP[state.stage];
       nextSpawnAt = now + min + Math.random() * (max - min);
@@ -710,28 +814,37 @@
     if (!item || item.ordered || state.coins < item.price) return;
     state.coins -= item.price;
     item.ordered = true;
-    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, arrives: dayIndex() + 1 });
-    if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives tomorrow.`);
+    // The van comes at closing time. Order during the day and it arrives tonight;
+    // order at night and it arrives tomorrow night.
+    const arrives = dayIndex() + (state.clock.night ? 1 : 0);
+    const when = state.clock.night ? 'tomorrow night' : 'tonight';
+    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, arrives });
+    if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives ${when}.`);
     else addLog(item.mystery
-      ? `Ordered a mystery box for ${item.price} coins. Arrives tomorrow. Could be anything.`
-      : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives tomorrow.`);
+      ? `Ordered a mystery box for ${item.price} coins. Arrives ${when}. Could be anything.`
+      : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives ${when}.`);
     bumpLifetime(life => { life.boxesOrdered = (life.boxesOrdered || 0) + 1; });
     refresh();
   }
 
-  // Called each new morning: anything due today lands outside the shop.
+  // Called at closing time: anything due today lands outside the shop.
   function deliverOrders() {
     const due = state.orders.filter(o => o.arrives <= dayIndex());
     if (!due.length) return;
     state.orders = state.orders.filter(o => o.arrives > dayIndex());
     due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null }));
-    addLog(`The van came. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
+    addLog(`The van came at closing. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
   }
 
-  // Opening a box shelves as many books as fit. The rest wait in the box.
+  // Opening a box is a night-time job, after the shop has closed. Books go on the
+  // shelves, as many as fit; the rest wait in the box.
   function openDelivery(id) {
     const box = state.deliveries.find(d => d.id === id);
     if (!box) return;
+    if (!state.clock.night) {
+      floatText(Scenes.deliveryXFor(state.building) + 24, Scenes.GROUND_Y - 30 * personScale(), 'after closing', '#5d5a54');
+      return;
+    }
     if (box.kind && box.kind !== 'books') { openDecorBox(box); return; }
     if (box.mystery) {
       const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
@@ -865,7 +978,9 @@
 
   // The order form panel.
   function drawOrderForm() {
-    $('order-date').textContent = `${dateText()}. ${state.coins} coins in the tin.`;
+    $('order-date').textContent = state.clock.night
+      ? `${dateText()}, night. ${state.coins} coins in the tin. Orders placed now arrive tomorrow at closing.`
+      : `${dateText()}. ${state.coins} coins in the tin. The van comes at closing time.`;
     const items = (state.catalogue && state.catalogue.items) || [];
     const list = $('catalogue');
     if (!items.length) {
@@ -886,11 +1001,12 @@
     }
     const pending = $('orders-pending');
     pending.innerHTML = state.orders.length
-      ? `<h4>Arriving tomorrow</h4><ul>${state.orders.map(o => `<li><span>${o.name}${(o.mystery || (o.kind && o.kind !== 'books')) ? '' : ` (${o.books} books)`}</span></li>`).join('')}</ul>`
+      ? `<h4>On the way</h4><ul>${state.orders.map(o => `<li><span>${o.name}${(o.mystery || (o.kind && o.kind !== 'books')) ? '' : ` (${o.books} books)`}</span><span class="ordered">${o.arrives <= dayIndex() ? 'tonight' : 'tomorrow night'}</span></li>`).join('')}</ul>`
       : '';
     const waiting = $('deliveries-list');
+    const night = state.clock.night;
     waiting.innerHTML = state.deliveries.length
-      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${(d.mystery || (d.kind && d.kind !== 'books')) ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}">Open</button></li>`).join('')}</ul>`
+      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${(d.mystery || (d.kind && d.kind !== 'books')) ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}" ${night ? '' : 'disabled title="Boxes are opened after closing"'}>${night ? 'Open' : 'Opens tonight'}</button></li>`).join('')}</ul>`
       : '';
   }
 
@@ -904,6 +1020,7 @@
     group.innerHTML = state.deliveries.map((d, i) =>
       Scenes.deliveryBox(x0 + i * (size + 6), Scenes.GROUND_Y, size, d.id, d.mystery ? '?' : (d.kind && d.kind !== 'books') ? '\u2605' : d.books)
     ).join('');
+    if (!state.clock.night) group.querySelectorAll('.delivery-box').forEach(b => b.classList.add('waiting'));
   }
 
   // =========================================================
@@ -1035,6 +1152,7 @@
       if (!data.stage) { data.stage = 1; data.building = 'lfl'; }
       if (!data.view) data.view = data.stage >= 3 ? 'inside' : 'outside';
       if (!data.clock) data.clock = freshClock();
+      if (typeof data.clock.night !== 'boolean') data.clock.night = false;
       if (!Array.isArray(data.orders)) data.orders = [];
       if (!Array.isArray(data.deliveries)) data.deliveries = [];
       if (!data.catalogue) data.catalogue = null;
@@ -1083,6 +1201,7 @@
     $('confirm-upgrade').addEventListener('click', confirmUpgrade);
     $('cancel-upgrade').addEventListener('click', () => showScreen('game-screen'));
     $('view-toggle').addEventListener('click', () => (state.view === 'inside' ? exitBuilding() : enterBuilding()));
+    $('next-day-button').addEventListener('click', beginDay);
   }
 
   init();
