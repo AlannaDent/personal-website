@@ -16,9 +16,25 @@
   <header class="site-header compact">
     <a class="home-link" href="../index.html">&larr; Alanna's Workshop</a>
     <h1>The Salty Jellyfish</h1>
-    <p class="tagline"><span id="stage-tagline">Stage one: the Little Free Library</span><sup class="footnote-mark">*</sup></p>
-    <!-- game.js swaps in a random footnote on each page load. -->
-    <p class="footnote"><sup>*</sup><span id="footnote-text">Free library. Books sold separately.</span></p>
+    <!-- Left: which stage you are at and its footnote. Right: the next goal and the
+         coin tracker. game.js fills both. -->
+    <div class="stage-row">
+      <div class="stage-left">
+        <p class="tagline"><span id="stage-tagline">Stage one: the Little Free Library</span><sup class="footnote-mark">*</sup></p>
+        <!-- game.js swaps in a random footnote on each page load. -->
+        <p class="footnote"><sup>*</sup><span id="footnote-text">Free library. Books sold separately.</span></p>
+        <!-- How inviting the shop looks, out of five. Hover for today's footfall forecast. -->
+        <p id="appeal-note" class="appeal tip-wrap" data-tip=""><span class="stars"></span></p>
+      </div>
+      <div class="stage-divider" aria-hidden="true"></div>
+      <div class="stage-right">
+        <p class="tagline"><span id="goal-heading">Next goal:</span> <span id="goal-label">A proper book shed with room to grow.</span></p>
+        <div class="progress goal-progress"><div id="goal-bar" class="progress-bar"></div></div>
+        <p id="goal-text" class="footnote"></p>
+        <!-- Appears once the player has saved enough. Opens the upgrade screen. -->
+        <button id="upgrade-button" class="button primary small upgrade hidden">Choose your shed</button>
+      </div>
+    </div>
   </header>
 
   <!-- ============ SCREEN 1: choosing a spot ============ -->
@@ -54,7 +70,10 @@
       <span id="hud-phase" class="phase">Sunrise</span>
       <div class="day-progress"><div id="day-bar"></div></div>
       <!-- Shown at night. The next day starts only when the player is ready. -->
-      <button id="next-day-button" class="button primary small hidden" type="button">Begin Day 2</button>
+      <!-- The wrapper carries the hover hint, because a greyed-out button ignores the mouse. -->
+      <span id="next-day-wrap" class="tip-wrap hidden" data-tip="">
+        <button id="next-day-button" class="button primary small" type="button">Begin Day 2</button>
+      </span>
     </div>
 
     <!-- game.js draws the picture (an SVG) inside this box. The numbers a player
@@ -80,40 +99,29 @@
       <button id="style-toggle" class="corner-button corner-left" type="button">Sketch: on</button>
       <!-- From stage three on: step inside the building and back out. -->
       <button id="view-toggle" class="corner-button corner-right hidden" type="button">Step inside</button>
+      <!-- One gameplay tip, shown at night and gone at sunrise. -->
+      <div id="night-tip" class="night-tip hidden" role="status"></div>
     </div>
 
     <!-- Two columns: the side column keeps its size and stays in view while
          the journal on the right grows as entries pile up. -->
     <div class="below-scene">
       <div class="side-column">
-        <!-- The order form: what the wholesaler offers today, what is on its way,
-             and what is waiting outside in boxes. game.js fills the lists. -->
-        <section class="panel controls">
-          <h3>Order form</h3>
-          <p id="order-date" class="hint"></p>
-          <ul id="catalogue" class="catalogue"></ul>
-          <div id="orders-pending" class="orders"></div>
-          <div id="deliveries-list" class="orders"></div>
-          <p class="hint">The van comes at closing time and leaves boxes outside. Open them after dark, from here or by clicking a box.</p>
-        </section>
-
-        <!-- What the shop owns: paint, the chalkboard, plants. game.js fills the list. -->
-        <section class="panel inventory">
-          <h3>Inventory</h3>
-          <ul id="inventory" class="inventory"></ul>
-          <p id="inventory-hint" class="hint"></p>
-          <!-- Footfall: how many customers to expect today and what would bring more. -->
-          <p id="appeal-note" class="hint appeal"></p>
-        </section>
-
-        <section class="panel goal">
-          <h3>Next goal</h3>
-          <p id="goal-label">A proper book shed with room to grow.</p>
-          <div class="progress"><div id="goal-bar" class="progress-bar"></div></div>
-          <p id="goal-text" class="hint"></p>
-          <!-- Appears once the player has saved enough. Opens the upgrade screen. -->
-          <button id="upgrade-button" class="button primary upgrade hidden">Choose your shed</button>
-          <p id="goal-hint" class="hint"></p>
+        <!-- One card, two sub-tabs: what the wholesaler offers today (and what is on its
+             way), and what the shop owns. Boxes are opened by clicking them in the picture. -->
+        <section class="panel shop-panel">
+          <div class="subtabs" role="tablist">
+            <button class="subtab active" type="button" role="tab" data-tab="order" aria-selected="true">Order form</button>
+            <button class="subtab" type="button" role="tab" data-tab="inventory" aria-selected="false">Inventory</button>
+          </div>
+          <div id="tab-order" class="tabpane" role="tabpanel">
+            <ul id="catalogue" class="catalogue"></ul>
+            <div id="orders-pending" class="orders"></div>
+          </div>
+          <div id="tab-inventory" class="tabpane hidden" role="tabpanel">
+            <ul id="inventory" class="inventory"></ul>
+            <p id="inventory-hint" class="hint"></p>
+          </div>
         </section>
       </div>
 
@@ -156,6 +164,7 @@
   <script src="../stats/config.js"></script>
   <script src="books.js"></script>
   <script src="scenes.js"></script>
+  <script src="tips.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
