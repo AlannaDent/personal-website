@@ -135,6 +135,8 @@
     { until: 1.01, name: 'Dusk' }
   ];
   const LAST_CUSTOMER_AT = 0.86;         // nobody new arrives after this point in the day
+  // The night-sky tips live in tips.js so they are easy to add to. One shows each night.
+  const NIGHT_TIPS = window.NIGHT_TIPS || [];
   const SEASON_LINES = {
     Spring: 'Spring arrived. The town shook itself off.',
     Summer: 'Summer arrived, and with it the whole eastern seaboard.',
@@ -144,9 +146,9 @@
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
-    1: { cost: 60,  label: 'A proper book shed with room to grow.', thing: 'shed', next: 2, button: 'Choose your shed' },
-    2: { cost: 250, label: 'A real shop on the high street.', thing: 'shop', next: 3, button: 'Choose your shop' },
-    3: { cost: 800, label: 'The bookshop of every reader\u2019s dreams.', thing: 'dream shop', next: 4, button: 'Choose your dream shop' },
+    1: { cost: 60,  label: 'A proper book shed with room to grow.', thing: 'shed', next: 2, button: 'Upgrade shop' },
+    2: { cost: 250, label: 'A real shop on the high street.', thing: 'shop', next: 3, button: 'Upgrade shop' },
+    3: { cost: 800, label: 'The bookshop of every reader\u2019s dreams.', thing: 'dream shop', next: 4, button: 'Upgrade shop' },
     4: { cost: null, label: 'The bookshop of every reader\u2019s dreams. You\u2019re in it.', final: true }
   };
   // What the upgrade screen says for each stage being moved into.
@@ -587,6 +589,7 @@
     $('hud-name').title = `${state.shopName} \u00b7 ${state.sold} sold all time`;
     $('hud-coins').textContent = state.coins;
     $('hud-stock').textContent = `${booksInStock()} / ${capacity()}` + (state.reserve ? ` +${state.reserve}` : '');
+    drawAppeal();
   }
 
   function drawLog() {
@@ -601,8 +604,16 @@
     const night = state.clock.night;
     document.querySelector('.dateline').classList.toggle('night', night);
     const button = $('next-day-button');
-    button.classList.toggle('hidden', !night);
-    if (night) button.textContent = `Begin Day ${state.clock.day % DAYS_PER_SEASON + 1}`;
+    if (night) {
+      button.textContent = `Begin Day ${state.clock.day % DAYS_PER_SEASON + 1}`;
+      // Boxes on the step must be opened before the day begins.
+      const waiting = (state.deliveries || []).length > 0;
+      button.disabled = waiting;
+      // The hint lives on the wrapper, so it shows even while the button is greyed out.
+      $('next-day-wrap').dataset.tip = waiting ? 'Don\u2019t forget to open your packages!' : '';
+    }
+    $('next-day-wrap').classList.toggle('hidden', !night);
+    drawNightTip();
   }
 
   // Mix two hex colours. t is 0 for a, 1 for b.
@@ -695,6 +706,7 @@
   function beginDay() {
     const c = state.clock;
     if (!c.night) return;
+    if ((state.deliveries || []).length > 0) return;   // open the boxes first
     c.night = false;
     c.ms = 0;
     c.day += 1;
@@ -727,31 +739,41 @@
 
   function drawGoal() {
     const goal = GOALS[state.stage];
-    $('goal-label').textContent = goal.label;
+    const upgradeButton = $('upgrade-button');
     if (goal.final) {
+      $('goal-heading').textContent = 'Goal reached:';
+      $('goal-label').textContent = goal.label;
       $('goal-bar').style.width = '100%';
       $('goal-text').textContent = 'Every reader\u2019s dream, achieved. The town is very proud.';
-      $('upgrade-button').classList.add('hidden');
-      $('goal-hint').textContent = 'Paint, decor and more are coming in a later update.';
+      upgradeButton.classList.add('hidden');
       return;
     }
+    $('goal-heading').textContent = 'Next goal:';
+    $('goal-label').textContent = goal.label;
     const pct = Math.min(100, Math.round((state.coins / goal.cost) * 100));
     $('goal-bar').style.width = pct + '%';
     const reached = state.coins >= goal.cost;
-    const upgradeButton = $('upgrade-button');
     if (reached && goal.next) {
       $('goal-text').textContent = `You have ${state.coins} coins. The ${goal.thing} costs ${goal.cost}.`;
       upgradeButton.textContent = `${goal.button} (${goal.cost} coins)`;
       upgradeButton.classList.remove('hidden');
-      $('goal-hint').textContent = 'Your books come with you. Your customers will find you.';
     } else if (reached) {
-      $('goal-text').textContent = `You have saved enough for the ${goal.thing}! Stage four is coming.`;
+      $('goal-text').textContent = `Saved enough for the ${goal.thing}. Stage four is coming.`;
       upgradeButton.classList.add('hidden');
-      $('goal-hint').textContent = 'Keep selling in the meantime. The town is talking.';
     } else {
       $('goal-text').textContent = `${state.coins} of ${goal.cost} coins saved.`;
       upgradeButton.classList.add('hidden');
-      $('goal-hint').textContent = goal.next ? 'Decor brings more customers. Keep an eye on the order form.' : 'Stage four is still being built.';
+    }
+  }
+
+  // The night tip: shown while the shop is closed, gone at sunrise.
+  function drawNightTip() {
+    const tip = $('night-tip');
+    if (state.clock.night && NIGHT_TIPS.length) {
+      tip.textContent = NIGHT_TIPS[dayIndex() % NIGHT_TIPS.length];
+      tip.classList.remove('hidden');
+    } else {
+      tip.classList.add('hidden');
     }
   }
 
@@ -768,6 +790,7 @@
     drawInventory();
     drawLog();
     drawGoal();
+    drawDate();
     save();
   }
 
@@ -1351,7 +1374,8 @@
     drawAppeal();
   }
 
-  // The footfall line under the inventory: how many to expect, and what would help.
+  // The star rating in the header: how inviting the shop looks, out of five. Hovering
+  // the stars shows today's forecast: how many customers to expect and what would help.
   function drawAppeal() {
     const expected = Math.round(expectedCustomersToday());
     const d = state.decor;
@@ -1363,9 +1387,12 @@
     const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
     const fill = shelfFill();
     const stockNote = fill >= 0.9 ? ' Full shelves draw them in.' : fill >= 0.5 ? ` Shelves ${Math.round(fill * 100)}% full: some walk on by.` : fill > 0 ? ` Shelves only ${Math.round(fill * 100)}% full: most walk on by.` : ' Empty shelves. Hardly anyone stops.';
-    const stars = '\u2605'.repeat(Math.round((appeal() - 1) / (APPEAL.max - 1) * 4)) + '\u2606'.repeat(4 - Math.round((appeal() - 1) / (APPEAL.max - 1) * 4));
-    $('appeal-note').innerHTML = `<span class="stars">${stars}</span> About <strong>${expected}</strong> ${expected === 1 ? 'customer' : 'customers'} a day.${seasonNote}${stockNote}` +
+    const lit = Math.round((appeal() - 1) / (APPEAL.max - 1) * 5);
+    const note = $('appeal-note');
+    note.querySelector('.stars').innerHTML = '\u2605'.repeat(lit) + `<span class="dim">${'\u2605'.repeat(5 - lit)}</span>`;
+    note.dataset.tip = `About ${expected} ${expected === 1 ? 'customer' : 'customers'} a day.${seasonNote}${stockNote}` +
       (missing.length ? ` More would come for ${missing.join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : ' The shop is as inviting as it gets.');
+    note.setAttribute('aria-label', `${lit} of 5 stars. ${note.dataset.tip}`);
   }
 
   // The chalkboard and the plant, drawn outside the shop when they are out.
@@ -1404,11 +1431,9 @@
     }
   }
 
-  // The order form panel.
+  // The order form: today's catalogue and what is on its way. Boxes on the step are
+  // opened by clicking them in the picture.
   function drawOrderForm() {
-    $('order-date').textContent = state.clock.night
-      ? `${dateText()}, night. ${state.coins} coins in the tin. Orders placed now arrive tomorrow at closing.`
-      : `${dateText()}. ${state.coins} coins in the tin. The van comes at closing time.`;
     const items = (state.catalogue && state.catalogue.items) || [];
     const list = $('catalogue');
     if (!items.length) {
@@ -1432,11 +1457,17 @@
     pending.innerHTML = state.orders.length
       ? `<h4>On the way</h4><ul>${state.orders.map(o => `<li><span>${o.name}${(o.mystery || (o.kind && o.kind !== 'books')) ? '' : ` (${o.books} books)`}</span><span class="ordered">${o.arrives <= dayIndex() ? 'tonight' : 'tomorrow night'}</span></li>`).join('')}</ul>`
       : '';
-    const waiting = $('deliveries-list');
-    const night = state.clock.night;
-    waiting.innerHTML = state.deliveries.length
-      ? `<h4>On the step</h4><ul>${state.deliveries.map(d => `<li><span>${d.name}${(d.mystery || (d.kind && d.kind !== 'books')) ? '' : ` (${d.books} books)`}</span><button class="button small" data-open="${d.id}" ${night ? '' : 'disabled title="Boxes are opened after closing"'}>${night ? 'Open' : 'Opens tonight'}</button></li>`).join('')}</ul>`
-      : '';
+  }
+
+  // The two sub-tabs on the shop card.
+  function showTab(name) {
+    document.querySelectorAll('.subtab').forEach(b => {
+      const on = b.dataset.tab === name;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $('tab-order').classList.toggle('hidden', name !== 'order');
+    $('tab-inventory').classList.toggle('hidden', name !== 'inventory');
   }
 
   // Boxes outside the shop. Only drawn in the outside view; the form lists them either way.
@@ -1631,6 +1662,8 @@
     $('style-toggle').addEventListener('click', () => applySketch(!document.body.classList.contains('sketch')));
     $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
+    // The shop card's sub-tabs.
+    document.querySelectorAll('.subtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
     // One listener for the whole form: Order buttons and Open buttons.
     $('game-screen').addEventListener('click', (e) => {
       const order = e.target.closest('[data-order]');
