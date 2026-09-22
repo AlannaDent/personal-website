@@ -584,9 +584,9 @@
 
   function drawHud() {
     $('hud-name').textContent = state.shopName;
+    $('hud-name').title = `${state.shopName} \u00b7 ${state.sold} sold all time`;
     $('hud-coins').textContent = state.coins;
     $('hud-stock').textContent = `${booksInStock()} / ${capacity()}` + (state.reserve ? ` +${state.reserve}` : '');
-    $('hud-sold').textContent = state.sold;
   }
 
   function drawLog() {
@@ -1100,10 +1100,12 @@
     if (Math.random() >= NO_VAN_CHANCE) {
       const sizes = BOX_SIZES[state.stage] || BOX_SIZES[1];
       const names = BOX_NAMES.slice().sort(() => Math.random() - 0.5);   // shuffled, so no repeats today
+      let mysteryOffered = false;                 // at most one mystery box a day
       const bookBox = () => {
         const tier = Math.floor(Math.random() * 3);
         const books = sizes[tier];
-        const mystery = Math.random() < MYSTERY_CHANCE;
+        const mystery = !mysteryOffered && Math.random() < MYSTERY_CHANCE;
+        if (mystery) mysteryOffered = true;
         return {
           id: newId(), kind: 'books', name: mystery ? 'Mystery box' : names.pop(), books,
           // A mystery box is priced like a medium box at a discount; its size is decided when opened.

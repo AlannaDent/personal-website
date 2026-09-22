@@ -57,21 +57,29 @@
       <button id="next-day-button" class="button primary small hidden" type="button">Begin Day 2</button>
     </div>
 
-    <!-- HUD = "heads-up display", the row of numbers a player glances at. -->
-    <div class="hud">
-      <div class="hud-item"><span class="label">Shop</span><span id="hud-name">-</span></div>
-      <div class="hud-item"><span class="label">Coins</span><span id="hud-coins">0</span></div>
-      <div class="hud-item"><span class="label">In stock</span><span id="hud-stock">20 / 20</span></div>
-      <div class="hud-item"><span class="label">Sold</span><span id="hud-sold">0</span></div>
-    </div>
-
-    <!-- game.js draws the picture (an SVG) inside this box. From stage three on,
-         a button in the corner steps inside the building and back out. -->
+    <!-- game.js draws the picture (an SVG) inside this box. The numbers a player
+         glances at sit in the top corners of the picture; the two buttons sit in the
+         bottom corners. -->
     <div class="scene-wrap">
       <div id="scene" class="scene" aria-label="Your shop"></div>
-      <button id="view-toggle" class="view-toggle hidden" type="button">Step inside</button>
+
+      <!-- HUD = "heads-up display": shop name top-left, coins and stock top-right. -->
+      <div class="hud-chip hud-shop" id="hud-name">-</div>
+      <div class="hud-right">
+        <div class="hud-chip" title="Coins in the tin">
+          <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#d9a441" stroke="#a5772a" stroke-width="1.5"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#a5772a" stroke-width="1"/><path d="M8 15 q4 -9 8 -6" stroke="#f6e7b8" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+          <span id="hud-coins">0</span>
+        </div>
+        <div class="hud-chip" title="Books on the shelves, and in the back room">
+          <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="5" height="12" fill="#b7736b"/><rect x="9" y="4" width="5" height="16" fill="#6f8a99"/><rect x="15" y="10" width="5" height="10" fill="#a9a06b"/><rect x="3" y="20" width="17" height="1.5" fill="#8a7460"/></svg>
+          <span id="hud-stock">20 / 20</span>
+        </div>
+      </div>
+
       <!-- Switches the hand-painted look on and off. Remembered on this device. -->
-      <button id="style-toggle" class="view-toggle style-toggle" type="button">Sketch: on</button>
+      <button id="style-toggle" class="corner-button corner-left" type="button">Sketch: on</button>
+      <!-- From stage three on: step inside the building and back out. -->
+      <button id="view-toggle" class="corner-button corner-right hidden" type="button">Step inside</button>
     </div>
 
     <!-- Two columns: the side column keeps its size and stays in view while
