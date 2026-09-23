@@ -261,6 +261,25 @@ const Scenes = (function () {
   }
   // One entry point for every plant the shop can own.
   const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid, zz: zzPlant, inch: inchPlant, fern };
+  // A park bench for out front. Seen slightly from above so the seat has depth: pale top
+  // slats, a darker front edge, a slatted back, and a little shadow on the ground.
+  function bench(x, y, scale) {
+    return `<g class="bench" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="30" ry="2.4" fill="#000" opacity="0.13"/>
+      <g stroke="#3e3a36" stroke-width="2.6" stroke-linecap="round" fill="none">
+        <path d="M-22 0 L-22 -15"/><path d="M22 0 L22 -15"/>
+        <path d="M-20 -15 L-25 -31"/><path d="M20 -15 L25 -31"/>
+        <path d="M-25 -31 L-19 -31"/><path d="M25 -31 L19 -31"/>
+      </g>
+      <g fill="#a5794f"><rect x="-22" y="-30" width="44" height="3.2" rx="0.8"/><rect x="-22" y="-25" width="44" height="3.2" rx="0.8"/><rect x="-22" y="-20" width="44" height="3.2" rx="0.8"/></g>
+      <g fill="#7a5636"><rect x="-22" y="-27" width="44" height="0.9"/><rect x="-22" y="-22" width="44" height="0.9"/></g>
+      <path d="M-26 -16 L26 -16 L28 -12 L-28 -12 Z" fill="#b98a5b"/>
+      <path d="M-26 -16 L26 -16 L26 -14.6 L-26 -14.6 Z" fill="#cfa06c"/>
+      <rect x="-28" y="-12" width="56" height="3.4" fill="#8a6240"/>
+      <g stroke="#7a5636" stroke-width="0.8"><line x1="-8" y1="-16" x2="-9" y2="-12"/><line x1="8" y1="-16" x2="9" y2="-12"/></g>
+    </g>`;
+  }
+
   function plant(kind, x, y, scale) {
     return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
   }
@@ -531,11 +550,6 @@ const Scenes = (function () {
     s += bareBranches(81, 250, 1);
     s += `<g class="leaf" fill="#6f9556"><circle cx="80" cy="200" r="70"/><circle cx="40" cy="235" r="48"/><circle cx="125" cy="220" r="55"/></g>`;
     s += `<g class="leaf alt" fill="#7fa563"><circle cx="70" cy="180" r="40"/><circle cx="115" cy="205" r="30"/></g>`;
-    s += `<g fill="#8b6f4e">
-      <rect x="120" y="340" width="150" height="12"/><rect x="120" y="300" width="150" height="10"/><rect x="120" y="318" width="150" height="8"/>
-      <rect x="128" y="350" width="9" height="50"/><rect x="253" y="350" width="9" height="50"/>
-      <rect x="124" y="310" width="8" height="32"/><rect x="258" y="310" width="8" height="32"/>
-    </g>`;
     s += flower(300, 372, '#d98c9c') + flower(312, 380, '#e8c46a') + flower(560, 375, '#d98c9c') + flower(575, 368, '#ffffff') + flower(640, 384, '#e8c46a');
     s += grassTuft(330, 392) + grassTuft(590, 395) + grassTuft(720, 388);
     return s;
@@ -786,7 +800,6 @@ const Scenes = (function () {
     s += `<polygon points="370,400 430,400 470,450 330,450" fill="#d5c7a2"/>`;
     s += picketFence(0, 330, 400) + picketFence(470, 800, 400);
     s += hydrangeas(20, 380) + hydrangeas(740, 380);
-    s += `<g fill="#8b6f4e"><rect x="560" y="356" width="80" height="7"/><rect x="560" y="338" width="80" height="5"/><rect x="565" y="360" width="5" height="40"/><rect x="630" y="360" width="5" height="40"/></g>`;
     return s;
   }
 
@@ -1638,9 +1651,13 @@ const Scenes = (function () {
   }
   function decorSpotsFor(buildingId) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
-    return { signX: b.signX || 300, plantX: b.plantX || 500 };
+    const signX = b.signX || 300, plantX = b.plantX || 500;
+    // The bench stands beyond the plant, on the side away from the sign, unless a
+    // building names its own spot.
+    const benchX = b.benchX || (plantX < signX ? plantX - 62 : plantX + 62);
+    return { signX, plantX, benchX };
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, petSvg, PET_COLORS };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS };
 })();
