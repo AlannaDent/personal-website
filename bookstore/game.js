@@ -1364,7 +1364,7 @@
       if (now >= nextDolphinAt) {
         const span = randomFrom(sea.spans);
         const x = span[0] + Math.random() * (span[1] - span[0]);
-        critters.push({ kind: 'dolphin', x, y: sea.surface, dir: Math.random() < 0.5 ? 1 : -1, speed: 0, scale: 0.55 + Math.random() * 0.2, phase: 0, t: 0 });
+        critters.push({ kind: 'dolphin', x, y: sea.surface, dir: Math.random() < 0.5 ? 1 : -1, speed: 0, scale: (0.55 + Math.random() * 0.2) * (sea.scale || 1), phase: 0, t: 0 });
         addLog(randomFrom(DOLPHIN_LINES));
         drawLog();
         bumpLifetime(life => { life.dolphins = (life.dolphins || 0) + 1; });
@@ -1402,8 +1402,9 @@
     if (seaGroup) {
       seaGroup.innerHTML = critters.filter(c => c.kind === 'dolphin').map(c => {
         // A parabola out of the water and back in: nose up on the way out, nose down on the way in.
-        const t = c.t, lift = Math.sin(Math.PI * t) * 34;
-        const x = c.x + c.dir * 50 * t, y = c.y + 10 - lift, angle = -55 + 110 * t;
+        const k = c.scale / 0.65;   // a far-off dolphin leaps a proportionally smaller arc
+        const t = c.t, lift = Math.sin(Math.PI * t) * 34 * k;
+        const x = c.x + c.dir * 50 * k * t, y = c.y + 10 * k - lift, angle = -55 + 110 * t;
         const splash = (t < 0.22 || t > 0.78)
           ? `<g fill="#f4f7f4" opacity="${(t < 0.22 ? 1 - t / 0.22 : (t - 0.78) / 0.22).toFixed(2)}"><circle cx="${(c.x - 9).toFixed(0)}" cy="${(c.y - 5).toFixed(0)}" r="1.6"/><circle cx="${(c.x + 7).toFixed(0)}" cy="${(c.y - 8).toFixed(0)}" r="1.3"/><circle cx="${(c.x + 14).toFixed(0)}" cy="${(c.y - 3).toFixed(0)}" r="1.1"/><circle cx="${(c.x - 3).toFixed(0)}" cy="${(c.y - 11).toFixed(0)}" r="1"/></g>`
           : '';
