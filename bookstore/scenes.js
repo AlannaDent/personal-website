@@ -583,7 +583,7 @@ const Scenes = (function () {
   // Each takes an options object so a building can nudge details out of its way.
 
   function beach(opts) {
-    const bx = opts.boardwalkX || 480;   // where the boardwalk meets the dune
+    const bx = opts.boardwalkX || 480;   // where the footprints start, beside the shop
     const sx = opts.signX || 250;        // the "BEACH" sign post
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(150, 80, 60) + cloud(620, 110, 70);
@@ -600,15 +600,22 @@ const Scenes = (function () {
     s += `<path d="M0 300 C150 270 300 320 450 290 S700 270 800 300 L800 450 L0 450 Z" fill="#e3d6b4"/>`;
     s += `<path d="M0 450 L0 405 C200 398 600 408 800 400 L800 450 Z" fill="#d9caa3"/>`;
     [60, 95, 160, 250, 300, 560, 610, 700, 760].forEach((x, i) => { s += grassTuft(x, 296 + (i % 3) * 6); });
+    // Footprints from beside the shop down to the water: pairs of prints that wander
+    // slightly and shrink with distance.
+    s += `<g fill="#c4b18a" opacity="0.7">`;
+    for (let i = 0; i < 11; i++) {
+      const t = i / 10;
+      const cx = bx + 20 + 90 * t + Math.sin(t * 5) * 8;                 // a gentle wander to the right
+      const cy = 396 - 88 * t;                                             // up the sand towards the sea
+      const size = 3.4 - 1.9 * t, side = i % 2 === 0 ? -1 : 1;             // alternate feet, smaller as they go
+      const fx = cx + side * (5 - 2.5 * t), rot = -20 + 10 * Math.sin(t * 7);
+      s += `<ellipse cx="${fx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${(size * 0.6).toFixed(1)}" ry="${size.toFixed(1)}" transform="rotate(${rot.toFixed(0)} ${fx.toFixed(1)} ${cy.toFixed(1)})"/>`;
+      s += `<ellipse cx="${fx.toFixed(1)}" cy="${(cy - size * 1.15).toFixed(1)}" rx="${(size * 0.45).toFixed(1)}" ry="${(size * 0.42).toFixed(1)}" transform="rotate(${rot.toFixed(0)} ${fx.toFixed(1)} ${(cy - size * 1.15).toFixed(1)})"/>`;
+    }
+    s += `</g>`;
     // The near part is painted after the background people, so strollers on the far sand
-    // pass behind the dune fence, the sign post and the boardwalk rather than in front.
-    let near = `<polygon points="${bx},300 ${bx + 35},300 ${bx + 180},450 ${bx - 60},450" fill="#b39a6f"/>`;
-    near += `<g stroke="#9c845c" stroke-width="2">
-      <line x1="${bx + 6}" y1="320" x2="${bx + 29}" y2="320"/><line x1="${bx + 14}" y1="350" x2="${bx + 49}" y2="350"/>
-      <line x1="${bx + 24}" y1="380" x2="${bx + 73}" y2="380"/><line x1="${bx + 36}" y1="410" x2="${bx + 101}" y2="410"/>
-      <line x1="${bx + 50}" y1="440" x2="${bx + 134}" y2="440"/>
-    </g>`;
-    near += `<g stroke="#8b6f4e" stroke-width="6"><line x1="40" y1="290" x2="40" y2="370"/><line x1="130" y1="288" x2="130" y2="368"/><line x1="215" y1="300" x2="215" y2="380"/></g>`;
+    // pass behind the dune fence and the sign post rather than in front.
+    let near = `<g stroke="#8b6f4e" stroke-width="6"><line x1="40" y1="290" x2="40" y2="370"/><line x1="130" y1="288" x2="130" y2="368"/><line x1="215" y1="300" x2="215" y2="380"/></g>`;
     near += `<path d="M40 306 Q85 330 130 304 Q172 336 215 316" stroke="#c9b28a" stroke-width="3" fill="none"/><path d="M40 336 Q85 358 130 334 Q172 364 215 346" stroke="#c9b28a" stroke-width="3" fill="none"/>`;
     near += `<rect x="${sx - 1}" y="270" width="9" height="130" fill="#8b6f4e"/>`;
     near += `<rect x="${sx - 46}" y="250" width="100" height="34" fill="#e8e1cf" stroke="#8b6f4e" stroke-width="3"/>`;
