@@ -774,6 +774,65 @@
     // Lampposts out front come on with the shop's windows: a glow, and warm glass.
     svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
     svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
+    moveSkyBodies(svg, t);
+  }
+
+  // The sun climbs from the left horizon at sunrise, arcs over the shop and drops behind
+  // the right horizon at dusk; the moon rises as it goes and hangs high all night. Winter's
+  // arc is lower than summer's. The horizon line here sits behind the hills, water and
+  // rooftops, so the sun genuinely disappears behind them.
+  // How high the sun's arc peaks, as a y position near the top of the picture (0 is the
+  // very top). The arc stretches from each scene's own horizon up to this, so the sun comes
+  // close to touching the top everywhere; winter's arc peaks lower.
+  const SUN_PEAK_Y = { Spring: 46, Summer: 38, Autumn: 52, Winter: 72 };
+  const ARC_LEFT = 40, ARC_RIGHT = 760;   // where the arc meets the horizon, near the picture's edges
+  // The sun's character by season: how big it is drawn, how strong its glow, and its
+  // colour high in the sky. Summer is big and warm; winter is small, pale and thin.
+  const SUN_LOOK = {
+    Spring: { size: 1.0, glow: 0.28, color: '#f6d9a8' },
+    Summer: { size: 1.18, glow: 0.4, color: '#f8d890' },
+    Autumn: { size: 0.95, glow: 0.24, color: '#f2cf8e' },
+    Winter: { size: 0.84, glow: 0.12, color: '#f1e6d2' }
+  };
+  const SUN_UP_UNTIL = 0.92;   // the sun is down once dusk begins
+  function moveSkyBodies(svg, t) {
+    const night = state.clock.night, inside = state.view === 'inside';
+    const suns = svg.querySelectorAll('.sun');
+    // Sun: s runs 0..1 across the daylight part of the day. It starts with its centre just
+    // below the scene's horizon line, so the disc peeks over it as the Sunrise phase begins.
+    const horizon = Scenes.horizonFor(state.location);
+    const s = night ? 1 : Math.min(1, t / SUN_UP_UNTIL);
+    const sunX = ARC_LEFT + (ARC_RIGHT - ARC_LEFT) * s;
+    const arc = horizon + 14 - SUN_PEAK_Y[seasonName()];   // from just below the horizon to the peak
+    const sunY = horizon + 14 - Math.sin(Math.PI * s) * arc;
+    const low = Math.min(1, Math.max(0, (Math.abs(s - 0.5) - 0.32) / 0.18));   // 0 high in the sky, 1 at the horizon
+    const look = SUN_LOOK[seasonName()] || SUN_LOOK.Spring;
+    const sunColor = mixColor(look.color, '#f6a86a', low);
+    suns.forEach(el => {
+      el.setAttribute('transform', `translate(${sunX.toFixed(1)} ${sunY.toFixed(1)}) scale(${look.size})`);
+      el.setAttribute('opacity', night ? '0' : '1');
+      el.querySelectorAll('.sun-disc, .sun-glow').forEach(c => c.setAttribute('fill', sunColor));
+      const glow = el.querySelector('.sun-glow');
+      if (glow) glow.setAttribute('opacity', (look.glow + 0.1 * low).toFixed(2));   // a little more haze near the horizon
+      const rays = el.querySelector('.sun-rays');
+      if (rays) rays.setAttribute('stroke', sunColor);
+    });
+    // Moon: the same arc as the sun, half a day behind it, so the two are always on opposite
+    // halves of the sky. It rises on the left through Sunset and Dusk (m 0 -> 0.5) while the
+    // sun sets on the right, hangs at the top of the arc all night (the clock is paused), and
+    // sets down the right side through the next Sunrise (m 0.5 -> 1) as the sun comes up on
+    // the left. Not shown inside.
+    let moonOpacity = 0, m = 0.5;
+    if (inside) moonOpacity = 0;
+    else if (night) moonOpacity = 1;
+    else if (t >= 0.72) { m = (t - 0.72) / 0.28 * 0.5; moonOpacity = Math.min(1, (t - 0.72) / 0.16); }
+    else if (t < 0.12) { m = 0.5 + (t / 0.12) * 0.5; moonOpacity = 1 - t / 0.12; }
+    const moonArc = arc * 0.92;   // the moon rides a touch lower than the sun
+    const moonX = ARC_LEFT + (ARC_RIGHT - ARC_LEFT) * m, moonY = horizon + 14 - Math.sin(Math.PI * m) * moonArc;
+    svg.querySelectorAll('.moon').forEach(el => {
+      el.setAttribute('transform', `translate(${moonX.toFixed(1)} ${moonY.toFixed(1)})`);
+      el.setAttribute('opacity', moonOpacity.toFixed(2));
+    });
   }
   function applySeasonTint() {
     SEASONS.forEach(s => document.body.classList.remove('season-' + s.toLowerCase()));

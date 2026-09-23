@@ -256,7 +256,7 @@
 /* The night tip: a line written in the stars, below the top chips. Faint on purpose. */
 .night-tip {
   position: absolute;
-  top: 17%;
+  top: 32%;                        /* below the moon, above the horizon */
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
@@ -271,7 +271,7 @@
   pointer-events: none;
 }
 @media (max-width: 640px) {
-  .night-tip { top: 24%; max-width: 80%; font-size: 1.05rem; }
+  .night-tip { top: 36%; max-width: 80%; font-size: 1.05rem; }
 }
 /* The Begin Day button while boxes wait on the step. */
 #next-day-button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
@@ -614,9 +614,8 @@ svg .slot-marker.near { opacity: 0.85; }
 /* ---- Seasons ----
    The page carries a season class; trees, ground and sky respond. */
 .bare { display: none; }
-.seasonal .autumn-leaves, .seasonal .snow-drifts, .seasonal .wildflowers, .summer-sun { display: none; }
+.seasonal .autumn-leaves, .seasonal .snow-drifts, .seasonal .wildflowers { display: none; }
 body.season-spring .wildflowers { display: inline; }
-body.season-summer .summer-sun { display: inline; }
 body.season-autumn .autumn-leaves { display: inline; }
 body.season-autumn .leaf { fill: #c9782e; }
 body.season-autumn .leaf.alt { fill: #a5443a; }
