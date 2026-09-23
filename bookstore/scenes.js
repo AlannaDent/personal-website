@@ -361,6 +361,7 @@ const Scenes = (function () {
     return `<g class="daylight">
       <rect class="sky-wash" width="${VIEW.width}" height="${VIEW.height}" fill="#1f2a5a" opacity="0"/>
       <g class="stars" opacity="0">${stars}</g>
+      ${moonSvg()}
       <ellipse class="window-glow" cx="${glowX}" cy="${glowY}" rx="${glowRx}" ry="${glowRy}" fill="url(#windowGlow)" opacity="0"/>
     </g>`;
   }
@@ -502,14 +503,25 @@ const Scenes = (function () {
     }
     return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g>`;
   }
-  // The summer sun. Slotted into the sky right behind the clouds (see render), so clouds
-  // drift across it and gulls fly in front of it. CSS shows it in summer only.
-  function summerSun() {
-    const sun = `<circle cx="690" cy="72" r="46" fill="#f6d9a8" opacity="0.28"/><circle cx="690" cy="72" r="26" fill="#f6d9a8"/><g stroke="#f6d9a8" stroke-width="2" opacity="0.6">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="${(690 + 34 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y1="${(72 + 34 * Math.sin(a * Math.PI / 180)).toFixed(0)}" x2="${(690 + 44 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y2="${(72 + 44 * Math.sin(a * Math.PI / 180)).toFixed(0)}"/>`).join('')}</g>`;
-    return `<g class="summer-sun">${sun}</g>`;
+  // The sun and the moon. Slotted into the sky right behind the clouds (see render), so
+  // clouds drift across them and gulls fly in front. Each is drawn around its own origin;
+  // game.js moves them along an arc through the day (applyDaylight) and fades the moon in
+  // at dusk. The starting transform is only for pictures no game is running in, such as the
+  // location cards on the setup screen.
+  function skyBodies() {
+    const rays = [0, 45, 90, 135, 180, 225, 270, 315].map(a => {
+      const c = Math.cos(a * Math.PI / 180), si = Math.sin(a * Math.PI / 180);
+      return `<line x1="${(34 * c).toFixed(1)}" y1="${(34 * si).toFixed(1)}" x2="${(44 * c).toFixed(1)}" y2="${(44 * si).toFixed(1)}"/>`;
+    }).join('');
+    const sun = `<g class="sun" transform="translate(560 90)"><circle class="sun-glow" r="46" fill="#f6d9a8" opacity="0.28"/><circle class="sun-disc" r="26" fill="#f6d9a8"/><g class="sun-rays" stroke="#f6d9a8" stroke-width="2" opacity="0.6">${rays}</g></g>`;
+    return sun;
+  }
+  // The moon lives in the daylight layer (see daylightLayer), above the night wash, so it
+  // stays bright while everything under the wash goes blue. game.js moves and fades it.
+  function moonSvg() {
+    return `<g class="moon" transform="translate(640 80)" opacity="0"><circle r="30" fill="#f4f1e8" opacity="0.16"/><circle r="18" fill="#f4f1e8"/><g fill="#dcd6c6" opacity="0.8"><circle cx="-6" cy="-4" r="3.2"/><circle cx="6" cy="6" r="2.2"/><circle cx="5" cy="-8" r="1.6"/><circle cx="-3" cy="8" r="1.3"/></g></g>`;
   }
   const GRASSY = ['park', 'green', 'street2', 'cliff'];
-
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -587,19 +599,21 @@ const Scenes = (function () {
     s += `<path class="foam" d="M0 300 C150 270 300 320 450 290 S700 270 800 300" stroke="#f4f7f4" stroke-width="3" fill="none" opacity="0.6"/>`;
     s += `<path d="M0 300 C150 270 300 320 450 290 S700 270 800 300 L800 450 L0 450 Z" fill="#e3d6b4"/>`;
     s += `<path d="M0 450 L0 405 C200 398 600 408 800 400 L800 450 Z" fill="#d9caa3"/>`;
-    s += `<polygon points="${bx},300 ${bx + 35},300 ${bx + 180},450 ${bx - 60},450" fill="#b39a6f"/>`;
-    s += `<g stroke="#9c845c" stroke-width="2">
+    [60, 95, 160, 250, 300, 560, 610, 700, 760].forEach((x, i) => { s += grassTuft(x, 296 + (i % 3) * 6); });
+    // The near part is painted after the background people, so strollers on the far sand
+    // pass behind the dune fence, the sign post and the boardwalk rather than in front.
+    let near = `<polygon points="${bx},300 ${bx + 35},300 ${bx + 180},450 ${bx - 60},450" fill="#b39a6f"/>`;
+    near += `<g stroke="#9c845c" stroke-width="2">
       <line x1="${bx + 6}" y1="320" x2="${bx + 29}" y2="320"/><line x1="${bx + 14}" y1="350" x2="${bx + 49}" y2="350"/>
       <line x1="${bx + 24}" y1="380" x2="${bx + 73}" y2="380"/><line x1="${bx + 36}" y1="410" x2="${bx + 101}" y2="410"/>
       <line x1="${bx + 50}" y1="440" x2="${bx + 134}" y2="440"/>
     </g>`;
-    s += `<g stroke="#8b6f4e" stroke-width="6"><line x1="40" y1="290" x2="40" y2="370"/><line x1="130" y1="288" x2="130" y2="368"/><line x1="215" y1="300" x2="215" y2="380"/></g>`;
-    s += `<path d="M40 306 Q85 330 130 304 Q172 336 215 316" stroke="#c9b28a" stroke-width="3" fill="none"/><path d="M40 336 Q85 358 130 334 Q172 364 215 346" stroke="#c9b28a" stroke-width="3" fill="none"/>`;
-    [60, 95, 160, 250, 300, 560, 610, 700, 760].forEach((x, i) => { s += grassTuft(x, 296 + (i % 3) * 6); });
-    s += `<rect x="${sx - 1}" y="270" width="9" height="130" fill="#8b6f4e"/>`;
-    s += `<rect x="${sx - 46}" y="250" width="100" height="34" fill="#e8e1cf" stroke="#8b6f4e" stroke-width="3"/>`;
-    s += `<text x="${sx + 4}" y="274" text-anchor="middle" font-family="Georgia, serif" font-size="17" fill="#5b6b70">BEACH &#8594;</text>`;
-    return s;
+    near += `<g stroke="#8b6f4e" stroke-width="6"><line x1="40" y1="290" x2="40" y2="370"/><line x1="130" y1="288" x2="130" y2="368"/><line x1="215" y1="300" x2="215" y2="380"/></g>`;
+    near += `<path d="M40 306 Q85 330 130 304 Q172 336 215 316" stroke="#c9b28a" stroke-width="3" fill="none"/><path d="M40 336 Q85 358 130 334 Q172 364 215 346" stroke="#c9b28a" stroke-width="3" fill="none"/>`;
+    near += `<rect x="${sx - 1}" y="270" width="9" height="130" fill="#8b6f4e"/>`;
+    near += `<rect x="${sx - 46}" y="250" width="100" height="34" fill="#e8e1cf" stroke="#8b6f4e" stroke-width="3"/>`;
+    near += `<text x="${sx + 4}" y="274" text-anchor="middle" font-family="Georgia, serif" font-size="17" fill="#5b6b70">BEACH &#8594;</text>`;
+    return { far: s, near };
   }
 
   function park() {
@@ -963,6 +977,10 @@ const Scenes = (function () {
     park: { surface: 214, spans: [[190, 290], [720, 790]], scale: 0.42 }   // the far bay: tiny
   };
   const seaFor = (locationId) => SEA[locationId] || null;
+  // The horizon line the sun rises from and sets behind, per scene: the far water in the
+  // park and by the sea, the distant bay behind the town streets, the tree line elsewhere.
+  const HORIZON = { beach: 235, park: 200, dock: 230, harbor: 228, cliff: 236, street: 262, street2: 262, street3dutch: 262, street3cape: 262, street3tudor: 262, green: 300 };
+  const horizonFor = (locationId) => HORIZON[locationId] || 250;
   // Background people. doors: the neighbors' front doors (x, the ground they stand on, and
   // the door's height, which sets how big a visitor is drawn so they fit through it).
   // sand: the strip of far beach where distant strollers walk. park: swing pivots and the
@@ -1719,9 +1737,14 @@ const Scenes = (function () {
     const loc = LOCATIONS.find(l => l.id === locId);
     const color = paintColor || building.paint || (loc && loc.boxColor) || '#a9b5b7';
     const [skyTop, skyBottom] = SKIES[locId];
-    // Every backdrop starts with the sky. The sun goes straight after it, behind the clouds.
+    // A backdrop is one string, or { far, near } when part of it should be painted in front
+    // of the background people (the beach's dune fence, for instance). Every backdrop starts
+    // with the sky; the sun and moon go straight after it, behind the clouds.
+    const drawn = BACKDROPS[locId](building.backdropOpts || {});
+    const far = typeof drawn === 'string' ? drawn : drawn.far;
+    const near = typeof drawn === 'string' ? '' : drawn.near;
     const skyRect = `<rect width="800" height="450" fill="url(#sky)"/>`;
-    const backdrop = BACKDROPS[locId](building.backdropOpts || {}).replace(skyRect, skyRect + summerSun());
+    const backdrop = far.replace(skyRect, skyRect + skyBodies());
     const bldg = building.draw(color);
     const front = building.front();
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -1729,6 +1752,7 @@ const Scenes = (function () {
       ${painted('backdrop', backdrop)}
       <g class="background-life"></g>
       ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
+      ${near ? painted('backdrop-near', near) : ''}
       ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
       ${painted('building', bldg)}
       <g class="books"></g>
@@ -1802,5 +1826,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();
