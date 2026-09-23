@@ -574,7 +574,17 @@ body.season-winter .snow-drifts { display: inline; }
 body.season-winter .leaf { display: none; }
 body.season-winter .bare { display: inline; }
 body.season-winter .leaf-line { fill: #8a8078; }
-svg .weather { pointer-events: none; }
+svg .weather, svg .background-life, svg .sea-life { pointer-events: none; }
+
+/* ---- A living sky and sea: gentle, looping CSS animations on parts of the backdrop ---- */
+.cloud { animation: drift var(--dur, 180s) linear infinite; animation-delay: var(--delay, 0s); }
+@keyframes drift { from { transform: translateX(var(--start, -200px)); } to { transform: translateX(var(--end, 1000px)); } }
+.waves { animation: sway 5s ease-in-out infinite alternate; }
+.waves.late { animation-delay: -2.5s; animation-duration: 6s; }
+@keyframes sway { from { transform: translateX(-5px); opacity: 0.65; } to { transform: translateX(5px); opacity: 1; } }
+.foam { animation: lap 4.5s ease-in-out infinite alternate; }
+@keyframes lap { from { transform: translateY(-3px); opacity: 0.3; } to { transform: translateY(3px); opacity: 0.75; } }
+@media (prefers-reduced-motion: reduce) { .cloud, .waves, .foam { animation: none; } }
 
 /* ---- Sketch mode ----
    Every painted layer holds a colour copy (.fills) and an ink copy (.lines).

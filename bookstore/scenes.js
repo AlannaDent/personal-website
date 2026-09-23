@@ -61,8 +61,15 @@ const Scenes = (function () {
   function grassTuft(x, y) {
     return `<path d="M${x} ${y} l-4 -14 M${x} ${y} l0 -18 M${x} ${y} l4 -13" stroke="#8f9a5c" stroke-width="2" fill="none" stroke-linecap="round"/>`;
   }
+  // Clouds drift slowly left to right (CSS animation, see .cloud in style.css). Each one
+  // travels from off the left edge to off the right edge and loops; the negative delay
+  // starts it exactly where it is drawn, so the sky looks the same as before at first.
   function cloud(cx, cy, w) {
-    return `<g fill="#ffffff" opacity="0.75">
+    const margin = w * 1.7;
+    const start = -(cx + margin), end = VIEW.width - cx + margin;
+    const dur = 150 + (w % 7) * 12;                                 // 150-222 s per crossing
+    const delay = -dur * (cx + margin) / (VIEW.width + margin * 2);  // begin mid-journey
+    return `<g class="cloud" fill="#ffffff" opacity="0.75" style="--start:${start.toFixed(0)}px; --end:${end.toFixed(0)}px; --dur:${dur}s; --delay:${delay.toFixed(1)}s">
       <ellipse cx="${cx}" cy="${cy}" rx="${w}" ry="${w * 0.3}"/>
       <ellipse cx="${cx + w * 0.5}" cy="${cy - w * 0.18}" rx="${w * 0.6}" ry="${w * 0.28}"/>
     </g>`;
@@ -505,12 +512,16 @@ const Scenes = (function () {
     const sx = opts.signX || 250;        // the "BEACH" sign post
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(150, 80, 60) + cloud(620, 110, 70);
-    s += seagull(560, 60) + seagull(610, 45);
     s += `<rect x="0" y="235" width="800" height="70" fill="#7fa3ad"/>`;
-    s += `<g stroke="#a9c6cc" stroke-width="2" fill="none" stroke-linecap="round">
+    s += `<g class="waves" stroke="#a9c6cc" stroke-width="2" fill="none" stroke-linecap="round">
       <path d="M40 255 q15 -4 30 0"/><path d="M180 270 q15 -4 30 0"/><path d="M330 250 q15 -4 30 0"/>
       <path d="M520 265 q15 -4 30 0"/><path d="M680 252 q15 -4 30 0"/><path d="M740 285 q15 -4 30 0"/>
     </g>`;
+    s += `<g class="waves late" stroke="#bcd3d8" stroke-width="1.6" fill="none" stroke-linecap="round">
+      <path d="M110 282 q12 -3 24 0"/><path d="M420 278 q12 -3 24 0"/><path d="M600 290 q12 -3 24 0"/>
+    </g>`;
+    // Foam where the water meets the sand: it creeps up and slides back.
+    s += `<path class="foam" d="M0 300 C150 270 300 320 450 290 S700 270 800 300" stroke="#f4f7f4" stroke-width="3" fill="none" opacity="0.6"/>`;
     s += `<path d="M0 300 C150 270 300 320 450 290 S700 270 800 300 L800 450 L0 450 Z" fill="#e3d6b4"/>`;
     s += `<path d="M0 450 L0 405 C200 398 600 408 800 400 L800 450 Z" fill="#d9caa3"/>`;
     s += `<polygon points="${bx},300 ${bx + 35},300 ${bx + 180},450 ${bx - 60},450" fill="#b39a6f"/>`;
@@ -646,11 +657,11 @@ const Scenes = (function () {
   function dock() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(180, 70, 55) + cloud(560, 100, 50);
-    s += seagull(420, 120) + seagull(470, 105) + seagull(700, 150);
     // far shore and water
     s += `<rect x="0" y="230" width="800" height="12" fill="#8fa68a"/><g fill="#f4f1e8"><rect x="300" y="218" width="12" height="12"/><rect x="340" y="222" width="8" height="8"/></g><polygon points="298,218 306,208 314,218" fill="#5a5f66"/>`;
     s += `<rect x="0" y="242" width="800" height="208" fill="#6f8fa0"/>`;
-    s += `<g stroke="#9fb8c4" stroke-width="2" fill="none" stroke-linecap="round"><path d="M240 270 q15 -4 30 0"/><path d="M420 300 q15 -4 30 0"/><path d="M300 340 q15 -4 30 0"/><path d="M500 262 q15 -4 30 0"/><path d="M760 330 q15 -4 30 0"/></g>`;
+    s += `<g class="waves" stroke="#9fb8c4" stroke-width="2" fill="none" stroke-linecap="round"><path d="M240 270 q15 -4 30 0"/><path d="M420 300 q15 -4 30 0"/><path d="M300 340 q15 -4 30 0"/><path d="M500 262 q15 -4 30 0"/><path d="M760 330 q15 -4 30 0"/></g>`;
+    s += `<g class="waves late" stroke="#b3c9d3" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M120 300 q12 -3 24 0"/><path d="M380 322 q12 -3 24 0"/><path d="M470 352 q12 -3 24 0"/></g>`;
     // the sailboat, moored to the right
     s += `<rect x="656" y="60" width="6" height="272" fill="#7a5a3e"/>`;
     s += `<polygon points="662,64 662,76 686,70" fill="#b6413a"/>`;
@@ -809,14 +820,13 @@ const Scenes = (function () {
     s += `<g fill="#e8b4a0" opacity="0.55"><ellipse cx="180" cy="120" rx="120" ry="14"/><ellipse cx="560" cy="80" rx="150" ry="12"/><ellipse cx="660" cy="150" rx="110" ry="10"/></g>`;
     s += `<circle cx="690" cy="215" r="26" fill="#f6d9a8" opacity="0.9"/>`;
     s += `<rect x="0" y="236" width="800" height="214" fill="#5f6f95"/>`;
-    s += `<g stroke="#c9a9b4" stroke-width="2" opacity="0.7"><line x1="600" y1="262" x2="760" y2="262"/><line x1="640" y1="280" x2="780" y2="280"/><line x1="660" y1="300" x2="800" y2="300"/><line x1="680" y1="330" x2="800" y2="330"/></g>`;
+    s += `<g class="waves" stroke="#c9a9b4" stroke-width="2" opacity="0.7"><line x1="600" y1="262" x2="760" y2="262"/><line x1="640" y1="280" x2="780" y2="280"/><line x1="660" y1="300" x2="800" y2="300"/><line x1="680" y1="330" x2="800" y2="330"/></g>`;
     s += `<path d="M120 246 l10 -18 l3 18 z" fill="#f4f1e8" opacity="0.9"/><rect x="117" y="246" width="18" height="3" fill="#3a3f44"/>`;
     s += `<polygon points="0,338 660,338 690,450 0,450" fill="#7f9a68"/>`;
     s += `<polygon points="0,330 660,330 664,342 0,342" fill="#95ad74"/>`;
     s += `<polygon points="660,338 800,450 690,450" fill="#6b5a50"/><polygon points="668,352 760,450 700,450" fill="#5a4a42"/>`;
     [90, 150, 230, 610, 640].forEach((x, i) => { s += grassTuft(x, 336 + (i % 2) * 4); });
     s += picketFence(40, 250, 400);
-    s += seagull(520, 190) + seagull(570, 205);
     return s;
   }
 
@@ -824,10 +834,10 @@ const Scenes = (function () {
   function harbor() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(120, 90, 50) + cloud(600, 60, 60);
-    s += seagull(200, 130) + seagull(700, 110);
     s += `<rect x="0" y="228" width="800" height="14" fill="#8fa68a"/><g fill="#f4f1e8"><rect x="90" y="214" width="14" height="14"/><rect x="150" y="218" width="10" height="10"/></g><polygon points="88,214 97,204 106,214" fill="#5a5f66"/>`;
     s += `<rect x="0" y="240" width="800" height="210" fill="#6f8fa0"/>`;
-    s += `<g stroke="#9fb8c4" stroke-width="2" fill="none" stroke-linecap="round"><path d="M40 262 q15 -4 30 0"/><path d="M700 258 q15 -4 30 0"/><path d="M740 300 q15 -4 30 0"/><path d="M60 330 q15 -4 30 0"/><path d="M720 350 q15 -4 30 0"/></g>`;
+    s += `<g class="waves" stroke="#9fb8c4" stroke-width="2" fill="none" stroke-linecap="round"><path d="M40 262 q15 -4 30 0"/><path d="M700 258 q15 -4 30 0"/><path d="M740 300 q15 -4 30 0"/><path d="M60 330 q15 -4 30 0"/><path d="M720 350 q15 -4 30 0"/></g>`;
+    s += `<g class="waves late" stroke="#b3c9d3" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M110 290 q12 -3 24 0"/><path d="M660 320 q12 -3 24 0"/><path d="M40 356 q12 -3 24 0"/></g>`;
     s += `<rect x="0" y="372" width="800" height="78" fill="#b39a6f"/>`;
     s += `<g stroke="#9c845c" stroke-width="2">${[388, 406, 424, 442].map(y => `<line x1="0" y1="${y}" x2="800" y2="${y}"/>`).join('')}</g>`;
     s += `<g fill="#7d6b58"><rect x="30" y="336" width="14" height="40"/><rect x="756" y="336" width="14" height="40"/><rect x="120" y="344" width="12" height="32"/></g>`;
@@ -838,6 +848,15 @@ const Scenes = (function () {
   }
 
   const BACKDROPS = { beach, park, street, dock, street2, street3dutch, street3cape, street3tudor, green, cliff, harbor };
+  // Scenes with open water: where the sea surface sits (a dolphin's lower half hides below
+  // it) and the stretches of x where the water is in clear view.
+  const SEA = {
+    beach: { surface: 268, spans: [[60, 740]] },
+    dock: { surface: 300, spans: [[60, 520]] },
+    harbor: { surface: 300, spans: [[40, 200], [620, 760]] },
+    cliff: { surface: 290, spans: [[560, 790]] }
+  };
+  const seaFor = (locationId) => SEA[locationId] || null;
   const SKIES = {
     beach: ['#b9d3dc', '#eef0e6'],
     park: ['#c9dde4', '#eef3ea'],
@@ -1585,6 +1604,8 @@ const Scenes = (function () {
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
       ${painted('backdrop', backdrop)}
+      <g class="background-life"></g>
+      ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
       ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
       ${painted('building', bldg)}
       <g class="books"></g>
@@ -1659,5 +1680,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor };
 })();
