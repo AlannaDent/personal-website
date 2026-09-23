@@ -266,8 +266,35 @@ const Scenes = (function () {
       <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#a05f3e"/>
     </g>`;
   }
+  // A cactus in a terracotta pot: one tall column, two arms, pale spines, a pink flower.
+  function cactus(x, y, scale) {
+    return `<g class="plant cactus" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="8" ry="1.4" fill="#000" opacity="0.12"/>
+      <path d="M-4.2 -10 q0 -22 4.2 -25 q4.2 3 4.2 25 z" fill="#5f8f5a"/>
+      <path d="M-4 -19 q-8 -1 -8 -9 q0 -4.5 3 -4.5 q2.6 0 2.6 4.5 q0 5 2.4 5.5 z" fill="#5f8f5a"/>
+      <path d="M4 -22 q8 -1 8 -9 q0 -4.5 -3 -4.5 q-2.6 0 -2.6 4.5 q0 5 -2.4 5.5 z" fill="#5f8f5a"/>
+      <g stroke="#3f6b3a" stroke-width="0.5" opacity="0.8"><line x1="-1.6" y1="-12" x2="-1.6" y2="-32"/><line x1="1.6" y1="-12" x2="1.6" y2="-32"/><line x1="-9.5" y1="-24" x2="-9.5" y2="-30"/><line x1="9.5" y1="-27" x2="9.5" y2="-33"/></g>
+      <g stroke="#e9e2cf" stroke-width="0.5"><line x1="-4.2" y1="-15" x2="-5.6" y2="-15.6"/><line x1="4.2" y1="-18" x2="5.6" y2="-18.6"/><line x1="-4.2" y1="-27" x2="-5.6" y2="-27.6"/><line x1="4.2" y1="-30" x2="5.6" y2="-30.6"/><line x1="-11.5" y1="-28" x2="-13" y2="-28.4"/><line x1="11.5" y1="-31" x2="13" y2="-31.4"/></g>
+      <circle cx="0" cy="-35" r="2.1" fill="#d98c9c"/><circle cx="0" cy="-35" r="0.8" fill="#e8c46a"/>
+      <path d="M-6.5 -9.5 l1.5 9.5 h10 l1.5 -9.5 z" fill="#b8734f" stroke="#8a5a3a" stroke-width="0.6"/>
+      <rect x="-7.2" y="-11" width="14.4" height="2.2" rx="0.6" fill="#a05f3e"/>
+    </g>`;
+  }
+  // A hydrangea bush planted in the ground: leaves below, round mop-head blooms above.
+  function hydrangeaBush(bloom, light, dark) {
+    return (x, y, scale) => `<g class="plant hydrangea" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="15" ry="1.8" fill="#000" opacity="0.12"/>
+      <g fill="#4f7a4a"><ellipse cx="-9" cy="-6" rx="8" ry="4.6"/><ellipse cx="9" cy="-6" rx="8" ry="4.6"/><ellipse cx="0" cy="-4" rx="9" ry="4.6"/></g>
+      <g fill="#3f6b3a" opacity="0.7"><ellipse cx="-13" cy="-3" rx="4" ry="2.2"/><ellipse cx="13" cy="-3" rx="4" ry="2.2"/></g>
+      <g fill="${bloom}"><circle cx="-8" cy="-14" r="6.5"/><circle cx="6" cy="-16" r="7"/><circle cx="-1" cy="-21" r="6"/><circle cx="11" cy="-10" r="5"/><circle cx="-13" cy="-9" r="5"/></g>
+      <g fill="${light}"><circle cx="-6" cy="-17" r="2.6"/><circle cx="8" cy="-19" r="2.4"/><circle cx="1" cy="-24" r="2"/><circle cx="-11" cy="-11" r="1.8"/><circle cx="12" cy="-13" r="1.6"/></g>
+      <g fill="${dark}" opacity="0.8"><circle cx="-10" cy="-12" r="0.8"/><circle cx="4" cy="-13" r="0.8"/><circle cx="-3" cy="-19" r="0.8"/><circle cx="9" cy="-8" r="0.7"/><circle cx="2" cy="-22" r="0.7"/></g>
+    </g>`;
+  }
+  const hydrangeaPink = hydrangeaBush('#d98c9c', '#f0c0c8', '#b86b7c');
+  const hydrangeaBlue = hydrangeaBush('#8b9cc9', '#b7c4e4', '#6b7db0');
   // One entry point for every plant the shop can own.
-  const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid, zz: zzPlant, inch: inchPlant, fern };
+  const PLANT_DRAWINGS = { snake: snakePlant, monstera, spider: spiderPlant, orchid, zz: zzPlant, inch: inchPlant, fern, cactus, 'hydrangea-pink': hydrangeaPink, 'hydrangea-blue': hydrangeaBlue };
   // A park bench for out front. Seen slightly from above so the seat has depth: pale top
   // slats, a darker front edge, a slatted back, and a little shadow on the ground.
   function bench(x, y, scale) {
@@ -287,8 +314,39 @@ const Scenes = (function () {
     </g>`;
   }
 
+  // A black wrought-iron lamppost. Its glass warms and a glow spreads at dusk (game.js sets
+  // .lamp-glow opacity and .lamp-glass colour along with the shop's window glow).
+  function lamppost(x, y, scale) {
+    return `<g class="lamp" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="7" ry="1.3" fill="#000" opacity="0.13"/>
+      <ellipse class="lamp-glow" cx="0" cy="-83" rx="20" ry="17" fill="url(#windowGlow)" opacity="0"/>
+      <path d="M-7 0 h14 l-2.5 -5 h-9 z" fill="#2b2a28"/><rect x="-4.2" y="-14" width="8.4" height="9" rx="0.8" fill="#2b2a28"/>
+      <rect x="-1.6" y="-76" width="3.2" height="62" fill="#2b2a28"/>
+      <rect x="-3.2" y="-52" width="6.4" height="2.4" fill="#2b2a28"/><rect x="-2.7" y="-73" width="5.4" height="1.8" fill="#2b2a28"/>
+      <g stroke="#2b2a28" stroke-width="1.2" fill="none" stroke-linecap="round"><path d="M-1.6 -68 q-8 -1.5 -9 -8 q0 -3 2.5 -2.5"/><path d="M1.6 -68 q8 -1.5 9 -8 q0 -3 -2.5 -2.5"/></g>
+      <path class="lamp-glass" d="M-5 -77 l1.5 -12 h7 l1.5 12 z" fill="#dfe8ea"/>
+      <g stroke="#2b2a28" stroke-width="1.1" fill="none"><path d="M-6 -76.5 l2 -12.5 h8 l2 12.5 z"/><line x1="0" y1="-77" x2="0" y2="-89"/></g>
+      <path d="M-8.5 -89 l8.5 -6 l8.5 6 z" fill="#2b2a28"/><circle cx="0" cy="-96.5" r="1.6" fill="#2b2a28"/>
+    </g>`;
+  }
+
   function plant(kind, x, y, scale) {
     return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
+  }
+  // An Adirondack chair in weathered blue: a fanned slatted back leaning away, wide flat
+  // arms, a low seat. Seen a little from above so the seat shows.
+  function adirondack(x, y, scale) {
+    return `<g class="chair" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="18" ry="2" fill="#000" opacity="0.13"/>
+      <g stroke="#6b7f88" stroke-width="2.4" stroke-linecap="round"><line x1="-11" y1="0" x2="-12" y2="-14"/><line x1="11" y1="0" x2="12" y2="-14"/></g>
+      <g fill="#a9c2cc" stroke="#6b7f88" stroke-width="0.5"><rect x="-12" y="-36" width="4.4" height="24" rx="1"/><rect x="-7.2" y="-38" width="4.4" height="26" rx="1"/><rect x="-2.2" y="-39" width="4.4" height="27" rx="1"/><rect x="2.8" y="-38" width="4.4" height="26" rx="1"/><rect x="7.6" y="-36" width="4.4" height="24" rx="1"/></g>
+      <path d="M-13 -14 L13 -14 L15.5 -8.5 L-15.5 -8.5 Z" fill="#9fb8c4"/>
+      <g stroke="#7f98a4" stroke-width="0.6"><line x1="-13.8" y1="-12.2" x2="13.8" y2="-12.2"/><line x1="-14.6" y1="-10.3" x2="14.6" y2="-10.3"/></g>
+      <rect x="-15.5" y="-8.5" width="31" height="2.2" fill="#7f98a4"/>
+      <g stroke="#6b7f88" stroke-width="1.6" stroke-linecap="round"><line x1="-16" y1="-21" x2="-14" y2="-9"/><line x1="16" y1="-21" x2="14" y2="-9"/></g>
+      <rect x="-21" y="-23" width="13" height="3" rx="1.2" fill="#b9d0d8" stroke="#6b7f88" stroke-width="0.4"/><rect x="8" y="-23" width="13" height="3" rx="1.2" fill="#b9d0d8" stroke="#6b7f88" stroke-width="0.4"/>
+      <g stroke="#6b7f88" stroke-width="2.4" stroke-linecap="round"><line x1="-13.5" y1="-8" x2="-14.5" y2="0"/><line x1="13.5" y1="-8" x2="14.5" y2="0"/></g>
+    </g>`;
   }
 
   // The time-of-day layer: a color wash, a scatter of stars, and a glow from the
@@ -650,8 +708,13 @@ const Scenes = (function () {
     s += `<rect x="600" y="345" width="200" height="30" fill="#9dbb6f"/>`;
     s += picketFence(600, 800, 375);
     s += hydrangeas(612, 366) + hydrangeas(760, 366);
-    // mailbox by the curb
-    s += `<rect x="247" y="330" width="6" height="70" fill="#3a3f44"/><rect x="236" y="314" width="30" height="18" rx="6" fill="#3f5f5b"/><rect x="262" y="318" width="4" height="8" fill="#b6413a"/>`;
+    // the garage's mailbox by the curb: a wooden post, a loaf-shaped box seen from the
+    // side, its door towards us, and the red flag up
+    s += `<rect x="249" y="372" width="4" height="28" fill="#7a5a3e"/><rect x="245" y="370" width="12" height="2" fill="#5a4030"/>`;
+    s += `<path d="M241 372 V366 a6 6 0 0 1 6 -6 h8 a6 6 0 0 1 6 6 v6 z" fill="#3f5f5b" stroke="#2b3f3c" stroke-width="0.8"/>`;
+    s += `<path d="M241 372 V366 a6 6 0 0 1 6 -6 v12 z" fill="#5b7a76"/><circle cx="244.5" cy="367" r="0.8" fill="#e8e1cf"/>`;
+    s += `<line x1="255" y1="362" x2="255" y2="371" stroke="#2b3f3c" stroke-width="0.6" opacity="0.6"/>`;
+    s += `<rect x="259" y="355" width="1.4" height="8" fill="#b6413a"/><rect x="257" y="354" width="4.5" height="2.6" rx="0.6" fill="#b6413a"/>`;
     return s;
   }
 
@@ -1702,5 +1765,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor, extrasFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor };
 })();
