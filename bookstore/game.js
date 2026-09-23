@@ -92,7 +92,7 @@
     { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist.' }
   ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
-    [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }],
+    [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }],
     PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price }))
   );
   // Small pictures for the order form and inventory.
@@ -100,6 +100,7 @@
     books: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="5" height="13" fill="#b7736b"/><rect x="9" y="4" width="5" height="16" fill="#6f8a99"/><rect x="15" y="9" width="5" height="11" fill="#a9a06b"/><rect x="3" y="20" width="17" height="1.5" fill="#8a7460"/></svg>`,
     mystery: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" fill="#c9a97a" stroke="#8a6a48"/><rect x="10" y="7" width="4" height="13" fill="#e9e2cf"/><text x="12" y="17" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#5c5b56">?</text></svg>`,
     paint: (color) => `<svg class="icon" viewBox="0 0 24 24"><path d="M5 9h14l-1.6 11H6.6z" fill="${color}" stroke="#8a8f94" stroke-width="0.8"/><rect x="4" y="7" width="16" height="3" rx="0.6" fill="#8a8f94"/><path d="M8 7a4 4 0 0 1 8 0" stroke="#8a8f94" stroke-width="1.5" fill="none"/></svg>`,
+    bench: () => `<svg class="icon" viewBox="0 0 24 24"><g fill="#a5794f"><rect x="4" y="6" width="16" height="2" rx="0.5"/><rect x="4" y="9.5" width="16" height="2" rx="0.5"/></g><rect x="3" y="13" width="18" height="3" fill="#b98a5b"/><rect x="3" y="16" width="18" height="1.2" fill="#8a6240"/><g stroke="#3e3a36" stroke-width="1.4" stroke-linecap="round"><line x1="6" y1="17" x2="6" y2="21"/><line x1="18" y1="17" x2="18" y2="21"/><line x1="5.5" y1="13" x2="4.5" y2="6"/><line x1="18.5" y1="13" x2="19.5" y2="6"/></g></svg>`,
     sign: () => `<svg class="icon" viewBox="0 0 24 24"><polygon points="7,3 17,3 20,21 4,21" fill="#7d6b58"/><rect x="7.5" y="5" width="9" height="10" fill="#2f3a36"/><line x1="9.5" y1="9" x2="14.5" y2="9" stroke="#f4efe4" stroke-width="1"/><line x1="10" y1="12" x2="14" y2="12" stroke="#f4efe4" stroke-width="0.8" opacity="0.7"/></svg>`,
     pet: (pet) => `<svg class="icon" viewBox="-16 -26 32 30">${Scenes.petSvg(pet, 'sit')}</svg>`,
     plant: (kind) => ({
@@ -173,7 +174,7 @@
   // appeal (decor) and the season. Even a fully decorated shop in high summer should
   // fall short of selling out: the maximum is about 17 sales against 20 books at stage one.
   const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
-  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, max: 2.2 };
+  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, max: 2.2 };
   const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
   const BUY_CHANCE = 0.85;                // the rest browse and leave, when the shelves are full
   // Well-stocked shelves draw people in. At empty shelves footfall falls to STOCK_FLOOR of
@@ -334,6 +335,8 @@
 
   // Shorthand for finding an element on the page by its id.
   const $ = (id) => document.getElementById(id);
+  // 'a' or 'an' in front of a word, so the journal never says 'a inch plant'.
+  const withArticle = (words) => (/^[aeiou]/i.test(words) ? 'an ' : 'a ') + words;
   const randomFrom = (list) => list[Math.floor(Math.random() * list.length)];
   const building = () => Scenes.BUILDINGS[state.building];
   // How inviting the shop looks, from 1 (bare) to APPEAL.max (everything out front).
@@ -343,6 +346,7 @@
     if (d.paint) a += APPEAL.paint;
     if (d.signOut) a += APPEAL.sign;
     if (d.plantOut) a += APPEAL.plantOut;
+    if (d.benchOut) a += APPEAL.bench;      // somewhere to sit means someone stays
     a += APPEAL.extraPlant * Math.max(0, (d.plants || []).length - 1);
     a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
@@ -373,7 +377,7 @@
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
     return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
-  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, plants: [], plantOut: null, pets: [], petsOut: [] }; }
+  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, bench: 0, benchOut: false, plants: [], plantOut: null, pets: [], petsOut: [] }; }
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
@@ -488,7 +492,7 @@
     });
 
     $('start-button').addEventListener('click', () => {
-      const name = $('shop-name').value.trim() || DEFAULT_SHOP_NAME;
+      const name = DEFAULT_SHOP_NAME;   // renamed later from the pencil on the name pill
       state = freshState(name, chosenLocation);
       addLog(`Opened ${name} today. ${capacity()} books. High hopes. Spring, Year 1.`);
       bumpLifetime(life => { life.shopsOpened += 1; });
@@ -540,8 +544,7 @@
     drawBooksInto(svg, state.books, state.building, state.view);
     drawDecor();
     syncPets();
-    const plate = svg.querySelector('.box-sign:not(.chalk)');
-    if (plate) fitSign(plate, state.shopName, state.building);
+    drawShopName();
     applySeasonTint();
     applyDaylight(true);
     drawDeliveries();
@@ -571,6 +574,51 @@
   }
 
   // Long names use smaller lettering on the sign; very long names are trimmed.
+  // The shop name wherever it is painted: the plate on the stage-one box (and the shed
+  // signs), and the chalkboard if it is out.
+  function drawShopName() {
+    const svg = $('scene').querySelector('svg');
+    const plate = svg && svg.querySelector('.box-sign:not(.chalk)');
+    if (plate) fitSign(plate, state.shopName, state.building);
+    drawDecor();
+  }
+
+  // ---- Renaming the shop, from the pencil on its name pill ----
+  const SHOP_NAME_MAX = 28;
+  let shopRenameOpen = false;   // guards against Enter and the blur it causes both closing the box
+  function startShopRename() {
+    const pill = $('hud-name');
+    if (shopRenameOpen) return;
+    shopRenameOpen = true;
+    pill.innerHTML = `<input class="rename" type="text" maxlength="${SHOP_NAME_MAX}" value="${state.shopName.replace(/"/g, '&quot;')}" aria-label="New shop name">`;
+    const box = pill.querySelector('input');
+    box.focus();
+    box.select();
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') finishShopRename(box.value);
+      if (e.key === 'Escape') finishShopRename(null);
+    });
+    box.addEventListener('blur', () => finishShopRename(box.value));
+  }
+  function finishShopRename(value) {
+    if (!shopRenameOpen) return;
+    shopRenameOpen = false;
+    const pill = $('hud-name');
+    const name = value === null ? '' : value.trim().slice(0, SHOP_NAME_MAX);
+    // Put the text and pencil back first, then apply the new name if there is one.
+    pill.innerHTML = `<span id="hud-name-text"></span><button class="pencil" id="rename-shop" type="button" title="Rename your shop" aria-label="Rename your shop">\u270e</button>`;
+    $('rename-shop').addEventListener('click', startShopRename);
+    if (name && name !== state.shopName) {
+      const old = state.shopName;
+      state.shopName = name;
+      addLog(`Repainted the sign. ${old} is now ${name}.`);
+      drawLog();
+      drawShopName();
+      save();
+    }
+    drawHud();
+  }
+
   function fitSign(textEl, name, buildingId) {
     const sign = Scenes.BUILDINGS[buildingId].sign;
     const shown = name.length > 22 ? name.slice(0, 21) + '…' : name;
@@ -585,10 +633,15 @@
   }
 
   function drawHud() {
-    $('hud-name').textContent = state.shopName;
+    const nameText = $('hud-name-text');
+    if (nameText) nameText.textContent = state.shopName;
     $('hud-name').title = `${state.shopName} \u00b7 ${state.sold} sold all time`;
     $('hud-coins').textContent = state.coins;
-    $('hud-stock').textContent = `${booksInStock()} / ${capacity()}` + (state.reserve ? ` +${state.reserve}` : '');
+    const shelved = booksInStock(), cap = capacity(), back = state.reserve || 0;
+    $('hud-stock').textContent = `${shelved} / ${cap}` + (back ? ` +${back}` : '');
+    // Hover cards for the two pills.
+    $('hud-coins-chip').dataset.tip = `Coins you have right now: ${state.coins}.`;
+    $('hud-stock-chip').dataset.tip = `${shelved} ${shelved === 1 ? 'book' : 'books'} on your shelves, out of ${cap} shelf spaces.` + (back ? ` Plus ${back} waiting in the back room.` : '');
     drawAppeal();
   }
 
@@ -1141,6 +1194,7 @@
       const owned = state.decor || freshDecor();
       const decorChoices = DECOR_ITEMS.filter(d =>
         !(d.kind === 'sign' && owned.signs > 0) &&
+        !(d.kind === 'bench' && owned.bench > 0) &&
         !(d.kind === 'plant' && owned.plants.includes(d.plant)) &&
         !(d.kind === 'paint' && owned.paints.includes(d.color)));
       const decorItem = () => {
@@ -1180,7 +1234,7 @@
     const when = state.clock.night ? 'tomorrow night' : 'tonight';
     state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, pet: item.pet || null, arrives });
     if (item.kind === 'pet') addLog(`Arranged to adopt a ${item.name.toLowerCase().replace(' \u00b7 ', ' called ')} for ${item.price} coins. The carrier arrives ${when}.`);
-    else if (item.kind && item.kind !== 'books') addLog(`Ordered a ${item.name.toLowerCase()} for ${item.price} coins. Arrives ${when}.`);
+    else if (item.kind && item.kind !== 'books') addLog(`Ordered ${withArticle(item.name.toLowerCase())} for ${item.price} coins. Arrives ${when}.`);
     else addLog(item.mystery
       ? `Ordered a mystery box for ${item.price} coins. Arrives ${when}. Could be anything.`
       : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives ${when}.`);
@@ -1253,6 +1307,10 @@
       decor.signs += 1;
       decor.signOut = true;
       addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it and put it out front.`);
+    } else if (box.kind === 'bench') {
+      decor.bench = 1;
+      decor.benchOut = true;
+      addLog('Opened the crate: a park bench. Set it out front. Someone sat on it before the straw was swept up.');
     } else if (box.kind === 'plant') {
       const kind = box.plant || 'snake';
       const info = PLANTS.find(p => p.kind === kind) || PLANTS[0];
@@ -1316,6 +1374,7 @@
 
   function toggleDecor(kind, plantKind, petId) {
     if (kind === 'sign' && state.decor.signs > 0) state.decor.signOut = !state.decor.signOut;
+    if (kind === 'bench' && state.decor.bench > 0) state.decor.benchOut = !state.decor.benchOut;
     if (kind === 'plant' && state.decor.plants.includes(plantKind)) {
       state.decor.plantOut = state.decor.plantOut === plantKind ? null : plantKind;   // one plant out at a time
     }
@@ -1345,6 +1404,9 @@
     });
     if (decor.signs > 0) {
       rows.push(`<li><div class="item-row">${ICONS.sign()}<div><span class="item-name">Chalkboard sign</span><span class="item-meta">${decor.signOut ? 'Out front, with the shop name' : 'In the back'}</span></div></div><button class="button small" data-toggle="sign">${decor.signOut ? 'Take in' : 'Put out'}</button></li>`);
+    }
+    if (decor.bench > 0) {
+      rows.push(`<li><div class="item-row">${ICONS.bench()}<div><span class="item-name">Park bench</span><span class="item-meta">${decor.benchOut ? 'Out front, for lingering' : 'In the back'}</span></div></div><button class="button small" data-toggle="bench">${decor.benchOut ? 'Take in' : 'Put out'}</button></li>`);
     }
     decor.plants.forEach(kind => {
       const info = PLANTS.find(p => p.kind === kind) || { name: kind };
@@ -1385,6 +1447,7 @@
     if (!d.paint) missing.push('a coat of paint');
     if (!d.signOut) missing.push('the chalkboard out front');
     if (!d.plantOut) missing.push('a plant by the door');
+    if (!d.benchOut) missing.push('a bench to sit on');
     const season = SEASON_FOOTFALL[seasonName()];
     const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
     const fill = shelfFill();
@@ -1407,6 +1470,7 @@
     let out = '';
     if (state.decor.signOut) out += Scenes.chalkboard(spots.signX, Scenes.GROUND_Y, scale);
     if (state.decor.plantOut) out += Scenes.plant(state.decor.plantOut, spots.plantX, Scenes.GROUND_Y, scale);
+    if (state.decor.benchOut) out += Scenes.bench(spots.benchX, Scenes.GROUND_Y, scale);
     group.innerHTML = out;
     // The shop name in chalk: one line if short, otherwise split at a space near the middle.
     const chalk = group.querySelector('.chalk');
@@ -1448,7 +1512,7 @@
           : kind === 'pet' ? `${PET_KINDS[item.pet.kind].meta} \u00b7 ${item.price} coins`
           : kind === 'plant' ? `terracotta pot \u00b7 ${item.price} coins`
           : item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
-        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
+        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
           : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
@@ -1633,6 +1697,7 @@
       }
       if (Array.isArray(data.decor.paints)) data.decor.paints = data.decor.paints.filter((c, i, a) => a.indexOf(c) === i);
       if (!Array.isArray(data.decor.pets)) data.decor.pets = [];
+      if (typeof data.decor.bench !== 'number') { data.decor.bench = 0; data.decor.benchOut = false; }
       if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
@@ -1677,6 +1742,7 @@
     applySketch(sketchOn());
     applyHeader(headerOpen());
     $('header-toggle').addEventListener('click', () => applyHeader($('site-header').classList.contains('collapsed')));
+    $('rename-shop').addEventListener('click', startShopRename);
     $('style-toggle').addEventListener('click', () => applySketch(!document.body.classList.contains('sketch')));
     $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
