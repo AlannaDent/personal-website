@@ -98,6 +98,9 @@
     [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }, { kind: 'chair', name: 'Adirondack chair', price: 18 }, { kind: 'lamp', name: 'Iron lamppost', price: 20 }],
     PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price }))
   );
+  // The small descriptor under an order-form row (books and pets have their own).
+  const DECOR_META = { paint: 'one bucket', sign: 'A-frame, chalk included', bench: 'weathered oak', chair: 'weathered blue', lamp: 'black wrought iron' };
+  const PLANT_META = { 'hydrangea-pink': 'for the flower bed', 'hydrangea-blue': 'for the flower bed' };   // the rest come in a terracotta pot
   // Small pictures for the order form and inventory.
   const ICONS = {
     books: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="5" height="13" fill="#b7736b"/><rect x="9" y="4" width="5" height="16" fill="#6f8a99"/><rect x="15" y="9" width="5" height="11" fill="#a9a06b"/><rect x="3" y="20" width="17" height="1.5" fill="#8a7460"/></svg>`,
@@ -719,7 +722,7 @@
       const waiting = (state.deliveries || []).length > 0;
       button.disabled = waiting;
       // The hint lives on the wrapper, so it shows even while the button is grayed out.
-      $('next-day-wrap').dataset.tip = waiting ? 'Don\u2019t forget to open your packages!' : '';
+      $('next-day-wrap').dataset.tip = !waiting ? '' : state.view === 'inside' ? 'Step outside to open your packages!' : 'Don\u2019t forget to open your packages!';
     }
     $('next-day-wrap').classList.toggle('hidden', !night);
     drawNightTip();
@@ -804,6 +807,13 @@
     customers = [];
     addLog(`Closed up for the night. ${randomFrom(NIGHT_LINES[seasonName()])}`);
     deliverOrders();
+    // Boxes are only drawn outside. If the van came while the player was inside, step
+    // out to meet it so the boxes (and the reason Begin Day is waiting) are in view.
+    if (state.view === 'inside' && state.deliveries.length) {
+      addLog('Stepped outside to meet the van.');
+      state.view = 'outside';
+      switchView();
+    }
     reportProgress();
     drawLog();
     drawOrderForm();
@@ -1955,11 +1965,11 @@
     } else {
       list.innerHTML = items.map(item => {
         const kind = item.kind || 'books';
-        const meta = kind === 'paint' ? `one bucket \u00b7 ${item.price} coins`
-          : kind === 'sign' ? `A-frame, chalk included \u00b7 ${item.price} coins`
-          : kind === 'pet' ? `${PET_KINDS[item.pet.kind].meta} \u00b7 ${item.price} coins`
-          : kind === 'plant' ? `terracotta pot \u00b7 ${item.price} coins`
-          : item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
+        const descriptor = kind === 'pet' ? PET_KINDS[item.pet.kind].meta
+          : kind === 'plant' ? (PLANT_META[item.plant] || 'terracotta pot')
+          : kind === 'books' ? (item.mystery ? 'size unknown' : `${item.books} books`)
+          : (DECOR_META[kind] || 'for out front');
+        const meta = `${descriptor} \u00b7 ${item.price} coins`;
         const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'chair' ? ICONS.chair() : kind === 'lamp' ? ICONS.lamp() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
@@ -2104,6 +2114,7 @@
     customers = [];
     nextSpawnAt = performance.now() + 1200;
     drawScene();
+    drawDate();           // the Begin Day hint depends on whether we are inside or out
     const scene = $('scene');
     scene.classList.remove('arriving');
     void scene.offsetWidth;               // restart the animation
