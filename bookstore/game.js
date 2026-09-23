@@ -89,10 +89,13 @@
     { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect”. Can do.' },
     { kind: 'zz', name: 'ZZ plant', price: 10, line: 'Glossy, upright, unbothered. Thrives on being ignored.' },
     { kind: 'inch', name: 'Inch plant', price: 6, line: 'Purple and striped, already trailing over the rim. Grows an inch a week, allegedly.' },
-    { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist.' }
+    { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist.' },
+    { kind: 'cactus', name: 'Cactus', price: 9, line: 'Came with a warning label and one pink flower. Wants sun and to be left alone.' },
+    { kind: 'hydrangea-pink', name: 'Pink hydrangea bush', price: 16, line: 'Pink as a Cape Cod postcard. The soil must be sweet.' },
+    { kind: 'hydrangea-blue', name: 'Blue hydrangea bush', price: 16, line: 'Blue as the harbor in June. The soil must be sour.' }
   ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
-    [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }],
+    [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }, { kind: 'chair', name: 'Adirondack chair', price: 18 }, { kind: 'lamp', name: 'Iron lamppost', price: 20 }],
     PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price }))
   );
   // Small pictures for the order form and inventory.
@@ -100,6 +103,8 @@
     books: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="5" height="13" fill="#b7736b"/><rect x="9" y="4" width="5" height="16" fill="#6f8a99"/><rect x="15" y="9" width="5" height="11" fill="#a9a06b"/><rect x="3" y="20" width="17" height="1.5" fill="#8a7460"/></svg>`,
     mystery: () => `<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" fill="#c9a97a" stroke="#8a6a48"/><rect x="10" y="7" width="4" height="13" fill="#e9e2cf"/><text x="12" y="17" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#5c5b56">?</text></svg>`,
     paint: (color) => `<svg class="icon" viewBox="0 0 24 24"><path d="M5 9h14l-1.6 11H6.6z" fill="${color}" stroke="#8a8f94" stroke-width="0.8"/><rect x="4" y="7" width="16" height="3" rx="0.6" fill="#8a8f94"/><path d="M8 7a4 4 0 0 1 8 0" stroke="#8a8f94" stroke-width="1.5" fill="none"/></svg>`,
+    lamp: () => `<svg class="icon" viewBox="0 0 24 24"><path d="M9 22 h6 l-1 -2 h-4 z" fill="#2b2a28"/><rect x="11.2" y="9" width="1.6" height="11" fill="#2b2a28"/><path d="M9 9 l0.8 -5 h4.4 l0.8 5 z" fill="#f6e7b8" stroke="#2b2a28" stroke-width="0.9"/><path d="M8 4 l4 -2.5 l4 2.5 z" fill="#2b2a28"/><g stroke="#2b2a28" stroke-width="0.9" fill="none"><path d="M11.2 12 q-3 -0.5 -3.5 -3"/><path d="M12.8 12 q3 -0.5 3.5 -3"/></g></svg>`,
+    chair: () => `<svg class="icon" viewBox="0 0 24 24"><g fill="#a9c2cc" stroke="#6b7f88" stroke-width="0.4"><rect x="6" y="3" width="2.6" height="11" rx="0.6"/><rect x="9.2" y="2" width="2.6" height="12" rx="0.6"/><rect x="12.2" y="2" width="2.6" height="12" rx="0.6"/><rect x="15.4" y="3" width="2.6" height="11" rx="0.6"/></g><path d="M5 14 h14 l1.5 3.5 h-17 z" fill="#9fb8c4"/><rect x="2" y="10" width="6" height="2" rx="0.8" fill="#b9d0d8"/><rect x="16" y="10" width="6" height="2" rx="0.8" fill="#b9d0d8"/><g stroke="#6b7f88" stroke-width="1.4" stroke-linecap="round"><line x1="5" y1="17.5" x2="4.5" y2="22"/><line x1="19" y1="17.5" x2="19.5" y2="22"/></g></svg>`,
     bench: () => `<svg class="icon" viewBox="0 0 24 24"><g fill="#a5794f"><rect x="4" y="6" width="16" height="2" rx="0.5"/><rect x="4" y="9.5" width="16" height="2" rx="0.5"/></g><rect x="3" y="13" width="18" height="3" fill="#b98a5b"/><rect x="3" y="16" width="18" height="1.2" fill="#8a6240"/><g stroke="#3e3a36" stroke-width="1.4" stroke-linecap="round"><line x1="6" y1="17" x2="6" y2="21"/><line x1="18" y1="17" x2="18" y2="21"/><line x1="5.5" y1="13" x2="4.5" y2="6"/><line x1="18.5" y1="13" x2="19.5" y2="6"/></g></svg>`,
     sign: () => `<svg class="icon" viewBox="0 0 24 24"><polygon points="7,3 17,3 20,21 4,21" fill="#7d6b58"/><rect x="7.5" y="5" width="9" height="10" fill="#2f3a36"/><line x1="9.5" y1="9" x2="14.5" y2="9" stroke="#f4efe4" stroke-width="1"/><line x1="10" y1="12" x2="14" y2="12" stroke="#f4efe4" stroke-width="0.8" opacity="0.7"/></svg>`,
     pet: (pet) => `<svg class="icon" viewBox="-16 -26 32 30">${Scenes.petSvg(pet, 'sit')}</svg>`,
@@ -110,6 +115,9 @@
       orchid: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-4h4l1 4z" fill="#dfe8ea"/><path d="M12 17q1-8 5-13" stroke="#4f7a4a" stroke-width="1.2" fill="none"/><g fill="#d98c9c"><circle cx="15" cy="9" r="2.6"/><circle cx="17.5" cy="4.5" r="2.4"/><circle cx="13" cy="13" r="2.2"/></g><g fill="#b6413a"><circle cx="15" cy="9" r="0.8"/><circle cx="17.5" cy="4.5" r="0.7"/><circle cx="13" cy="13" r="0.7"/></g><path d="M11 17q-5-1-6-5q4 0 6 5z" fill="#4f7a4a"/></svg>`,
       zz: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#3a3f44"/><g stroke="#2f5230" stroke-width="1" fill="none"><path d="M12 16q-2-6-4-12"/><path d="M12 16q2-6 4-12"/></g><g fill="#3f6b3a"><ellipse cx="9" cy="6" rx="2.2" ry="1.2" transform="rotate(-30 9 6)"/><ellipse cx="10" cy="10" rx="2.2" ry="1.2" transform="rotate(-30 10 10)"/><ellipse cx="15" cy="6" rx="2.2" ry="1.2" transform="rotate(30 15 6)"/><ellipse cx="14" cy="10" rx="2.2" ry="1.2" transform="rotate(30 14 10)"/><ellipse cx="11" cy="13" rx="2" ry="1.1" transform="rotate(-30 11 13)"/><ellipse cx="13" cy="13" rx="2" ry="1.1" transform="rotate(30 13 13)"/></g></svg>`,
       inch: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-6h4l1 6z" fill="#e9e2cf" stroke="#b5aea0" stroke-width="0.5"/><g fill="#6b4f8a"><ellipse cx="7" cy="12" rx="4" ry="1.6" transform="rotate(-40 7 12)"/><ellipse cx="17" cy="12" rx="4" ry="1.6" transform="rotate(40 17 12)"/><ellipse cx="12" cy="8" rx="4" ry="1.6"/><ellipse cx="5" cy="17" rx="3.5" ry="1.5" transform="rotate(-80 5 17)"/><ellipse cx="19" cy="17" rx="3.5" ry="1.5" transform="rotate(80 19 17)"/></g><g stroke="#9fd0c4" stroke-width="0.6"><line x1="9" y1="8" x2="15" y2="8"/><line x1="5" y1="14" x2="9" y2="10"/><line x1="19" y1="14" x2="15" y2="10"/></g></svg>`,
+      cactus: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#b8734f"/><path d="M10.2 16 q0 -12 1.8 -13 q1.8 1 1.8 13 z" fill="#5f8f5a"/><path d="M10.2 11 q-4 -0.5 -4 -4.5 q0 -2 1.4 -2 q1.2 0 1.2 2 q0 2.8 1.4 3.2 z" fill="#5f8f5a"/><path d="M13.8 9 q4 -0.5 4 -4.5 q0 -2 -1.4 -2 q-1.2 0 -1.2 2 q0 2.8 -1.4 3.2 z" fill="#5f8f5a"/><circle cx="12" cy="2.6" r="1.2" fill="#d98c9c"/></svg>`,
+      'hydrangea-pink': `<svg class="icon" viewBox="0 0 24 24"><g fill="#4f7a4a"><ellipse cx="7" cy="18" rx="5" ry="3"/><ellipse cx="17" cy="18" rx="5" ry="3"/><ellipse cx="12" cy="19" rx="5" ry="3"/></g><g fill="#d98c9c"><circle cx="7.5" cy="12" r="4.2"/><circle cx="15.5" cy="11" r="4.6"/><circle cx="11.5" cy="7" r="4"/></g><g fill="#f0c0c8"><circle cx="8.5" cy="10.5" r="1.5"/><circle cx="16" cy="9.5" r="1.4"/><circle cx="12" cy="5.5" r="1.2"/></g></svg>`,
+      'hydrangea-blue': `<svg class="icon" viewBox="0 0 24 24"><g fill="#4f7a4a"><ellipse cx="7" cy="18" rx="5" ry="3"/><ellipse cx="17" cy="18" rx="5" ry="3"/><ellipse cx="12" cy="19" rx="5" ry="3"/></g><g fill="#8b9cc9"><circle cx="7.5" cy="12" r="4.2"/><circle cx="15.5" cy="11" r="4.6"/><circle cx="11.5" cy="7" r="4"/></g><g fill="#b7c4e4"><circle cx="8.5" cy="10.5" r="1.5"/><circle cx="16" cy="9.5" r="1.4"/><circle cx="12" cy="5.5" r="1.2"/></g></svg>`,
       fern: `<svg class="icon" viewBox="0 0 24 24"><path d="M9 21l1-5h4l1 5z" fill="#b8734f"/><g stroke="#4f7a4a" stroke-width="0.9" fill="none"><path d="M12 16q-5-4-8-10"/><path d="M12 16q5-4 8-10"/><path d="M12 16q0-6 0-12"/></g><g fill="#6a955f"><ellipse cx="8" cy="10" rx="2" ry="0.8" transform="rotate(-50 8 10)"/><ellipse cx="6" cy="8" rx="2" ry="0.8" transform="rotate(-50 6 8)"/><ellipse cx="16" cy="10" rx="2" ry="0.8" transform="rotate(50 16 10)"/><ellipse cx="18" cy="8" rx="2" ry="0.8" transform="rotate(50 18 8)"/><ellipse cx="11" cy="9" rx="2" ry="0.8" transform="rotate(-30 11 9)"/><ellipse cx="13" cy="9" rx="2" ry="0.8" transform="rotate(30 13 9)"/><ellipse cx="11" cy="6" rx="1.6" ry="0.7" transform="rotate(-30 11 6)"/><ellipse cx="13" cy="6" rx="1.6" ry="0.7" transform="rotate(30 13 6)"/></g></svg>`
     }[kind] || '')
   };
@@ -174,7 +182,7 @@
   // appeal (decor) and the season. Even a fully decorated shop in high summer should
   // fall short of selling out: the maximum is about 17 sales against 20 books at stage one.
   const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
-  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, max: 2.2 };   // extraPlant: each further plant out front
+  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, chair: 0.1, lamp: 0.1, max: 2.2 };   // extraPlant: each further plant out front
   const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
   const BUY_CHANCE = 0.85;                // the rest browse and leave, when the shelves are full
   // Well-stocked shelves draw people in. At empty shelves footfall falls to STOCK_FLOOR of
@@ -350,6 +358,8 @@
     const plantsOut = outKeys().filter(k => k.startsWith('plant:')).length;
     if (plantsOut) a += APPEAL.plantOut + APPEAL.extraPlant * (plantsOut - 1);
     if (isOut('bench')) a += APPEAL.bench;      // somewhere to sit means someone stays
+    if (isOut('chair')) a += APPEAL.chair;
+    if (isOut('lamp')) a += APPEAL.lamp;
     a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
   }
@@ -379,7 +389,7 @@
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
     return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
-  function freshDecor() { return { paint: null, paints: [], signs: 0, bench: 0, plants: [], spots: freshSpots(), pets: [], petsOut: [] }; }
+  function freshDecor() { return { paint: null, paints: [], signs: 0, bench: 0, chair: 0, lamp: 0, plants: [], spots: freshSpots(), pets: [], petsOut: [] }; }
   // ---- Decor spots out front ----
   // Four spots, left to right. Each holds one item key: 'sign', 'bench', 'plant:<kind>'.
   // Spot ids for a building, left to right: L2 L1 R1 R2 for two a side, L3..R3 for three.
@@ -421,7 +431,7 @@
     return id;
   }
   function takeIn(key) { const id = slotOf(key); if (id) spots()[id] = null; }
-  const itemName = (key) => key === 'sign' ? 'the chalkboard' : key === 'bench' ? 'the bench' : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
+  const itemName = (key) => key === 'sign' ? 'the chalkboard' : key === 'bench' ? 'the bench' : key === 'chair' ? 'the chair' : key === 'lamp' ? 'the lamppost' : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
@@ -758,6 +768,9 @@
     wash.setAttribute('opacity', opacity.toFixed(3));
     stars.setAttribute('opacity', starOpacity.toFixed(2));
     glow.setAttribute('opacity', glowOpacity.toFixed(2));
+    // Lampposts out front come on with the shop's windows: a glow, and warm glass.
+    svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
+    svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
   }
   function applySeasonTint() {
     SEASONS.forEach(s => document.body.classList.remove('season-' + s.toLowerCase()));
@@ -1543,6 +1556,8 @@
       const decorChoices = DECOR_ITEMS.filter(d =>
         !(d.kind === 'sign' && owned.signs > 0) &&
         !(d.kind === 'bench' && owned.bench > 0) &&
+        !(d.kind === 'chair' && owned.chair > 0) &&
+        !(d.kind === 'lamp' && owned.lamp > 0) &&
         !(d.kind === 'plant' && owned.plants.includes(d.plant)) &&
         !(d.kind === 'paint' && owned.paints.includes(d.color)));
       const decorItem = () => {
@@ -1659,6 +1674,14 @@
       decor.bench = 1;
       const spot = putOut('bench');
       addLog(spot ? `Opened the crate: a park bench. Set it ${slotLabel(spot)}. Someone sat on it before the straw was swept up.` : 'Opened the crate: a park bench. Every spot out front is taken, so it waits in the back.');
+    } else if (box.kind === 'chair') {
+      decor.chair = 1;
+      const spot = putOut('chair');
+      addLog(spot ? `Opened the crate: an Adirondack chair. Set it ${slotLabel(spot)}. Nobody has got up from it since.` : 'Opened the crate: an Adirondack chair. Every spot out front is taken, so it waits in the back.');
+    } else if (box.kind === 'lamp') {
+      decor.lamp = 1;
+      const spot = putOut('lamp');
+      addLog(spot ? `Opened the crate: an iron lamppost. Stood it ${slotLabel(spot)}. It comes on by itself at dusk, which feels like a small miracle.` : 'Opened the crate: an iron lamppost. Every spot out front is taken, so it waits in the back.');
     } else if (box.kind === 'plant') {
       const kind = box.plant || 'snake';
       const info = PLANTS.find(p => p.kind === kind) || PLANTS[0];
@@ -1723,6 +1746,8 @@
   function toggleDecor(kind, plantKind, petId) {
     const key = kind === 'sign' && state.decor.signs > 0 ? 'sign'
       : kind === 'bench' && state.decor.bench > 0 ? 'bench'
+      : kind === 'chair' && state.decor.chair > 0 ? 'chair'
+      : kind === 'lamp' && state.decor.lamp > 0 ? 'lamp'
       : kind === 'plant' && state.decor.plants.includes(plantKind) ? 'plant:' + plantKind : null;
     if (key) {
       if (isOut(key)) takeIn(key);
@@ -1818,6 +1843,12 @@
     if (decor.bench > 0) {
       rows.push(`<li><div class="item-row">${ICONS.bench()}<div><span class="item-name">Park bench</span><span class="item-meta">${whereIs('bench', 'In the back')}</span></div></div>${placeButtons('bench', 'data-toggle="bench"')}</li>`);
     }
+    if (decor.chair > 0) {
+      rows.push(`<li><div class="item-row">${ICONS.chair()}<div><span class="item-name">Adirondack chair</span><span class="item-meta">${whereIs('chair', 'In the back')}</span></div></div>${placeButtons('chair', 'data-toggle="chair"')}</li>`);
+    }
+    if (decor.lamp > 0) {
+      rows.push(`<li><div class="item-row">${ICONS.lamp()}<div><span class="item-name">Iron lamppost</span><span class="item-meta">${whereIs('lamp', 'In the back')}</span></div></div>${placeButtons('lamp', 'data-toggle="lamp"')}</li>`);
+    }
     decor.plants.forEach(kind => {
       const info = PLANTS.find(p => p.kind === kind) || { name: kind };
       rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${whereIs('plant:' + kind, 'In the back')}</span></div></div>${placeButtons('plant:' + kind, `data-toggle="plant" data-plant="${kind}"`)}</li>`);
@@ -1883,10 +1914,11 @@
       const key = spots()[id];
       if (!key) return;
       const x = xs[i], y = Scenes.GROUND_Y;
-      const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
+      const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : key === 'chair' ? Scenes.adirondack(x, y, scale) : key === 'lamp' ? Scenes.lamppost(x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
       out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move)</title>${art}</g>`;
     });
     group.innerHTML = out;
+    if (out.includes('lamp-glow')) applyDaylight(true);   // light the lamppost for the time of day
     // The shop name in chalk: one line if short, otherwise split at a space near the middle.
     const chalk = group.querySelector('.chalk');
     const line2 = group.querySelector('.chalk-line2');
@@ -1927,7 +1959,7 @@
           : kind === 'pet' ? `${PET_KINDS[item.pet.kind].meta} \u00b7 ${item.price} coins`
           : kind === 'plant' ? `terracotta pot \u00b7 ${item.price} coins`
           : item.mystery ? `size unknown \u00b7 ${item.price} coins` : `${item.books} books \u00b7 ${item.price} coins`;
-        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
+        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'chair' ? ICONS.chair() : kind === 'lamp' ? ICONS.lamp() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
           : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
@@ -2113,6 +2145,8 @@
       if (Array.isArray(data.decor.paints)) data.decor.paints = data.decor.paints.filter((c, i, a) => a.indexOf(c) === i);
       if (!Array.isArray(data.decor.pets)) data.decor.pets = [];
       if (typeof data.decor.bench !== 'number') data.decor.bench = 0;
+      if (typeof data.decor.chair !== 'number') data.decor.chair = 0;
+      if (typeof data.decor.lamp !== 'number') data.decor.lamp = 0;
       // Saves from before decor spots: one sign spot, one plant spot, a bench beside the
       // plant. Put each item that was out into the nearest of the new spots, then drop
       // the old flags.
