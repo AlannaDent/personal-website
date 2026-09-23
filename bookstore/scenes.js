@@ -551,8 +551,6 @@ const Scenes = (function () {
         <path d="M555 300 L595 218 L635 300"/><path d="M705 300 L665 218 L625 300"/>
         <line x1="595" y1="218" x2="665" y2="218"/>
       </g>
-      <g stroke="#6f6678" stroke-width="2"><line x1="612" y1="218" x2="612" y2="272"/><line x1="648" y1="218" x2="648" y2="272"/></g>
-      <rect x="604" y="272" width="16" height="5" fill="#c98a6a"/><rect x="640" y="272" width="16" height="5" fill="#c98a6a"/>
       <polygon points="735,300 760,225 770,225 770,300" fill="#c98a6a"/>
       <path d="M770 228 C790 250 800 275 800 300" stroke="#e0d8c8" stroke-width="7" fill="none"/>
       <g stroke="#8a7f92" stroke-width="2"><line x1="742" y1="285" x2="768" y2="285"/><line x1="748" y1="265" x2="768" y2="265"/><line x1="754" y1="245" x2="768" y2="245"/></g>
@@ -760,6 +758,9 @@ const Scenes = (function () {
     out += `<polygon points="${x - 10},250 ${x + w / 2},176 ${x + w + 10},250" fill="#5b4a40" stroke="#3d2a22" stroke-width="1.5"/>`;
     out += leadedWindow(x + w * 0.3, 258, w * 0.4, 32, '#3d2a22');
     out += leadedWindow(x + w * 0.1, 310, w * 0.34, 40, '#3d2a22') + leadedWindow(x + w * 0.56, 310, w * 0.34, 40, '#3d2a22');
+    // An arched front door between the windows.
+    const dw = w * 0.12, dx = x + w * 0.5 - dw / 2;
+    out += `<path d="M${dx} 370 V${336 + dw / 2} A${dw / 2} ${dw / 2} 0 0 1 ${dx + dw} ${336 + dw / 2} V370 Z" fill="#3d2a22"/>`;
     return out;
   }
 
@@ -857,6 +858,21 @@ const Scenes = (function () {
     cliff: { surface: 290, spans: [[560, 790]] }
   };
   const seaFor = (locationId) => SEA[locationId] || null;
+  // Background people. doors: the neighbours' front doors (x, the ground they stand on, and
+  // the door's height, which sets how big a visitor is drawn so they fit through it).
+  // sand: the strip of far beach where distant strollers walk. park: swing pivots and the
+  // picnic spot.
+  const EXTRAS = {
+    street: { doors: [{ x: 173, y: 370, h: 74 }, { x: 643, y: 370, h: 60 }] },
+    street2: { doors: [{ x: 83, y: 370, h: 60 }] },
+    street3dutch: { doors: [{ x: 75, y: 370, h: 40 }, { x: 730, y: 370, h: 40 }] },
+    street3cape: { doors: [{ x: 80, y: 370, h: 44 }, { x: 725, y: 370, h: 44 }] },
+    street3tudor: { doors: [{ x: 85, y: 370, h: 44 }, { x: 720, y: 370, h: 44 }] },
+    dock: { doors: [{ x: 150, y: 372, h: 64 }] },
+    beach: { sand: { yMin: 318, yMax: 336 } },
+    park: { swings: [{ x: 612, pivotY: 218, seatY: 272 }, { x: 648, pivotY: 218, seatY: 272 }], swingGround: 300, picnic: { x: 190, y: 352 } }
+  };
+  const extrasFor = (locationId) => EXTRAS[locationId] || null;
   const SKIES = {
     beach: ['#b9d3dc', '#eef0e6'],
     park: ['#c9dde4', '#eef3ea'],
@@ -1680,5 +1696,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor, extrasFor };
 })();
