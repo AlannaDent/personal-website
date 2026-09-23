@@ -20,7 +20,57 @@
   margin: 0.2rem auto 0;
   padding: 0 1rem;
 }
-.stage-row .tagline { margin-bottom: 0.15rem; }
+/* The caret that folds the header. Open: it floats in the top-left corner, level with
+   the big title. Folded: it leads a single slim line with the small title. */
+.site-header { position: relative; }
+.header-toggle {
+  position: absolute;
+  left: 1rem;
+  top: 4.2rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: none;
+  color: #a9a294;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-toggle svg { transition: transform 0.2s ease; }
+.header-toggle:hover { color: var(--brick); border-color: var(--line); background: var(--paper); }
+.header-toggle:focus-visible { outline: 2px solid var(--mustard); }
+.mini-title { display: none; }
+/* Folded: one line reading  [caret] The Salty Jellyfish ....... <- Alanna's Workshop  */
+.site-header.collapsed {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.9rem 1rem 0.5rem;
+  text-align: left;
+}
+.site-header.collapsed .header-toggle { position: static; }
+.site-header.collapsed .header-toggle svg { transform: rotate(-90deg); }
+.site-header.collapsed .mini-title { display: inline; font-size: 1rem; color: var(--teal-dark); }
+.site-header.collapsed .home-link { margin: 0 0 0 auto; }
+.site-header.collapsed .header-full { display: none; }
+@media (max-width: 640px) { .header-toggle { top: 4.4rem; left: 0.5rem; } }
+/* A gold dot on the caret while an upgrade is waiting, so a folded header still says so. */
+.header-toggle.ready::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mustard);
+  border: 1.5px solid var(--paper);
+}
 .stage-left .appeal { display: inline-block; margin: 0.25rem 0 0; cursor: help; }
 .stage-left .appeal .stars { color: var(--mustard); letter-spacing: 0.12em; font-size: 1.05rem; }
 .stage-left .appeal .stars .dim { color: #d9cfbb; }
