@@ -160,7 +160,7 @@
     },
     3: {
       title: 'A real shop. With a door and everything.',
-      intro: 'The shed did its job. Pick a house on the high street to turn into a proper bookshop. Each holds two hundred and fifty books, and the neighbors match. Your books and your name come with you.'
+      intro: 'The shed did its job. Pick a house on the high street to turn into a proper bookshop. Each holds two hundred and fifty books, and the neighbors match. Room for six things out front instead of four. Your books and your name come with you.'
     },
     4: {
       title: 'The Big One.',
@@ -174,7 +174,7 @@
   // appeal (decor) and the season. Even a fully decorated shop in high summer should
   // fall short of selling out: the maximum is about 17 sales against 20 books at stage one.
   const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
-  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, max: 2.2 };
+  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, max: 2.2 };   // extraPlant: each further plant out front
   const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
   const BUY_CHANCE = 0.85;                // the rest browse and leave, when the shelves are full
   // Well-stocked shelves draw people in. At empty shelves footfall falls to STOCK_FLOOR of
@@ -319,8 +319,10 @@
   //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
   //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
   //   state.decor     : what the shop owns and shows: { paint (color on the walls or null),
-  //                     paints: [colors owned, kept for good], signs, signOut,
-  //                     plants: [plant kinds owned], plantOut (the kind out front, or null),
+  //                     paints: [colors owned, kept for good], signs, bench,
+  //                     plants: [plant kinds owned],
+  //                     spots: { L2, L1, R1, R2 } -> which item stands in each spot out front
+  //                       ('sign', 'bench', 'plant:<kind>' or null),
   //                     pets: [{ id, kind, color, name }], petsOut: [ids out and about] }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a color (a book) or null (empty)
@@ -344,10 +346,10 @@
     const d = state.decor || freshDecor();
     let a = 1;
     if (d.paint) a += APPEAL.paint;
-    if (d.signOut) a += APPEAL.sign;
-    if (d.plantOut) a += APPEAL.plantOut;
-    if (d.benchOut) a += APPEAL.bench;      // somewhere to sit means someone stays
-    a += APPEAL.extraPlant * Math.max(0, (d.plants || []).length - 1);
+    if (isOut('sign')) a += APPEAL.sign;
+    const plantsOut = outKeys().filter(k => k.startsWith('plant:')).length;
+    if (plantsOut) a += APPEAL.plantOut + APPEAL.extraPlant * (plantsOut - 1);
+    if (isOut('bench')) a += APPEAL.bench;      // somewhere to sit means someone stays
     a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
   }
@@ -377,7 +379,49 @@
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
     return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
-  function freshDecor() { return { paint: null, paints: [], signs: 0, signOut: false, bench: 0, benchOut: false, plants: [], plantOut: null, pets: [], petsOut: [] }; }
+  function freshDecor() { return { paint: null, paints: [], signs: 0, bench: 0, plants: [], spots: freshSpots(), pets: [], petsOut: [] }; }
+  // ---- Decor spots out front ----
+  // Four spots, left to right. Each holds one item key: 'sign', 'bench', 'plant:<kind>'.
+  // Spot ids for a building, left to right: L2 L1 R1 R2 for two a side, L3..R3 for three.
+  function slotIds(buildingId = state.building) {
+    const n = Scenes.decorSlotsFor(buildingId).length / 2;
+    const left = [], right = [];
+    for (let i = n; i >= 1; i--) left.push('L' + i);
+    for (let i = 1; i <= n; i++) right.push('R' + i);
+    return left.concat(right);
+  }
+  function slotLabel(id) {
+    const n = slotIds().length / 2, side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
+    if (k === 1) return `${side} of the door`;
+    if (k === n) return `far ${side}`;
+    return side;
+  }
+  const putOutOrder = () => slotIds().slice().sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));   // nearest the door first
+  function freshSpots(buildingId = state && state.building) {
+    const sp = {};
+    slotIds(buildingId || 'lfl').forEach(id => { sp[id] = null; });
+    return sp;
+  }
+  // The building's spots. After an upgrade the new building may have more spots than the
+  // save knows about; they are added here as empty.
+  const spots = () => {
+    const sp = state.decor.spots || (state.decor.spots = freshSpots());
+    slotIds().forEach(id => { if (!(id in sp)) sp[id] = null; });
+    return sp;
+  };
+  const slotOf = (key) => slotIds().find(id => spots()[id] === key) || null;
+  const isOut = (key) => slotOf(key) !== null;
+  const outKeys = () => slotIds().map(id => spots()[id]).filter(Boolean);
+  const freeSlot = () => putOutOrder().find(id => !spots()[id]) || null;
+  // Put an item in the first free spot. Returns the spot, or null if everything is full.
+  function putOut(key) {
+    if (isOut(key)) return slotOf(key);
+    const id = freeSlot();
+    if (id) spots()[id] = key;
+    return id;
+  }
+  function takeIn(key) { const id = slotOf(key); if (id) spots()[id] = null; }
+  const itemName = (key) => key === 'sign' ? 'the chalkboard' : key === 'bench' ? 'the bench' : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
@@ -504,7 +548,7 @@
     const saved = load();
     if (saved) {
       $('resume-note').classList.remove('hidden');
-      $('resume-button').addEventListener('click', () => { state = saved; startGame(); });
+      $('resume-button').addEventListener('click', () => { state = saved; save(); startGame(); });   // save() writes any migration back
     }
   }
 
@@ -1609,18 +1653,18 @@
       addLog(`Opened the box: a bucket of ${paint ? paint.name : 'paint'}. Into the cupboard. It will never run out; that is how paint works here.`);
     } else if (box.kind === 'sign') {
       decor.signs += 1;
-      decor.signOut = true;
-      addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it and put it out front.`);
+      const spot = putOut('sign');
+      addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it${spot ? ` and set it ${slotLabel(spot)}.` : '. No room out front yet, so it waits in the back.'}`);
     } else if (box.kind === 'bench') {
       decor.bench = 1;
-      decor.benchOut = true;
-      addLog('Opened the crate: a park bench. Set it out front. Someone sat on it before the straw was swept up.');
+      const spot = putOut('bench');
+      addLog(spot ? `Opened the crate: a park bench. Set it ${slotLabel(spot)}. Someone sat on it before the straw was swept up.` : 'Opened the crate: a park bench. Every spot out front is taken, so it waits in the back.');
     } else if (box.kind === 'plant') {
       const kind = box.plant || 'snake';
       const info = PLANTS.find(p => p.kind === kind) || PLANTS[0];
       if (!decor.plants.includes(kind)) decor.plants.push(kind);
-      decor.plantOut = kind;                // the newest plant takes the spot by the door
-      addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}`);
+      const spot = putOut('plant:' + kind);   // the newest plant takes the first free spot
+      addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}${spot ? '' : ' Nowhere to put it yet; it waits in the back.'}`);
     } else if (box.kind === 'pet' && box.pet) {
       if ((decor.pets || []).length >= MAX_PETS) { addLog('The carrier came, but three is the limit. Sent back with apologies and a treat.'); }
       else {
@@ -1677,10 +1721,12 @@
   }
 
   function toggleDecor(kind, plantKind, petId) {
-    if (kind === 'sign' && state.decor.signs > 0) state.decor.signOut = !state.decor.signOut;
-    if (kind === 'bench' && state.decor.bench > 0) state.decor.benchOut = !state.decor.benchOut;
-    if (kind === 'plant' && state.decor.plants.includes(plantKind)) {
-      state.decor.plantOut = state.decor.plantOut === plantKind ? null : plantKind;   // one plant out at a time
+    const key = kind === 'sign' && state.decor.signs > 0 ? 'sign'
+      : kind === 'bench' && state.decor.bench > 0 ? 'bench'
+      : kind === 'plant' && state.decor.plants.includes(plantKind) ? 'plant:' + plantKind : null;
+    if (key) {
+      if (isOut(key)) takeIn(key);
+      else if (!putOut(key)) { addLog(`No free spot out front for ${itemName(key)}. Take something in first.`); drawLog(); }
     }
     if (kind === 'pet' && petId) {
       const out = state.decor.petsOut || [];
@@ -1692,9 +1738,69 @@
     save();
   }
 
+  // ---- Dragging decor to a new spot ----
+  // Press on an item out front and pull it sideways. The four spots show as soft marks on
+  // the ground, the nearest one brightens, and letting go drops the item there (swapping
+  // with whatever was in it). Pointer events cover mouse and touch alike.
+  let drag = null;   // { key, el, fromX, dx }
+  const sceneX = (clientX) => {
+    const r = $('scene').querySelector('svg').getBoundingClientRect();
+    return (clientX - r.left) / r.width * Scenes.VIEW.width;   // pixels on screen -> picture units
+  };
+  function startDecorDrag(e) {
+    const item = e.target.closest('.decor-item');
+    if (!item) return;
+    e.preventDefault();
+    const key = item.dataset.decor;
+    drag = { key, el: item, fromX: sceneX(e.clientX), dx: 0 };
+    item.classList.add('dragging');
+    const group = $('scene').querySelector('svg .decor');
+    const xs = Scenes.decorSlotsFor(state.building);
+    const r = personScale() * 0.75 * 16;
+    group.insertAdjacentHTML('beforeend', `<g class="slot-markers">${slotIds().map((id, i) => `<ellipse class="slot-marker" data-slot="${id}" cx="${xs[i]}" cy="${Scenes.GROUND_Y}" rx="${r.toFixed(0)}" ry="${(r * 0.22).toFixed(1)}"/>`).join('')}</g>`);
+    updateDragMarker();
+  }
+  function dragTargetSlot() {
+    const xs = Scenes.decorSlotsFor(state.building);
+    const here = xs[slotIds().indexOf(slotOf(drag.key))] + drag.dx;
+    let best = 0;
+    xs.forEach((x, i) => { if (Math.abs(x - here) < Math.abs(xs[best] - here)) best = i; });
+    return slotIds()[best];
+  }
+  function updateDragMarker() {
+    const target = dragTargetSlot();
+    $('scene').querySelectorAll('.slot-marker').forEach(m => m.classList.toggle('near', m.dataset.slot === target));
+  }
+  function moveDecorDrag(e) {
+    if (!drag) return;
+    drag.dx = sceneX(e.clientX) - drag.fromX;
+    drag.el.setAttribute('transform', `translate(${drag.dx.toFixed(1)} 0)`);
+    updateDragMarker();
+  }
+  function endDecorDrag() {
+    if (!drag) return;
+    const target = dragTargetSlot();
+    const from = slotOf(drag.key);
+    if (Math.abs(drag.dx) > 3 && target !== from) {
+      const other = spots()[target];
+      spots()[target] = drag.key;
+      spots()[from] = other || null;
+      save();
+    }
+    drag = null;
+    drawDecor();        // redraws everything in place and clears the markers
+    drawInventory();
+  }
+
   function drawInventory() {
     const decor = state.decor;
     const rows = [];
+    // The buttons for an item that can stand out front: move left / right and take in,
+    // or put out (disabled when every spot is taken).
+    const placeButtons = (key, toggleAttrs) => isOut(key)
+      ? `<button class="button small" ${toggleAttrs}>Take in</button>`
+      : `<button class="button small" ${toggleAttrs}${freeSlot() ? '' : ' disabled title="Every spot out front is taken"'}>Put out</button>`;
+    const whereIs = (key, inBack) => isOut(key) ? `Out front, ${slotLabel(slotOf(key))}` : inBack;
     const onShelves = booksInStock();
     const reserve = state.reserve || 0;
     const room = capacity() - onShelves;
@@ -1707,15 +1813,14 @@
       rows.push(`<li><div class="item-row">${ICONS.paint(color)}<div><span class="item-name">${paint.name} paint</span><span class="item-meta">${current ? 'On the walls now' : 'In the cupboard'}</span></div></div>${current ? '<span class="ordered">Current</span>' : `<button class="button small primary" data-paint="${color}">Paint the ${buildingWord()}</button>`}</li>`);
     });
     if (decor.signs > 0) {
-      rows.push(`<li><div class="item-row">${ICONS.sign()}<div><span class="item-name">Chalkboard sign</span><span class="item-meta">${decor.signOut ? 'Out front, with the shop name' : 'In the back'}</span></div></div><button class="button small" data-toggle="sign">${decor.signOut ? 'Take in' : 'Put out'}</button></li>`);
+      rows.push(`<li><div class="item-row">${ICONS.sign()}<div><span class="item-name">Chalkboard sign</span><span class="item-meta">${whereIs('sign', 'In the back')}</span></div></div>${placeButtons('sign', 'data-toggle="sign"')}</li>`);
     }
     if (decor.bench > 0) {
-      rows.push(`<li><div class="item-row">${ICONS.bench()}<div><span class="item-name">Park bench</span><span class="item-meta">${decor.benchOut ? 'Out front, for lingering' : 'In the back'}</span></div></div><button class="button small" data-toggle="bench">${decor.benchOut ? 'Take in' : 'Put out'}</button></li>`);
+      rows.push(`<li><div class="item-row">${ICONS.bench()}<div><span class="item-name">Park bench</span><span class="item-meta">${whereIs('bench', 'In the back')}</span></div></div>${placeButtons('bench', 'data-toggle="bench"')}</li>`);
     }
     decor.plants.forEach(kind => {
       const info = PLANTS.find(p => p.kind === kind) || { name: kind };
-      const out = decor.plantOut === kind;
-      rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${out ? 'By the door' : 'In the back'}</span></div></div><button class="button small" data-toggle="plant" data-plant="${kind}">${out ? 'Take in' : 'Put out'}</button></li>`);
+      rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${whereIs('plant:' + kind, 'In the back')}</span></div></div>${placeButtons('plant:' + kind, `data-toggle="plant" data-plant="${kind}"`)}</li>`);
     });
     (decor.pets || []).forEach(pet => {
       const out = (decor.petsOut || []).includes(pet.id);
@@ -1738,7 +1843,8 @@
       box.addEventListener('blur', () => finishRename(box.dataset.renameInput, box.value));
     }
     const paint = PAINTS.find(p => p.color === decor.paint);
-    $('inventory-hint').textContent = paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`;
+    $('inventory-hint').textContent = (paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`) +
+      (outKeys().length ? ' Drag anything out front to a new spot in the picture.' : '');
     drawAppeal();
   }
 
@@ -1749,9 +1855,9 @@
     const d = state.decor;
     const missing = [];
     if (!d.paint) missing.push('a coat of paint');
-    if (!d.signOut) missing.push('the chalkboard out front');
-    if (!d.plantOut) missing.push('a plant by the door');
-    if (!d.benchOut) missing.push('a bench to sit on');
+    if (!isOut('sign')) missing.push('the chalkboard out front');
+    if (!outKeys().some(k => k.startsWith('plant:'))) missing.push('a plant by the door');
+    if (!isOut('bench')) missing.push('a bench to sit on');
     const season = SEASON_FOOTFALL[seasonName()];
     const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
     const fill = shelfFill();
@@ -1769,12 +1875,17 @@
     const group = $('scene').querySelector('svg .decor');
     if (!group) return;
     if (state.view === 'inside') { group.innerHTML = ''; return; }
-    const spots = Scenes.decorSpotsFor(state.building);
+    const xs = Scenes.decorSlotsFor(state.building);
     const scale = personScale() * 0.75;
     let out = '';
-    if (state.decor.signOut) out += Scenes.chalkboard(spots.signX, Scenes.GROUND_Y, scale);
-    if (state.decor.plantOut) out += Scenes.plant(state.decor.plantOut, spots.plantX, Scenes.GROUND_Y, scale);
-    if (state.decor.benchOut) out += Scenes.bench(spots.benchX, Scenes.GROUND_Y, scale);
+    // Each occupied spot draws its item. Items can be dragged to another spot.
+    slotIds().forEach((id, i) => {
+      const key = spots()[id];
+      if (!key) return;
+      const x = xs[i], y = Scenes.GROUND_Y;
+      const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
+      out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move)</title>${art}</g>`;
+    });
     group.innerHTML = out;
     // The shop name in chalk: one line if short, otherwise split at a space near the middle.
     const chalk = group.querySelector('.chalk');
@@ -2001,7 +2112,28 @@
       }
       if (Array.isArray(data.decor.paints)) data.decor.paints = data.decor.paints.filter((c, i, a) => a.indexOf(c) === i);
       if (!Array.isArray(data.decor.pets)) data.decor.pets = [];
-      if (typeof data.decor.bench !== 'number') { data.decor.bench = 0; data.decor.benchOut = false; }
+      if (typeof data.decor.bench !== 'number') data.decor.bench = 0;
+      // Saves from before decor spots: one sign spot, one plant spot, a bench beside the
+      // plant. Put each item that was out into the nearest of the new spots, then drop
+      // the old flags.
+      if (!data.decor.spots) {
+        const d = data.decor;
+        const xs = Scenes.decorSlotsFor(data.building);
+        const b = Scenes.BUILDINGS[data.building] || {};
+        const legacy = { sign: b.legacySignX, plant: b.legacyPlantX };
+        const ids = slotIds(data.building);
+        const sp = freshSpots(data.building);
+        const nearestFree = (x) => {
+          const order = ids.map((id, i) => ({ id, dist: Math.abs(xs[i] - (x == null ? 400 : x)) })).sort((p, q) => p.dist - q.dist);
+          return (order.find(o => !sp[o.id]) || {}).id || null;
+        };
+        if (d.signOut && d.signs > 0) { const id = nearestFree(legacy.sign); if (id) sp[id] = 'sign'; }
+        if (d.plantOut && (d.plants || []).includes(d.plantOut)) { const id = nearestFree(legacy.plant); if (id) sp[id] = 'plant:' + d.plantOut; }
+        if (d.benchOut && d.bench > 0) { const id = nearestFree(legacy.plant == null ? null : legacy.plant + (legacy.plant < legacy.sign ? -62 : 62)); if (id) sp[id] = 'bench'; }
+        d.spots = sp;
+        delete d.signOut; delete d.plantOut; delete d.benchOut;
+      }
+      slotIds(data.building).forEach(id => { if (!(id in data.decor.spots)) data.decor.spots[id] = null; });
       if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
@@ -2089,8 +2221,13 @@
     // Clicking a box in the scene opens it.
     $('scene').addEventListener('click', (e) => {
       const box = e.target.closest('.delivery-box');
-      if (box) openDelivery(box.dataset.id);
+      if (box) { openDelivery(box.dataset.id); return; }
     });
+    // Dragging decor between spots.
+    $('scene').addEventListener('pointerdown', startDecorDrag);
+    window.addEventListener('pointermove', moveDecorDrag);
+    window.addEventListener('pointerup', endDecorDrag);
+    window.addEventListener('pointercancel', endDecorDrag);
     $('reset-button').addEventListener('click', reset);
     $('upgrade-button').addEventListener('click', openUpgradeScreen);
     $('confirm-upgrade').addEventListener('click', confirmUpgrade);

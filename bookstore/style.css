@@ -578,6 +578,12 @@
   vertical-align: baseline;
 }
 .pencil:hover { color: var(--brick); }
+/* Decor placement: drag an item out front to another spot. While dragging, the four spots
+   show as soft marks on the ground and the nearest one brightens. */
+svg .decor-item { cursor: grab; touch-action: none; }
+svg .decor-item.dragging { cursor: grabbing; opacity: 0.85; }
+svg .slot-marker { fill: var(--mustard); opacity: 0.3; stroke: #fff8e6; stroke-width: 1; pointer-events: none; }
+svg .slot-marker.near { opacity: 0.85; }
 .rename {
   font: inherit;
   font-family: Georgia, serif;
