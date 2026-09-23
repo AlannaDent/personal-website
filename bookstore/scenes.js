@@ -33,7 +33,7 @@ const Scenes = (function () {
       id: 'beach',
       name: 'On the beach',
       blurb: 'Sand in the hinges, salt on the glass. Beach readers are loyal readers.',
-      boxColor: '#a9b5b7'               // faded grey-blue paint for the library box
+      boxColor: '#a9b5b7'               // faded gray-blue paint for the library box
     },
     {
       id: 'park',
@@ -51,7 +51,7 @@ const Scenes = (function () {
       id: 'dock',
       name: 'On the dock',
       blurb: 'Gulls, halyards, and a bait shop that opens at five. Fishermen read more than you\u2019d think.',
-      boxColor: '#8fa3ad'               // faded harbour blue
+      boxColor: '#8fa3ad'               // faded harbor blue
     }
   ];
 
@@ -155,7 +155,7 @@ const Scenes = (function () {
   }
 
   // ---- Decor the player can buy ----
-  // An A-frame chalkboard with the shop name in chalk. (x, y) is the bottom centre;
+  // An A-frame chalkboard with the shop name in chalk. (x, y) is the bottom center;
   // scale follows the people so it reads as about waist-high.
   function chalkboard(x, y, scale) {
     return `<g class="chalkboard" transform="translate(${x} ${y}) scale(${scale})">
@@ -169,7 +169,7 @@ const Scenes = (function () {
       <text x="0" y="-9.5" text-anchor="middle" font-family="Caveat, cursive" font-size="3.2" fill="#f4efe4" opacity="0.85">open</text>
     </g>`;
   }
-  // A snake plant in a terracotta pot. (x, y) is the bottom centre.
+  // A snake plant in a terracotta pot. (x, y) is the bottom center.
   function snakePlant(x, y, scale) {
     const leaf = (dx, h, lean) => `<path d="M${dx} -9 q${lean - 2} ${-h * 0.45} ${lean} ${-h} q${2 - lean * 0.4} ${h * 0.55} ${-lean + 1.5} ${h}z" fill="#4f7a4a" stroke="#d9c46a" stroke-width="0.6"/>`;
     return `<g class="plant snake-plant" transform="translate(${x} ${y}) scale(${scale})">
@@ -291,7 +291,7 @@ const Scenes = (function () {
     return (PLANT_DRAWINGS[kind] || snakePlant)(x, y, scale);
   }
 
-  // The time-of-day layer: a colour wash, a scatter of stars, and a glow from the
+  // The time-of-day layer: a color wash, a scatter of stars, and a glow from the
   // shop's windows. The game sets their opacity as the day goes by.
   function daylightLayer(glowX, glowY, glowRx, glowRy) {
     let stars = '';
@@ -442,8 +442,13 @@ const Scenes = (function () {
         flowers += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${x.toFixed(0)}" y2="${(y - 6).toFixed(0)}" stroke="#4f7a4a" stroke-width="1"/><circle cx="${x.toFixed(0)}" cy="${(y - 7).toFixed(0)}" r="2.2" fill="${petals[i % 5]}"/>`;
       }
     }
+    return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g>`;
+  }
+  // The summer sun. Slotted into the sky right behind the clouds (see render), so clouds
+  // drift across it and gulls fly in front of it. CSS shows it in summer only.
+  function summerSun() {
     const sun = `<circle cx="690" cy="72" r="46" fill="#f6d9a8" opacity="0.28"/><circle cx="690" cy="72" r="26" fill="#f6d9a8"/><g stroke="#f6d9a8" stroke-width="2" opacity="0.6">${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<line x1="${(690 + 34 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y1="${(72 + 34 * Math.sin(a * Math.PI / 180)).toFixed(0)}" x2="${(690 + 44 * Math.cos(a * Math.PI / 180)).toFixed(0)}" y2="${(72 + 44 * Math.sin(a * Math.PI / 180)).toFixed(0)}"/>`).join('')}</g>`;
-    return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g><g class="summer-sun">${sun}</g>`;
+    return `<g class="summer-sun">${sun}</g>`;
   }
   const GRASSY = ['park', 'green', 'street2', 'cliff'];
 
@@ -461,11 +466,11 @@ const Scenes = (function () {
         <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="3" result="noise"/>
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
-      <!-- Sketch mode. The colour layer: a little dustier and warmer, loosely placed. -->
+      <!-- Sketch mode. The color layer: a little dustier and warmer, loosely placed. -->
       <filter id="wobbleFill" x="-3%" y="-3%" width="106%" height="106%">
         <feColorMatrix in="SourceGraphic" type="saturate" values="0.88" result="dusty"/>
         <feColorMatrix in="dusty" type="matrix" values="1.05 0 0 0 0.01  0 1 0 0 0.005  0 0 0.93 0 0  0 0 0 1 0" result="warm"/>
-        <!-- Watercolour pooling: pigment gathers where a wash ends, so each shape gets a slightly darker rim. -->
+        <!-- Watercolor pooling: pigment gathers where a wash ends, so each shape gets a slightly darker rim. -->
         <feMorphology in="warm" operator="erode" radius="1.1" result="inner"/>
         <feComposite in="warm" in2="inner" operator="out" result="rim"/>
         <feColorMatrix in="rim" type="matrix" values="0.72 0 0 0 0  0 0.72 0 0 0  0 0 0.72 0 0  0 0 0 0.55 0" result="darkRim"/>
@@ -645,7 +650,7 @@ const Scenes = (function () {
     s += `<rect x="600" y="345" width="200" height="30" fill="#9dbb6f"/>`;
     s += picketFence(600, 800, 375);
     s += hydrangeas(612, 366) + hydrangeas(760, 366);
-    // mailbox by the kerb
+    // mailbox by the curb
     s += `<rect x="247" y="330" width="6" height="70" fill="#3a3f44"/><rect x="236" y="314" width="30" height="18" rx="6" fill="#3f5f5b"/><rect x="262" y="318" width="4" height="8" fill="#b6413a"/>`;
     return s;
   }
@@ -720,7 +725,7 @@ const Scenes = (function () {
   const y_lamp = 262;
   function boxwood(x, y, r) { return `<circle cx="${x}" cy="${y}" r="${r}" fill="#4f7a4a"/><circle cx="${x - r * 0.3}" cy="${y - r * 0.3}" r="${r * 0.45}" fill="#6a955f"/>`; }
 
-  // A neighbouring Dutch colonial: clapboard body, gambrel roof, shuttered windows.
+  // A neighboring Dutch colonial: clapboard body, gambrel roof, shuttered windows.
   function gambrelNeighbor(x, w, body, roof, shutter) {
     const top = 268, eave = 262;
     let out = `<rect x="${x}" y="${top}" width="${w}" height="${370 - top}" fill="${body}" stroke="#a8a091" stroke-width="1"/>`;
@@ -734,7 +739,7 @@ const Scenes = (function () {
     out += `<rect x="${x + w * 0.42}" y="330" width="${w * 0.16}" height="40" fill="${shutter}"/>`;
     return out;
   }
-  // A neighbouring Cape: shingled body, steep roof with one dormer, chimney.
+  // A neighboring Cape: shingled body, steep roof with one dormer, chimney.
   function capeNeighbor(x, w, body, roof) {
     const top = 282;
     let out = `<rect x="${x}" y="${top}" width="${w}" height="${370 - top}" fill="${body}" stroke="#9a9384" stroke-width="1"/>`;
@@ -750,7 +755,7 @@ const Scenes = (function () {
     out += `<rect x="${x + w * 0.43}" y="326" width="${w * 0.14}" height="44" fill="#1f3b33"/>`;
     return out;
   }
-  // A neighbouring Tudor shop: brick below, half-timbered above, steep gable.
+  // A neighboring Tudor shop: brick below, half-timbered above, steep gable.
   function tudorNeighbor(x, w, brick) {
     let out = `<rect x="${x}" y="300" width="${w}" height="70" fill="${brick}" stroke="#5b3d33" stroke-width="1"/>`;
     out += hLines(x, x + w, 306, 366, 6, 0.1);
@@ -831,7 +836,7 @@ const Scenes = (function () {
     return s;
   }
 
-  // A harbour with a plank dock. The ship is moored here.
+  // A harbor with a plank dock. The ship is moored here.
   function harbor() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(120, 90, 50) + cloud(600, 60, 60);
@@ -858,7 +863,7 @@ const Scenes = (function () {
     cliff: { surface: 290, spans: [[560, 790]] }
   };
   const seaFor = (locationId) => SEA[locationId] || null;
-  // Background people. doors: the neighbours' front doors (x, the ground they stand on, and
+  // Background people. doors: the neighbors' front doors (x, the ground they stand on, and
   // the door's height, which sets how big a visitor is drawn so they fit through it).
   // sand: the strip of far beach where distant strollers walk. park: swing pivots and the
   // picnic spot.
@@ -1614,7 +1619,9 @@ const Scenes = (function () {
     const loc = LOCATIONS.find(l => l.id === locId);
     const color = paintColor || building.paint || (loc && loc.boxColor) || '#a9b5b7';
     const [skyTop, skyBottom] = SKIES[locId];
-    const backdrop = BACKDROPS[locId](building.backdropOpts || {});
+    // Every backdrop starts with the sky. The sun goes straight after it, behind the clouds.
+    const skyRect = `<rect width="800" height="450" fill="url(#sky)"/>`;
+    const backdrop = BACKDROPS[locId](building.backdropOpts || {}).replace(skyRect, skyRect + summerSun());
     const bldg = building.draw(color);
     const front = building.front();
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -1652,8 +1659,8 @@ const Scenes = (function () {
       <g class="effects"></g>
     </svg>`;
   }
-  // A painted layer draws its content twice: once as colour (fills only) and once as
-  // ink (outlines only). Normally the ink layer is hidden and the colour layer keeps
+  // A painted layer draws its content twice: once as color (fills only) and once as
+  // ink (outlines only). Normally the ink layer is hidden and the color layer keeps
   // its outlines, so the picture looks as it always did. In sketch mode the page's
   // stylesheet shows both, wobbles them differently and offsets the ink a little,
   // the way hand-inked lines never quite sit on the paint beneath them.

@@ -23,7 +23,7 @@
 window.NIGHT_TIPS = [
   'Boxes only open after dark. Order by day, unpack by night.',
   'Full shelves draw customers in. Thin shelves send them walking.',
-  'Paint is infinite: buy a colour once, repaint whenever you like.',
+  'Paint is infinite: buy a color once, repaint whenever you like.',
   'The chalkboard sign brings more visitors than anything else you can buy. Plus it shows your shop name!',
   'Summer is high season (welcome to the beach), plan for the busy tourist season and the chilly winter drought!',
   'Customers can’t buy from your storage room, shelve or miss sales!',

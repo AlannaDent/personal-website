@@ -32,7 +32,7 @@
   const DAY_MS = 3 * 60 * 1000;          // a day lasts three minutes of play
   const DAYS_PER_SEASON = 10;
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
-  // A gentle wash of colour over the scene for each season (colour, opacity outside, opacity inside).
+  // A gentle wash of color over the scene for each season (color, opacity outside, opacity inside).
   const SEASON_TINT = {
     Spring: ['#ffffff', 0, 0],
     Summer: ['#f6d9a8', 0.10, 0.05],
@@ -47,7 +47,7 @@
   const BOX_SIZES = { 1: [5, 10, 20], 2: [15, 30, 60], 3: [40, 80, 150], 4: [80, 160, 300] };
   const BOX_PRICE_PER_BOOK = [1.2, 1.0, 0.8];     // small boxes cost more per book
   const BOX_NAMES = [
-    'Box of paperbacks', 'Crate of hardbacks', 'Remainders from Hyannis', 'A neighbour\u2019s estate',
+    'Box of paperbacks', 'Crate of hardbacks', 'Remainders from Hyannis', 'A neighbor\u2019s estate',
     'Publisher\u2019s overstock', 'Library discards, good ones', 'Yard-sale haul', 'Returns from the ferry kiosk'
   ];
   const MYSTERY_CHANCE = 0.15;                    // a mystery box hides its size until opened
@@ -59,13 +59,13 @@
   const PET_DAILY_CHANCE = 0.15;                  // about one or two pets a season
   const MAX_PETS = 3;
 
-  // Pets. Colours and names are chosen when the pet is offered.
+  // Pets. Colors and names are chosen when the pet is offered.
   const PET_KINDS = {
     cat: { name: 'cat', price: 30, colors: ['white', 'black', 'tuxedo', 'gray', 'brown', 'tabby'], meta: 'wants the sunny shelf', speed: 34 },
     dog: { name: 'dog', price: 35, colors: ['brown', 'black', 'white', 'yellow'], meta: 'good with customers, they say', speed: 50 },
     crab: { name: 'crab', price: 20, colors: ['red'], meta: 'red, obviously', speed: 24 }
   };
-  const PET_COLOR_NAMES = { white: 'White', black: 'Black', tuxedo: 'Tuxedo', gray: 'Grey', brown: 'Brown', tabby: 'Tabby', yellow: 'Yellow lab', red: 'Red' };
+  const PET_COLOR_NAMES = { white: 'White', black: 'Black', tuxedo: 'Tuxedo', gray: 'Gray', brown: 'Brown', tabby: 'Tabby', yellow: 'Yellow lab', red: 'Red' };
   const PET_NAMES = ['Biscuit', 'Mabel', 'Captain', 'Pickles', 'Scallop', 'Fog', 'Barnacle', 'Marlow', 'Pippin', 'Hazel', 'Otis', 'Juniper', 'Wendell', 'Clementine', 'Gus', 'Nell', 'Salty', 'Moby', 'Quahog', 'Tilly'];
   const PET_ADOPTED = {
     cat: ['has opinions about the top shelf.', 'chose the window seat within a minute.', 'inspected every box and approved none.'],
@@ -77,7 +77,7 @@
   const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
-    { color: '#2f6f6a', name: 'Harbour Teal' },
+    { color: '#2f6f6a', name: 'Harbor Teal' },
     { color: '#d9a441', name: 'Mustard' },
     { color: '#2b3f5c', name: 'Nantucket Navy' },
     { color: '#d98c9c', name: 'Hydrangea Pink' }
@@ -119,14 +119,14 @@
     Spring: ['Hydrangeas thinking about it.', 'Fog until ten, then glorious.', 'First tourists of the year, blinking.', 'Peepers loud in the marsh tonight.'],
     Summer: ['Tourists. So many tourists.', 'Band concert on the green tonight.', 'Sand in the till again.', 'Sold out of beach reads by noon.'],
     Autumn: ['Cranberry bogs going red.', 'The light is gold and everyone is calm.', 'Half the shops shuttered for the season. Not us.', 'Sweater weather. Reading weather.'],
-    Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbour froze at the edges.', 'Wind off the water. Kettle on.']
+    Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbor froze at the edges.', 'Wind off the water. Kettle on.']
   };
   // What the journal says at closing time, by season.
   const NIGHT_LINES = {
     Spring: ['Peepers loud in the marsh.', 'Fog rolling back in off the water.', 'Left the porch light on for the moths.'],
     Summer: ['Fireflies over the green.', 'Band concert still going somewhere.', 'Warm enough to read on the step.'],
     Autumn: ['Woodsmoke. Somebody\u2019s first fire of the year.', 'Dark by supper now.', 'Wind knocking the sign about.'],
-    Winter: ['Snow starting. Quietest sound there is.', 'Harbour lights and not much else.', 'Kettle, blanket, a chapter or two.']
+    Winter: ['Snow starting. Quietest sound there is.', 'Harbor lights and not much else.', 'Kettle, blanket, a chapter or two.']
   };
   // How the day is lit, as a fraction of the way through it.
   const PHASES = [
@@ -160,7 +160,7 @@
     },
     3: {
       title: 'A real shop. With a door and everything.',
-      intro: 'The shed did its job. Pick a house on the high street to turn into a proper bookshop. Each holds two hundred and fifty books, and the neighbours match. Your books and your name come with you.'
+      intro: 'The shed did its job. Pick a house on the high street to turn into a proper bookshop. Each holds two hundred and fifty books, and the neighbors match. Your books and your name come with you.'
     },
     4: {
       title: 'The Big One.',
@@ -252,12 +252,12 @@
     ],
     ship: [
       'Seaworthy. Certainly. Probably.',
-      'The gangplank is the only queue we have.',
+      'The gangplank is the only line we have.',
       'Books below decks. Gulls above. Do not feed the gulls.'
     ]
   };
 
-  // Faded book colours to match the weathered buildings.
+  // Faded book colors to match the weathered buildings.
   const BOOK_COLORS = ['#b7736b', '#6f8a99', '#a9a06b', '#7d9a7a', '#9b7f9c', '#c2a37c', '#8c8c8c', '#b39a5b', '#8f6f5a'];
 
   // The books customers buy come from books.js: 500 widely held novels (OCLC
@@ -291,7 +291,7 @@
   const CUSTOMER_LOOKS = [
     { desc: 'A woman in a red scarf', coat: '#3f5a86', hat: null, scarf: '#b6413a', prop: 'tote', propColor: '#c9a86a' },
     { desc: 'A grandmother with a wicker basket', coat: '#7fa0c9', hat: '#b6413a', scarf: null, prop: 'basket', propColor: '#b48a52' },
-    { desc: 'A boy in a striped jumper', coat: '#c94f47', hat: null, scarf: null, prop: null, propColor: null, stripes: true, small: true },
+    { desc: 'A boy in a striped sweater', coat: '#c94f47', hat: null, scarf: null, prop: null, propColor: null, stripes: true, small: true },
     { desc: 'A tourist with a tote bag', coat: '#d9a441', hat: '#f1e7c8', scarf: null, prop: 'tote', propColor: '#2b3f5c' },
     { desc: 'A man in a mustard raincoat', coat: '#c99a3a', hat: null, scarf: null, prop: null, propColor: null },
     { desc: 'A girl in a beret', coat: '#2f6f6a', hat: '#a5443a', scarf: null, prop: 'basket', propColor: '#c9a86a', small: true },
@@ -315,15 +315,15 @@
   //   state.view      : 'outside' or 'inside' (inside exists from stage three on)
   //   state.clock     : { year, season (0-3), day (1-10), ms (time into the current day),
   //                       night (true once the day has ended and the game is paused) }
-  //   state.catalogue : { dayIndex, items: [{ id, name, books, price, mystery, ordered }] }
+  //   state.catalog : { dayIndex, items: [{ id, name, books, price, mystery, ordered }] }
   //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
   //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
-  //   state.decor     : what the shop owns and shows: { paint (colour on the walls or null),
-  //                     paints: [colours owned, kept for good], signs, signOut,
+  //   state.decor     : what the shop owns and shows: { paint (color on the walls or null),
+  //                     paints: [colors owned, kept for good], signs, signOut,
   //                     plants: [plant kinds owned], plantOut (the kind out front, or null),
   //                     pets: [{ id, kind, color, name }], petsOut: [ids out and about] }
   //   state.coins     : money in the tin
-  //   state.books     : one entry per slot, each a colour (a book) or null (empty)
+  //   state.books     : one entry per slot, each a color (a book) or null (empty)
   //   state.reserve   : books in the back room, not yet on a shelf
   //   state.sold      : lifetime books sold
   //   state.log       : the last few journal lines
@@ -664,14 +664,14 @@
       // Boxes on the step must be opened before the day begins.
       const waiting = (state.deliveries || []).length > 0;
       button.disabled = waiting;
-      // The hint lives on the wrapper, so it shows even while the button is greyed out.
+      // The hint lives on the wrapper, so it shows even while the button is grayed out.
       $('next-day-wrap').dataset.tip = waiting ? 'Don\u2019t forget to open your packages!' : '';
     }
     $('next-day-wrap').classList.toggle('hidden', !night);
     drawNightTip();
   }
 
-  // Mix two hex colours. t is 0 for a, 1 for b.
+  // Mix two hex colors. t is 0 for a, 1 for b.
   function mixColor(a, b, t) {
     const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
     const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
@@ -757,7 +757,7 @@
     lastClockSave = now || performance.now();
   }
 
-  // Sunrise: the player begins the next day. The van comes, the catalogue changes.
+  // Sunrise: the player begins the next day. The van comes, the catalog changes.
   function beginDay() {
     const c = state.clock;
     if (!c.night) return;
@@ -1140,7 +1140,7 @@
       : `<circle cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" r="${p.size.toFixed(1)}" fill="${p.color}" opacity="0.9"/>`).join('');
   }
 
-  // ---- Background people: strollers on the far sand, neighbours visiting the shops next
+  // ---- Background people: strollers on the far sand, neighbors visiting the shops next
   // door, a child on the swings and a picnic in the park. Drawn behind the building, never
   // saved. Daylight only for new arrivals; anyone already out finishes what they are doing.
   // Their sizes are fixed to the backdrop (a door's height, the far sand), not to the
@@ -1166,7 +1166,7 @@
           nextStrollerAt = now + 25000 + Math.random() * 35000;
         }
       }
-      // Town and pier: a neighbour walks to a shop next door, goes in, comes out later, leaves.
+      // Town and pier: a neighbor walks to a shop next door, goes in, comes out later, leaves.
       if (cfg.doors) {
         if (!nextVisitorAt) nextVisitorAt = now + 8000 + Math.random() * 25000;
         if (now >= nextVisitorAt) {
@@ -1472,9 +1472,9 @@
   }
 
   // =========================================================
-  // The wholesaler: today's catalogue, orders, and deliveries
+  // The wholesaler: today's catalog, orders, and deliveries
   // =========================================================
-  // Make sure there is a catalogue for today. A new one is written each morning.
+  // Make sure there is a catalog for today. A new one is written each morning.
   function ensureCatalogue() {
     if (state.catalogue && state.catalogue.dayIndex === dayIndex()) return;
     const items = [];
@@ -1622,7 +1622,7 @@
       decor.plantOut = kind;                // the newest plant takes the spot by the door
       addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}`);
     } else if (box.kind === 'pet' && box.pet) {
-      if ((decor.pets || []).length >= MAX_PETS) { addLog('The carrier came, but three is the limit. Sent back with apologies and a biscuit.'); }
+      if ((decor.pets || []).length >= MAX_PETS) { addLog('The carrier came, but three is the limit. Sent back with apologies and a treat.'); }
       else {
         const pet = { id: 'p' + Math.random().toString(36).slice(2, 8), kind: box.pet.kind, color: box.pet.color, name: box.pet.name };
         decor.pets = decor.pets || [];
@@ -1648,7 +1648,7 @@
     if (!state.decor.paints.includes(color) || state.decor.paint === color) return;
     state.decor.paint = color;
     const paint = PAINTS.find(p => p.color === color);
-    addLog(`Painted the ${buildingWord()} ${paint ? paint.name : 'a new colour'}. Two coats. Very satisfying.`);
+    addLog(`Painted the ${buildingWord()} ${paint ? paint.name : 'a new color'}. Two coats. Very satisfying.`);
     bumpLifetime(life => { life.coatsOfPaint = (life.coatsOfPaint || 0) + 1; });
     drawScene();
     drawInventory();
@@ -1801,7 +1801,7 @@
     }
   }
 
-  // The order form: today's catalogue and what is on its way. Boxes on the step are
+  // The order form: today's catalog and what is on its way. Boxes on the step are
   // opened by clicking them in the picture.
   function drawOrderForm() {
     const items = (state.catalogue && state.catalogue.items) || [];
@@ -1994,7 +1994,7 @@
       if (!data.catalogue) data.catalogue = null;
       if (!data.decor) data.decor = freshDecor();
       if (typeof data.reserve !== 'number') data.reserve = 0;
-      // Earlier saves counted plants and buckets; now they are lists of kinds and colours.
+      // Earlier saves counted plants and buckets; now they are lists of kinds and colors.
       if (typeof data.decor.plants === 'number') {
         data.decor.plants = data.decor.plants > 0 ? ['snake'] : [];
         data.decor.plantOut = data.decor.plantOut ? 'snake' : null;
@@ -2042,8 +2042,27 @@
     try { return localStorage.getItem(HEADER_KEY) !== 'closed'; } catch (e) { return true; }
   }
 
+  // The Stats card under the journal: folded by default, remembered per browser. The
+  // numbers refresh when it opens and every half minute while it stays open.
+  const STATS_KEY = 'saltyJellyfish.stats';
+  let statsTimer = null;
+  function refreshStats() { if (window.SaltyStats) window.SaltyStats.render(); }
+  function applyStats(open) {
+    $('stats-panel').classList.toggle('collapsed', !open);
+    $('stats-body').classList.toggle('hidden', !open);
+    $('stats-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    try { localStorage.setItem(STATS_KEY, open ? 'open' : 'closed'); } catch (e) { /* fine */ }
+    clearInterval(statsTimer);
+    if (open) { refreshStats(); statsTimer = setInterval(refreshStats, 30000); }
+  }
+  function statsOpen() {
+    try { return localStorage.getItem(STATS_KEY) === 'open'; } catch (e) { return false; }
+  }
+
   function init() {
     applySketch(sketchOn());
+    applyStats(statsOpen());
+    $('stats-toggle').addEventListener('click', () => applyStats($('stats-panel').classList.contains('collapsed')));
     applyHeader(headerOpen());
     $('header-toggle').addEventListener('click', () => applyHeader($('site-header').classList.contains('collapsed')));
     $('rename-shop').addEventListener('click', startShopRename);

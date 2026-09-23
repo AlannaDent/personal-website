@@ -1,7 +1,7 @@
 /* Shared styles for the whole site. Each project page links to this file
    and may add its own stylesheet on top. */
 
-/* Colour palette, borrowed from reference/STYLE.md. Change a value here and
+/* Color palette, borrowed from reference/STYLE.md. Change a value here and
    every page updates. */
 :root {
   --paper: #f7f2e8;

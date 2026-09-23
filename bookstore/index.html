@@ -7,8 +7,8 @@
   <!-- Shared site styles first, then this game's own styles on top. -->
   <!-- The ?v= stamps make browsers fetch fresh copies after a change. Bump the number when
        style.css or a script changes, or a visitor may keep an old cached copy for a while. -->
-  <link rel="stylesheet" href="../style.css?v=22">
-  <link rel="stylesheet" href="style.css?v=22">
+  <link rel="stylesheet" href="../style.css?v=23">
+  <link rel="stylesheet" href="style.css?v=23">
   <!-- A handwriting font for the shop journal, served by Google Fonts. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,7 +77,7 @@
       <span id="hud-phase" class="phase">Sunrise</span>
       <div class="day-progress"><div id="day-bar"></div></div>
       <!-- Shown at night. The next day starts only when the player is ready. -->
-      <!-- The wrapper carries the hover hint, because a greyed-out button ignores the mouse. -->
+      <!-- The wrapper carries the hover hint, because a grayed-out button ignores the mouse. -->
       <span id="next-day-wrap" class="tip-wrap hidden" data-tip="">
         <button id="next-day-button" class="button primary small" type="button">Begin Day 2</button>
       </span>
@@ -148,6 +148,32 @@
       </section>
     </div>
 
+    <!-- Stats, folded by default. The same numbers the old Stats tab showed, for slow days.
+         stats.js fills the three grids; game.js opens and closes the card. -->
+    <section class="panel stats-panel collapsed" id="stats-panel">
+      <button class="stats-toggle" id="stats-toggle" type="button" aria-expanded="false" aria-controls="stats-body">
+        <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 4 L6 8 L10 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Stats</span>
+        <span class="stats-hint">for slow bookshop days</span>
+      </button>
+      <div id="stats-body" class="stats-body hidden">
+        <p class="intro">
+          The first two sections are read from this browser only. The last is shared across
+          everyone who plays: the game sends anonymous totals under a random device ID, and
+          never a name, an email or a shop name.
+        </p>
+        <h4>On this device</h4>
+        <div id="device-stats" class="stat-grid"></div>
+        <p id="device-note" class="hint"></p>
+        <h4>Your current shop</h4>
+        <div id="shop-stats" class="stat-grid"></div>
+        <p id="shop-note" class="hint"></p>
+        <h4>Across all players</h4>
+        <div id="global-stats" class="stat-grid"></div>
+        <p id="global-note" class="hint">Shared by every player. Each game sends anonymous totals (books sold, shops opened, days played) under a random device ID. No names, emails or shop names are stored.</p>
+      </div>
+    </section>
+
     <p class="footer-actions">
       <button id="reset-button" class="link-button">Start over with a new library</button>
     </p>
@@ -172,10 +198,11 @@
   <!-- books.js lists the real books; scenes.js draws the backgrounds; game.js
        runs the game. Order matters: game.js uses things defined in the other
        two, so they load first. -->
-  <script src="../stats/config.js?v=22"></script>
-  <script src="books.js?v=22"></script>
-  <script src="scenes.js?v=22"></script>
-  <script src="tips.js?v=22"></script>
-  <script src="game.js?v=22"></script>
+  <script src="../stats/config.js?v=23"></script>
+  <script src="books.js?v=23"></script>
+  <script src="scenes.js?v=23"></script>
+  <script src="tips.js?v=23"></script>
+  <script src="../stats/stats.js?v=23"></script>
+  <script src="game.js?v=23"></script>
 </body>
 </html>
