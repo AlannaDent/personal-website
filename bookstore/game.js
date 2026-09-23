@@ -740,6 +740,8 @@
   function drawGoal() {
     const goal = GOALS[state.stage];
     const upgradeButton = $('upgrade-button');
+    // A gold dot on the header caret says an upgrade is waiting, even when the header is folded.
+    $('header-toggle').classList.toggle('ready', !goal.final && !!goal.next && state.coins >= goal.cost);
     if (goal.final) {
       $('goal-heading').textContent = 'Goal reached:';
       $('goal-label').textContent = goal.label;
@@ -1657,8 +1659,24 @@
   // =========================================================
   // Wire up the buttons and go.
   // =========================================================
+  // The header (big title, stage and next goal) can be folded to one slim line with the caret.
+  // Open by default; the choice is remembered in this browser like the sketch setting.
+  const HEADER_KEY = 'saltyJellyfish.header';
+  function applyHeader(open) {
+    $('site-header').classList.toggle('collapsed', !open);
+    const toggle = $('header-toggle');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.title = open ? 'Hide the title, stage and goal' : 'Show the title, stage and goal';
+    try { localStorage.setItem(HEADER_KEY, open ? 'open' : 'closed'); } catch (e) { /* fine */ }
+  }
+  function headerOpen() {
+    try { return localStorage.getItem(HEADER_KEY) !== 'closed'; } catch (e) { return true; }
+  }
+
   function init() {
     applySketch(sketchOn());
+    applyHeader(headerOpen());
+    $('header-toggle').addEventListener('click', () => applyHeader($('site-header').classList.contains('collapsed')));
     $('style-toggle').addEventListener('click', () => applySketch(!document.body.classList.contains('sketch')));
     $('footnote-text').textContent = randomFrom(FOOTNOTES.lfl);
     buildSetupScreen();
