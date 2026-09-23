@@ -33,7 +33,10 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
 ## Project notes
 - Started: 16 September 2026.
 - Writing style: American English spellings everywhere on the site and in the game (color,
-  gray, neighbor, harbor). One deliberate exception: the season is called Autumn, never Fall.
+  gray, neighbor, harbor). Three deliberate exceptions, decided 22 September 2026: the season
+  is called Autumn (never Fall), the town's main road is the high street (never Main
+  Street), and the shop is a bookshop (never a bookstore). Keep those three; Americanize
+  everything else.
 - Website content and technology choices: to be decided (start simple, e.g. plain HTML/CSS).
 - Git identity to use here (set locally, not globally): Alanna Dent
   <55811081+AlannaDent@users.noreply.github.com>. This is GitHub's no-reply address, so
