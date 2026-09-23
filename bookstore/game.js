@@ -540,6 +540,7 @@
   function drawScene() {
     if (!building().interior) state.view = 'outside';
     $('scene').innerHTML = Scenes.render(state.location, state.building, state.view, state.decor.paint);
+    critters = [];
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books, state.building, state.view);
     drawDecor();
@@ -1047,6 +1048,11 @@
   let weather = [];             // particles: { x, y, vx, vy, phase, size, color, kind, rot }
   let nextGustAt = 0;
   let lastWeatherDraw = 0;
+  // Spring showers and light winter flurries: when the next one may start, and when the
+  // current one ends. Snow days (one winter day in three) snow all day regardless.
+  let nextShowerAt = 0, showerUntil = 0;
+  let nextFlurryAt = 0, flurryUntil = 0;
+  const snowing = (now) => isSnowDay() || now < flurryUntil;
   const LEAF_COLORS = ['#c9782e', '#a5443a', '#d9a441', '#b85c2a'];
 
   function updateWeather(dt, now) {
@@ -1060,20 +1066,48 @@
       }
       nextGustAt = now + 12000 + Math.random() * 16000;
     }
-    // Winter snow days: keep a steady scatter of flakes drifting down, day and night.
-    if (isSnowDay()) {
+    // Winter: snow days snow all day; other winter days get the odd light flurry.
+    if (season === 'Winter' && !isSnowDay()) {
+      if (!nextFlurryAt) nextFlurryAt = now + 20000 + Math.random() * 60000;
+      if (now >= nextFlurryAt) {
+        flurryUntil = now + 25000 + Math.random() * 20000;
+        nextFlurryAt = now + 120000 + Math.random() * 120000;
+        addLog('A flurry. Gone almost before it lands.');
+        drawLog();
+      }
+    }
+    if (snowing(now)) {
       const flakes = weather.filter(p => p.kind === 'flake').length;
-      for (let i = flakes; i < 42; i++) {
+      const want = isSnowDay() ? 42 : 16;
+      for (let i = flakes; i < want; i++) {
         weather.push({ kind: 'flake', x: Math.random() * 800, y: flakes === 0 ? Math.random() * 450 : -10, vx: -6 + Math.random() * 12, vy: 22 + Math.random() * 30, phase: Math.random() * 6.3, size: 1.2 + Math.random() * 1.8, color: '#f6f4ee', rot: 0 });
+      }
+    }
+    // Spring: a shower now and then, twenty to forty seconds of slanting rain.
+    if (season === 'Spring') {
+      if (!nextShowerAt) nextShowerAt = now + 30000 + Math.random() * 90000;
+      if (now >= nextShowerAt) {
+        showerUntil = now + 20000 + Math.random() * 20000;
+        nextShowerAt = now + 100000 + Math.random() * 140000;
+        addLog('Spring shower. Umbrellas up; browsing continues.');
+        drawLog();
+      }
+    }
+    if (now < showerUntil) {
+      const drops = weather.filter(p => p.kind === 'rain').length;
+      for (let i = drops; i < 90; i++) {
+        weather.push({ kind: 'rain', x: -20 + Math.random() * 860, y: drops === 0 ? Math.random() * 450 : -12, vx: -35, vy: 400 + Math.random() * 140, phase: 0, size: 8 + Math.random() * 6, color: '#9fb8c4', rot: 0 });
       }
     }
     // Move everything, retire what has left the scene, recycle flakes at the bottom.
     weather = weather.filter(p => {
       p.phase += dt * (p.kind === 'leaf' ? 5 : 1.6);
-      p.x += (p.vx + Math.sin(p.phase) * (p.kind === 'leaf' ? 40 : 14)) * dt;
+      const wobble = p.kind === 'leaf' ? 40 : p.kind === 'flake' ? 14 : 0;
+      p.x += (p.vx + Math.sin(p.phase) * wobble) * dt;
       p.y += p.vy * dt + (p.kind === 'leaf' ? Math.cos(p.phase) * 18 * dt : 0);
       if (p.kind === 'leaf') p.rot += 240 * dt;
-      if (p.kind === 'flake' && p.y > 445) { if (!isSnowDay()) return false; p.y = -6; p.x = Math.random() * 800; return true; }
+      if (p.kind === 'flake' && p.y > 445) { if (!snowing(now)) return false; p.y = -6; p.x = Math.random() * 800; return true; }
+      if (p.kind === 'rain' && p.y > 445) { if (now >= showerUntil) return false; p.y = -12; p.x = -20 + Math.random() * 860; return true; }
       return p.x > -40 && p.y < 460;
     });
     if (now - lastWeatherDraw < 50) return;         // draw at about 20 frames a second
@@ -1082,7 +1116,142 @@
     if (!group) return;
     group.innerHTML = weather.map(p => p.kind === 'leaf'
       ? `<ellipse cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" rx="${p.size.toFixed(1)}" ry="${(p.size * 0.55).toFixed(1)}" fill="${p.color}" transform="rotate(${p.rot.toFixed(0)} ${p.x.toFixed(0)} ${p.y.toFixed(0)})"/>`
+      : p.kind === 'rain'
+      ? `<line x1="${p.x.toFixed(0)}" y1="${p.y.toFixed(0)}" x2="${(p.x - p.size * 0.12).toFixed(1)}" y2="${(p.y + p.size).toFixed(0)}" stroke="${p.color}" stroke-width="1.2" opacity="0.55" stroke-linecap="round"/>`
       : `<circle cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" r="${p.size.toFixed(1)}" fill="${p.color}" opacity="0.9"/>`).join('');
+  }
+
+  // ---- Wildlife: gulls crossing the sky, tiny crabs on the far sand, a fox at the tree line ----
+  // These live behind the building (the .background-life layer) and are not saved.
+  let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
+  let nextBirdAt = 0, nextCrabAt = 0, nextFoxAt = 0, nextDolphinAt = 0, lastCritterDraw = 0;
+  const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop stopped to look.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little.'];
+  const OUTDOORS = () => state.view !== 'inside';
+  function updateWildlife(dt, now) {
+    if (!OUTDOORS()) { critters = []; return; }
+    const loc = state.location;
+    const night = state.clock.night;
+    // Gulls: one to three together, any outdoor scene, daylight only.
+    if (!night) {
+      if (!nextBirdAt) nextBirdAt = now + 4000 + Math.random() * 12000;
+      if (now >= nextBirdAt) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const count = 1 + Math.floor(Math.random() * 3);
+        const baseY = 40 + Math.random() * 110, speed = 55 + Math.random() * 50;
+        for (let i = 0; i < count; i++) {
+          critters.push({ kind: 'bird', x: dir === 1 ? -40 - i * 34 : 840 + i * 34, y: baseY + (i % 2) * 14 + Math.random() * 8, dir, speed, scale: 0.75 + Math.random() * 0.5, phase: Math.random() * 6.3 });
+        }
+        nextBirdAt = now + 18000 + Math.random() * 30000;
+      }
+    }
+    // Crabs: beach only, scuttling along the far sand behind the shop.
+    if (loc === 'beach') {
+      if (!nextCrabAt) nextCrabAt = now + 6000 + Math.random() * 20000;
+      if (now >= nextCrabAt) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        critters.push({ kind: 'crab', x: dir === 1 ? -12 : 812, y: 306 + Math.random() * 16, dir, speed: 28 + Math.random() * 20, scale: 0.3 + Math.random() * 0.1, phase: Math.random() * 6.3, state: 'go', until: 0 });
+        nextCrabAt = now + 20000 + Math.random() * 40000;
+      }
+    }
+    // A fox: park only, more often towards dusk and after dark. It comes out from behind
+    // the big tree, trots along the tree line, stops to sniff, and goes back.
+    if (loc === 'park') {
+      if (!nextFoxAt) nextFoxAt = now + 30000 + Math.random() * 60000;
+      const dusk = night || dayFraction() > 0.7;
+      if (now >= nextFoxAt) {
+        if (dusk || Math.random() < 0.4) {
+          critters.push({ kind: 'fox', x: 96, y: 296, dir: 1, speed: 26, scale: 0.55, phase: 0, state: 'out', until: 0, turnX: 200 + Math.random() * 90 });
+          addLog(night ? 'A fox at the edge of the trees, eyes catching the light.' : 'A fox at the edge of the trees. Gone before anyone could point.');
+          drawLog();
+        }
+        nextFoxAt = now + 70000 + Math.random() * 90000;
+      }
+    }
+    // A dolphin: rare, daylight, only where there is open water. It leaps once and is gone.
+    const sea = Scenes.seaFor(loc);
+    if (sea && !night) {
+      if (!nextDolphinAt) nextDolphinAt = now + 240000 + Math.random() * 420000;   // 4 to 11 minutes
+      if (now >= nextDolphinAt) {
+        const span = randomFrom(sea.spans);
+        const x = span[0] + Math.random() * (span[1] - span[0]);
+        critters.push({ kind: 'dolphin', x, y: sea.surface, dir: Math.random() < 0.5 ? 1 : -1, speed: 0, scale: 0.55 + Math.random() * 0.2, phase: 0, t: 0 });
+        addLog(randomFrom(DOLPHIN_LINES));
+        drawLog();
+        bumpLifetime(life => { life.dolphins = (life.dolphins || 0) + 1; });
+        nextDolphinAt = now + 240000 + Math.random() * 420000;
+      }
+    }
+    // Move everyone.
+    critters = critters.filter(c => {
+      if (c.kind === 'dolphin') { c.t += dt / 1.6; return c.t < 1; }   // one leap takes 1.6 s
+      c.phase += dt * (c.kind === 'bird' ? 9 : 6);
+      if (c.kind === 'bird') {
+        c.x += c.dir * c.speed * dt;
+        c.y += Math.sin(c.phase * 0.5) * 6 * dt;
+        return c.x > -80 && c.x < 880;
+      }
+      if (c.kind === 'crab') {
+        // Scuttle in bursts: go, pause, go.
+        if (c.state === 'go') { c.x += c.dir * c.speed * dt; if (Math.random() < dt * 0.5) { c.state = 'pause'; c.until = now + 600 + Math.random() * 1400; } }
+        else if (now >= c.until) c.state = 'go';
+        return c.x > -30 && c.x < 830;
+      }
+      if (c.kind === 'fox') {
+        if (c.state === 'out') { c.x += c.speed * dt; if (c.x >= c.turnX) { c.state = 'sniff'; c.until = now + 2500 + Math.random() * 3000; } }
+        else if (c.state === 'sniff') { if (now >= c.until) { c.state = 'back'; c.dir = -1; } }
+        else { c.x -= c.speed * dt; if (c.x <= 96) return false; }
+        return true;
+      }
+      return false;
+    });
+    if (now - lastCritterDraw < 50) return;         // about 20 frames a second is plenty
+    lastCritterDraw = now;
+    const svg = $('scene').querySelector('svg');
+    if (!svg) return;
+    const seaGroup = svg.querySelector('.sea-life');
+    if (seaGroup) {
+      seaGroup.innerHTML = critters.filter(c => c.kind === 'dolphin').map(c => {
+        // A parabola out of the water and back in: nose up on the way out, nose down on the way in.
+        const t = c.t, lift = Math.sin(Math.PI * t) * 34;
+        const x = c.x + c.dir * 50 * t, y = c.y + 10 - lift, angle = -55 + 110 * t;
+        const splash = (t < 0.22 || t > 0.78)
+          ? `<g fill="#f4f7f4" opacity="${(t < 0.22 ? 1 - t / 0.22 : (t - 0.78) / 0.22).toFixed(2)}"><circle cx="${(c.x - 9).toFixed(0)}" cy="${(c.y - 5).toFixed(0)}" r="1.6"/><circle cx="${(c.x + 7).toFixed(0)}" cy="${(c.y - 8).toFixed(0)}" r="1.3"/><circle cx="${(c.x + 14).toFixed(0)}" cy="${(c.y - 3).toFixed(0)}" r="1.1"/><circle cx="${(c.x - 3).toFixed(0)}" cy="${(c.y - 11).toFixed(0)}" r="1"/></g>`
+          : '';
+        const ring = `<ellipse cx="${c.x.toFixed(0)}" cy="${(c.y - 1).toFixed(0)}" rx="${(8 + 26 * t).toFixed(0)}" ry="${(2 + 3 * t).toFixed(1)}" stroke="#e8f0f2" stroke-width="1.2" fill="none" opacity="${(0.7 * (1 - t)).toFixed(2)}"/>`;
+        return ring + splash + `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(c.dir * c.scale).toFixed(2)} ${c.scale.toFixed(2)}) rotate(${angle.toFixed(0)})">
+          <path d="M-22 0 q10 -12 26 -6 q8 3 14 6 q-6 3 -14 6 q-16 6 -26 -6 z" fill="#6f7d88"/>
+          <path d="M-2 -6 q3 -8 8 -6 q-4 3 -4 6 z" fill="#5b6873"/>
+          <path d="M-22 0 q-6 -6 -10 -8 q3 8 3 8 q-3 4 -4 8 q6 -5 11 -8 z" fill="#5b6873"/>
+          <path d="M6 3 q4 4 6 8 q-6 -3 -10 -5 z" fill="#5b6873"/>
+          <circle cx="12" cy="-2" r="1" fill="#2b2a28"/>
+          <path d="M-14 3 q14 5 28 1" stroke="#c9d3da" stroke-width="1.5" fill="none" opacity="0.7"/>
+        </g>`;
+      }).join('');
+    }
+    const group = svg.querySelector('.background-life');
+    if (!group) return;
+    group.innerHTML = critters.filter(c => c.kind !== 'dolphin').map(c => {
+      const flip = c.dir === -1 ? ' scale(-1 1)' : '';
+      if (c.kind === 'bird') {
+        const up = Math.sin(c.phase) > 0;
+        const wing = up ? 'q8 -7 16 0 q8 -7 16 0' : 'q8 -1.5 16 0 q8 -1.5 16 0';
+        return `<g transform="translate(${c.x.toFixed(0)} ${c.y.toFixed(0)}) scale(${c.scale.toFixed(2)})${flip}"><path d="M-16 0 ${wing}" stroke="#7c8a90" stroke-width="2" fill="none" stroke-linecap="round"/></g>`;
+      }
+      if (c.kind === 'crab') {
+        const step = c.state === 'go' ? Math.sin(c.phase * 2) * 0.6 : 0;
+        return `<g transform="translate(${c.x.toFixed(0)} ${(c.y + step).toFixed(1)}) scale(${c.scale.toFixed(2)})">${Scenes.petSvg({ kind: 'crab', color: 'red' }, 'sit')}</g>`;
+      }
+      // fox
+      const trot = c.state === 'sniff' ? 0 : Math.abs(Math.sin(c.phase)) * 0.8;
+      const head = c.state === 'sniff' ? 'translate(0 2.5) rotate(18)' : '';
+      return `<g transform="translate(${c.x.toFixed(0)} ${(c.y - trot).toFixed(1)}) scale(${c.scale})${flip}">
+        <ellipse cx="0" cy="0" rx="10" ry="1.3" fill="#000" opacity="0.12"/>
+        <path d="M-11 -2 q-7 -6 -13 0 q5 4 12 2 z" fill="#c8733a"/><circle cx="-22" cy="-1" r="2.2" fill="#f4f1e8"/>
+        <path d="M-11 -2 q11 -10 22 -1 l0 3 l-22 0 z" fill="#c8733a"/>
+        <g transform="${head}"><circle cx="12" cy="-6" r="3.6" fill="#c8733a"/><path d="M9 -9 l1 -5 l3 4 z" fill="#c8733a"/><path d="M13 -9.5 l2 -4.5 l1.5 4.5 z" fill="#c8733a"/><circle cx="15.5" cy="-5" r="1.5" fill="#f4f1e8"/><circle cx="16.5" cy="-5.2" r="0.6" fill="#2b2a28"/></g>
+        <g stroke="#6e3a1a" stroke-width="1.4" stroke-linecap="round"><line x1="-7" y1="0" x2="-8" y2="4"/><line x1="-3" y1="0" x2="-2" y2="4"/><line x1="5" y1="0" x2="4" y2="4"/><line x1="8" y1="0" x2="9" y2="4"/></g>
+      </g>`;
+    }).join('');
   }
 
   // The loop. The browser calls this about 60 times a second.
@@ -1093,6 +1262,7 @@
     advanceClock(dt * 1000, now);
     updatePets(dt, now);
     updateWeather(dt, now);
+    updateWildlife(dt, now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
