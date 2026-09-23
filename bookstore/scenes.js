@@ -935,7 +935,7 @@ const Scenes = (function () {
     stops: { left: 212, right: 588 },
     personScale: 3.2,                     // a real person next to a real Little Free Library
     deliveryX: 660,                       // where the van sets boxes down
-    signX: 308, plantX: 492,              // where the chalkboard and a plant stand
+    decorSlots: [222, 300, 500, 578],      // far left, left of the door, right, far right legacySignX: 308, legacyPlantX: 492,
     backdropOpts: {},
     draw(color) {
       return `
@@ -975,7 +975,7 @@ const Scenes = (function () {
     stops: { left: 240, right: 560 },
     personScale: 2.3,
     deliveryX: 620,
-    signX: 520, plantX: 282,
+    decorSlots: [232, 282, 520, 570], legacySignX: 520, legacyPlantX: 282,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1024,7 +1024,7 @@ const Scenes = (function () {
     stops: { left: 232, right: 588 },
     personScale: 1.7,
     deliveryX: 640,
-    signX: 560, plantX: 262,
+    decorSlots: [214, 262, 560, 608], legacySignX: 560, legacyPlantX: 262,
     backdropOpts: { boardwalkX: 590, signX: 150 },
     draw(color) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1068,7 +1068,7 @@ const Scenes = (function () {
     stops: { left: 400, right: 636 },
     personScale: 1.25,
     deliveryX: 690,
-    signX: 604, plantX: 428,
+    decorSlots: [384, 428, 604, 640], legacySignX: 604, legacyPlantX: 428,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1144,7 +1144,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    signX: 582, plantX: 216,
+    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1189,7 +1189,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    signX: 582, plantX: 216,
+    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1237,7 +1237,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    signX: 582, plantX: 216,
+    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1481,7 +1481,7 @@ const Scenes = (function () {
     stops: { left: 235, right: 565 },
     personScale: 1.0,
     deliveryX: 650,
-    signX: 566, plantX: 236,
+    decorSlots: [236, 280, 325, 475, 520, 566], legacySignX: 566, legacyPlantX: 236,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1523,7 +1523,7 @@ const Scenes = (function () {
     sides: ['left'],                      // the other side is the cliff
     personScale: 1.0,
     deliveryX: 110,
-    signX: 560, plantX: 376,
+    decorSlots: [290, 335, 380, 500, 530, 560], legacySignX: 560, legacyPlantX: 376,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1566,7 +1566,7 @@ const Scenes = (function () {
     stops: { left: 250, right: 560 },
     personScale: 1.15,
     deliveryX: 660,
-    signX: 610, plantX: 160,
+    decorSlots: [160, 215, 270, 530, 585, 640], legacySignX: 610, legacyPlantX: 160,
     backdropOpts: {},
     draw(color) {
       let s = '';
@@ -1693,15 +1693,14 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return b.deliveryX || 640;
   }
-  function decorSpotsFor(buildingId) {
+  // Where decor can stand out front, left to right: two spots a side at stages one and
+  // two, three a side from stage three (a perk of the upgrade). The player puts any item in
+  // any spot; game.js names them L1.. and R1.. counting outwards from the door.
+  function decorSlotsFor(buildingId) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
-    const signX = b.signX || 300, plantX = b.plantX || 500;
-    // The bench stands beyond the plant, on the side away from the sign, unless a
-    // building names its own spot.
-    const benchX = b.benchX || (plantX < signX ? plantX - 62 : plantX + 62);
-    return { signX, plantX, benchX };
+    return b.decorSlots || [230, 300, 500, 570];
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSpotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor, extrasFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, petSvg, PET_COLORS, seaFor, extrasFor };
 })();
