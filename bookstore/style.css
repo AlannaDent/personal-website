@@ -330,7 +330,9 @@
 .hud-shop .rename { width: 13em; max-width: 100%; font-size: 0.9rem; padding: 0.05rem 0.4rem; }
 /* Item 6: the coin and stock pills explain themselves on hover, with the card hanging
    from the right so it stays inside the picture. */
-.hud-right .hud-chip.tip-wrap { position: relative; }
+/* relative so the hover card can hang from the pill; top: auto so the .hud-chip offset
+   (meant for the absolutely placed name pill) does not push these two down. */
+.hud-right .hud-chip.tip-wrap { position: relative; top: auto; }
 .hud-right .hud-chip[data-tip]:not([data-tip=""]):hover::after { left: auto; right: 0; transform: none; }
 .hud-right { position: absolute; top: 0.8rem; right: 0.8rem; display: flex; gap: 0.5rem; }
 .hud-right .hud-chip { position: static; }
