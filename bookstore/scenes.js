@@ -605,6 +605,17 @@ const Scenes = (function () {
   function park() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(520, 70, 55) + cloud(240, 100, 45);
+    // Beyond the park: a distant bay. Water to the horizon with a hazy edge, a strip of
+    // marsh and sand, then a pale far field that the near tree line rises in front of.
+    s += `<rect x="0" y="200" width="800" height="36" fill="#9dbccb"/>`;
+    s += `<rect x="0" y="199" width="800" height="3" fill="#c8dde3" opacity="0.8"/>`;
+    s += `<g class="waves" stroke="#c3d9e0" stroke-width="1.4" fill="none" stroke-linecap="round"><path d="M80 214 q10 -3 20 0"/><path d="M300 222 q10 -3 20 0"/><path d="M520 210 q10 -3 20 0"/><path d="M700 226 q10 -3 20 0"/></g>`;
+    s += `<g class="waves late" stroke="#d3e4e9" stroke-width="1.2" fill="none" stroke-linecap="round"><path d="M180 228 q8 -2.5 16 0"/><path d="M420 216 q8 -2.5 16 0"/><path d="M620 219 q8 -2.5 16 0"/></g>`;
+    // a small sailboat, far out, drifting slowly across (same drift animation as the clouds)
+    s += `<g class="cloud" style="--start:-710px; --end:130px; --dur:480s; --delay:-405s"><path d="M690 218 l0 -13 l9 13 z" fill="#f4f1e8"/><path d="M683 219 h15 l-2 3 h-11 z" fill="#5a4030"/></g>`;
+    s += `<rect x="0" y="234" width="800" height="5" fill="#d9caa3"/>`;
+    s += `<rect x="0" y="238" width="800" height="30" fill="#b8cf93"/>`;
+    s += `<g fill="#8fa86f" opacity="0.7"><ellipse cx="90" cy="246" rx="14" ry="3"/><ellipse cx="330" cy="243" rx="18" ry="3.2"/><ellipse cx="560" cy="247" rx="12" ry="2.6"/><ellipse cx="740" cy="244" rx="16" ry="3"/></g>`;
     s += `<path class="leaf-line" d="M0 255 Q60 215 120 250 T240 245 T360 255 T480 240 T600 255 T720 245 T800 255 L800 300 L0 300 Z" fill="#7f9a68"/>`;
     s += `<rect x="0" y="290" width="800" height="160" fill="#9dbb6f"/>`;
     s += `<path d="M0 340 C200 320 500 360 800 335 L800 450 L0 450 Z" fill="#a6c277"/>`;
@@ -674,6 +685,25 @@ const Scenes = (function () {
     return s;
   }
 
+  // The view behind every town street: a glimpse of the bay to a hazy horizon, a soft far
+  // tree line, then a lighter mid-distance field with a few trees and a hedge, all of it
+  // behind the buildings so it shows between them and over the lower roofs.
+  function townDistance() {
+    let s = `<rect x="0" y="262" width="800" height="24" fill="#9dbccb"/>`;
+    s += `<rect x="0" y="261" width="800" height="3" fill="#c8dde3" opacity="0.8"/>`;
+    s += `<g class="waves" stroke="#c3d9e0" stroke-width="1.3" fill="none" stroke-linecap="round"><path d="M60 272 q9 -2.5 18 0"/><path d="M230 278 q9 -2.5 18 0"/><path d="M420 270 q9 -2.5 18 0"/><path d="M600 276 q9 -2.5 18 0"/><path d="M740 268 q9 -2.5 18 0"/></g>`;
+    s += `<g class="cloud" style="--start:-560px; --end:280px; --dur:520s; --delay:-330s"><path d="M540 278 l0 -11 l7.5 11 z" fill="#f4f1e8"/><path d="M534 279 h12.5 l-1.6 2.6 h-9.3 z" fill="#5a4030"/></g>`;
+    // far shore: a soft blue-green tree line with a few taller crowns
+    s += `<path d="M0 290 Q40 278 80 286 T160 284 T240 288 T320 282 T400 288 T480 283 T560 289 T640 284 T720 288 T800 285 L800 300 L0 300 Z" fill="#8fa88a"/>`;
+    s += `<g fill="#7f9a80"><ellipse cx="120" cy="286" rx="16" ry="6"/><ellipse cx="350" cy="284" rx="20" ry="7"/><ellipse cx="610" cy="285" rx="18" ry="6.5"/></g>`;
+    // mid-distance: a pale field down to the street, a hedge, a handful of trees
+    s += `<rect x="0" y="297" width="800" height="73" fill="#b8cf93"/>`;
+    s += `<path d="M0 318 C200 310 500 326 800 314 L800 370 L0 370 Z" fill="#a6c277"/>`;
+    s += `<g fill="#7f9a68"><ellipse cx="90" cy="332" rx="30" ry="9"/><ellipse cx="300" cy="336" rx="42" ry="10"/><ellipse cx="520" cy="330" rx="34" ry="9"/><ellipse cx="730" cy="335" rx="38" ry="10"/></g>`;
+    s += `<g fill="#6f9556"><circle cx="150" cy="318" r="14"/><circle cx="410" cy="314" r="16"/><circle cx="640" cy="320" r="13"/></g>`;
+    s += `<g fill="#7a5a3e"><rect x="148" y="326" width="4" height="12"/><rect x="408" y="324" width="4" height="14"/><rect x="638" y="328" width="4" height="10"/></g>`;
+    return s;
+  }
   function pavementAndRoad() {
     let s = `<rect x="0" y="370" width="800" height="80" fill="#c9c3b6"/>`;
     s += `<g stroke="#b5afa2" stroke-width="1.5">${[60, 140, 220, 300, 460, 540, 620, 700, 780].map(x => `<line x1="${x}" y1="370" x2="${x}" y2="428"/>`).join('')}</g>`;
@@ -685,6 +715,7 @@ const Scenes = (function () {
   function street() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(420, 60, 50) + cloud(700, 95, 45);
+    s += townDistance();
     s += pavementAndRoad();
     s += chowderHouse() + church() + taffyShop();
     s += `<rect x="465" y="150" width="7" height="250" fill="#3a3f44"/><rect x="458" y="392" width="21" height="8" fill="#3a3f44"/>`;
@@ -697,6 +728,7 @@ const Scenes = (function () {
   function street2() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(300, 70, 50) + cloud(650, 100, 55);
+    s += townDistance();
     s += pavementAndRoad();
     s += `<g transform="translate(-560 0)">${taffyShop()}</g>`;
     // tree behind the fence, right
@@ -835,6 +867,7 @@ const Scenes = (function () {
   function street3dutch() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(150, 70, 55) + cloud(660, 90, 60);
+    s += townDistance();
     s += pavementAndRoad();
     s += gambrelNeighbor(-40, 230, '#c9d2d6', '#6d6259', '#4a5a8a');
     s += gambrelNeighbor(610, 240, '#e9dcae', '#7a6a58', '#4f7a4a');
@@ -845,6 +878,7 @@ const Scenes = (function () {
   function street3cape() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(230, 60, 50) + cloud(620, 110, 55);
+    s += townDistance();
     s += pavementAndRoad();
     s += capeNeighbor(-30, 220, '#b9b0a0', '#6b625a');
     s += capeNeighbor(610, 230, '#d9d0bf', '#5f5750');
@@ -855,6 +889,7 @@ const Scenes = (function () {
   function street3tudor() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(180, 80, 50) + cloud(640, 70, 50);
+    s += townDistance();
     s += pavementAndRoad();
     s += tudorNeighbor(-30, 230, '#8f5b4a');
     s += tudorNeighbor(600, 240, '#7d4f42');
@@ -918,12 +953,14 @@ const Scenes = (function () {
 
   const BACKDROPS = { beach, park, street, dock, street2, street3dutch, street3cape, street3tudor, green, cliff, harbor };
   // Scenes with open water: where the sea surface sits (a dolphin's lower half hides below
-  // it) and the stretches of x where the water is in clear view.
+  // it), the stretches of x where the water is in clear view, and an optional size factor
+  // for water that is far away.
   const SEA = {
     beach: { surface: 268, spans: [[60, 740]] },
     dock: { surface: 300, spans: [[60, 520]] },
     harbor: { surface: 300, spans: [[40, 200], [620, 760]] },
-    cliff: { surface: 290, spans: [[560, 790]] }
+    cliff: { surface: 290, spans: [[560, 790]] },
+    park: { surface: 214, spans: [[190, 290], [720, 790]], scale: 0.42 }   // the far bay: tiny
   };
   const seaFor = (locationId) => SEA[locationId] || null;
   // Background people. doors: the neighbors' front doors (x, the ground they stand on, and
