@@ -541,6 +541,7 @@
     if (!building().interior) state.view = 'outside';
     $('scene').innerHTML = Scenes.render(state.location, state.building, state.view, state.decor.paint);
     critters = [];
+    extras = [];
     const svg = $('scene').querySelector('svg');
     drawBooksInto(svg, state.books, state.building, state.view);
     drawDecor();
@@ -891,10 +892,8 @@
     $('scene').querySelector('svg .customers').insertAdjacentHTML('beforeend', customerSvg(c));
   }
 
-  // Draws a simple person: round head, coat, legs, optional hat and prop.
-  function customerSvg(c) {
-    const L = c.look;
-    const scale = customerScale(c);
+  // The person itself, feet at (0,0), facing right. Shared by customers and background people.
+  function personBody(L) {
     let body = `<ellipse cx="0" cy="0" rx="14" ry="3" fill="#000" opacity="0.12"/>`;
     body += `<rect x="-7" y="-26" width="6" height="26" fill="#4a4a55"/><rect x="1" y="-26" width="6" height="26" fill="#4a4a55"/>`;
     body += `<path d="M-12 -30 L12 -30 L15 -6 L-15 -6 Z" fill="${L.coat}"/>`;
@@ -909,6 +908,26 @@
     if (L.scarf) body += `<rect x="-10" y="-33" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="-31" width="5" height="12" fill="${L.scarf}"/>`;
     if (L.prop === 'tote') body += `<rect x="13" y="-22" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -22 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
     if (L.prop === 'basket') body += `<path d="M13 -20 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -20 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    return body;
+  }
+
+  // Someone sitting on the ground (or a swing seat): legs out front, same coat and head.
+  function seatedBody(L) {
+    let b = `<ellipse cx="3" cy="0" rx="12" ry="2.5" fill="#000" opacity="0.12"/>`;
+    b += `<rect x="-3" y="-8" width="17" height="6" fill="#4a4a55" rx="1"/>`;
+    b += `<path d="M-11 -26 L9 -26 L12 -6 L-12 -6 Z" fill="${L.coat}"/>`;
+    if (L.stripes) b += `<g fill="#f4efe4"><rect x="-11.5" y="-22" width="21" height="3"/><rect x="-12" y="-15" width="22" height="3"/></g>`;
+    b += `<circle cx="-1" cy="-35" r="9" fill="#f0cfb5"/><circle cx="2" cy="-35" r="1" fill="#3b332c"/><circle cx="3" cy="-32" r="1.8" fill="#e59a8c" opacity="0.6"/>`;
+    if (L.hat) b += `<path d="M-11 -39 Q-1 -51 9 -39 Z" fill="${L.hat}"/>`;
+    else b += `<path d="M-10 -39 Q-1 -47 8 -39 Q-1 -41 -10 -39 Z" fill="#5a3e2c"/>`;
+    return b;
+  }
+
+  // Draws a simple person: round head, coat, legs, optional hat and prop.
+  function customerSvg(c) {
+    const L = c.look;
+    const scale = customerScale(c);
+    let body = personBody(L);
     body += companionSvg(c);
     return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
   }
@@ -1121,6 +1140,120 @@
       : `<circle cx="${p.x.toFixed(0)}" cy="${p.y.toFixed(0)}" r="${p.size.toFixed(1)}" fill="${p.color}" opacity="0.9"/>`).join('');
   }
 
+  // ---- Background people: strollers on the far sand, neighbours visiting the shops next
+  // door, a child on the swings and a picnic in the park. Drawn behind the building, never
+  // saved. Daylight only for new arrivals; anyone already out finishes what they are doing.
+  // Their sizes are fixed to the backdrop (a door's height, the far sand), not to the
+  // shop's own person scale, which is deliberately large at stage one.
+  let extras = [];
+  let nextStrollerAt = 0, nextVisitorAt = 0, nextSwingAt = 0, nextPicnicAt = 0;
+  const walkSpeedFor = (scale) => WALK_SPEED * (0.6 + 0.4 * scale);
+  function updateExtras(dt, now) {
+    if (!OUTDOORS()) { extras = []; return; }
+    const cfg = Scenes.extrasFor(state.location);
+    if (!cfg) { extras = []; return; }
+    const night = state.clock.night;
+    const look = () => randomFrom(CUSTOMER_LOOKS);
+    if (!night) {
+      // Beach: distant strollers, alone or in pairs, along the far sand.
+      if (cfg.sand) {
+        if (!nextStrollerAt) nextStrollerAt = now + 5000 + Math.random() * 20000;
+        if (now >= nextStrollerAt) {
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          const y = cfg.sand.yMin + Math.random() * (cfg.sand.yMax - cfg.sand.yMin);
+          const n = Math.random() < 0.45 ? 2 : 1;
+          for (let i = 0; i < n; i++) extras.push({ kind: 'stroller', look: look(), x: (dir === 1 ? -30 : 830) - dir * i * 16, y: y + i * 2, dir, scale: 0.45 + Math.random() * 0.1, speed: 0.55 + Math.random() * 0.2, state: 'walk' });
+          nextStrollerAt = now + 25000 + Math.random() * 35000;
+        }
+      }
+      // Town and pier: a neighbour walks to a shop next door, goes in, comes out later, leaves.
+      if (cfg.doors) {
+        if (!nextVisitorAt) nextVisitorAt = now + 8000 + Math.random() * 25000;
+        if (now >= nextVisitorAt) {
+          const door = randomFrom(cfg.doors);
+          const fromLeft = door.x < 400 ? Math.random() < 0.7 : Math.random() < 0.3;   // usually the near edge
+          extras.push({ kind: 'visitor', look: look(), x: fromLeft ? -40 : 840, y: door.y, dir: fromLeft ? 1 : -1, scale: door.h / 62, speed: 0.9, state: 'toDoor', door, until: 0 });
+          nextVisitorAt = now + 30000 + Math.random() * 45000;
+        }
+      }
+      // Park: a child heads for a free swing; a pair arrives for a picnic.
+      if (cfg.swings) {
+        if (!nextSwingAt) nextSwingAt = now + 20000 + Math.random() * 50000;
+        if (now >= nextSwingAt) {
+          const busy = extras.filter(e => e.kind === 'swinger').map(e => e.swing.x);
+          const free = cfg.swings.filter(sw => !busy.includes(sw.x));
+          if (free.length) {
+            const L = randomFrom(CUSTOMER_LOOKS.filter(l => l.small)) || look();
+            extras.push({ kind: 'swinger', look: L, x: 840, y: cfg.swingGround, dir: -1, scale: 0.55, speed: 0.8, state: 'toSwing', swing: randomFrom(free), phase: 0, until: 0 });
+          }
+          nextSwingAt = now + 150000 + Math.random() * 150000;
+        }
+        if (!nextPicnicAt) nextPicnicAt = now + 45000 + Math.random() * 60000;
+        if (now >= nextPicnicAt && !extras.some(e => e.kind === 'picnic')) {
+          extras.push({ kind: 'picnic', looks: [look(), look()], x: -40, y: cfg.picnic.y, dir: 1, scale: 0.7, speed: 0.7, state: 'arrive', spot: cfg.picnic.x, until: 0 });
+          nextPicnicAt = now + 240000 + Math.random() * 180000;
+        }
+      }
+    }
+    // Move everyone.
+    extras = extras.filter(e => {
+      const v = walkSpeedFor(e.scale) * e.speed * dt;
+      if (e.kind === 'stroller') { e.x += e.dir * v; return e.x > -60 && e.x < 860; }
+      if (e.kind === 'visitor') {
+        if (e.state === 'toDoor') { e.x += e.dir * v; if ((e.dir === 1 && e.x >= e.door.x) || (e.dir === -1 && e.x <= e.door.x)) { e.x = e.door.x; e.state = 'pause'; e.until = now + 500; } }
+        else if (e.state === 'pause') { if (now >= e.until) { e.state = 'inside'; e.until = now + 8000 + Math.random() * 20000; } }
+        else if (e.state === 'inside') { if (now >= e.until) { e.state = 'out'; e.dir = Math.random() < 0.5 ? 1 : -1; } }
+        else { e.x += e.dir * v; return e.x > -60 && e.x < 860; }
+        return true;
+      }
+      if (e.kind === 'swinger') {
+        if (e.state === 'toSwing') { e.x -= v; if (e.x <= e.swing.x) { e.x = e.swing.x; e.state = 'swing'; e.until = now + 30000 + Math.random() * 30000; } }
+        else if (e.state === 'swing') { e.phase += dt * 2.1; if (now >= e.until && Math.abs(Math.sin(e.phase)) < 0.15) { e.state = 'leave'; e.dir = 1; } }
+        else { e.x += v; return e.x < 860; }
+        return true;
+      }
+      if (e.kind === 'picnic') {
+        if (e.state === 'arrive') { e.x += v; if (e.x >= e.spot) { e.x = e.spot; e.state = 'sit'; e.until = now + 60000 + Math.random() * 60000; } }
+        else if (e.state === 'sit') { if (now >= e.until || night) { e.state = 'leave'; e.dir = -1; } }
+        else { e.x -= v; return e.x > -80; }
+        return true;
+      }
+      return false;
+    });
+  }
+  // The background people as SVG, plus the park's swings (empty ones hang still).
+  function extrasSvg() {
+    const cfg = Scenes.extrasFor(state.location);
+    let out = '';
+    if (cfg && cfg.swings) {
+      cfg.swings.forEach(sw => {
+        const rider = extras.find(e => e.kind === 'swinger' && e.state === 'swing' && e.swing.x === sw.x);
+        const angle = rider ? Math.sin(rider.phase) * 28 : 0;
+        const drop = sw.seatY - sw.pivotY;
+        out += `<g opacity="0.85" transform="translate(${sw.x} ${sw.pivotY}) rotate(${angle.toFixed(1)})"><g stroke="#6f6678" stroke-width="2"><line x1="-8" y1="0" x2="-8" y2="${drop}"/><line x1="8" y1="0" x2="8" y2="${drop}"/></g><rect x="-8" y="${drop}" width="16" height="5" fill="#c98a6a"/>` +
+          (rider ? `<g transform="translate(0 ${drop + 1}) scale(${(rider.scale * 1.05).toFixed(2)})">${seatedBody(rider.look)}</g>` : '') + `</g>`;
+      });
+    }
+    extras.forEach(e => {
+      const bob = (walking) => walking ? Math.abs(Math.sin(e.x / 9)) * 1.6 : 0;
+      if (e.kind === 'stroller' || (e.kind === 'visitor' && e.state !== 'inside') || (e.kind === 'swinger' && e.state !== 'swing')) {
+        const walking = e.kind === 'stroller' || e.state === 'toDoor' || e.state === 'out' || e.state === 'toSwing' || e.state === 'leave';
+        out += `<g transform="translate(${e.x.toFixed(1)} ${(e.y - bob(walking)).toFixed(1)}) scale(${(e.dir * e.scale).toFixed(3)} ${e.scale.toFixed(3)})">${personBody(e.look)}</g>`;
+      }
+      if (e.kind === 'picnic') {
+        if (e.state === 'sit') {
+          out += `<g transform="translate(${e.x} ${e.y})"><rect x="-38" y="-7" width="76" height="12" rx="2" fill="#b6413a" opacity="0.85"/><g stroke="#f4efe4" stroke-width="1" opacity="0.6"><line x1="-38" y1="-1" x2="38" y2="-1"/><line x1="-20" y1="-7" x2="-20" y2="5"/><line x1="0" y1="-7" x2="0" y2="5"/><line x1="20" y1="-7" x2="20" y2="5"/></g><rect x="-6" y="-11" width="12" height="7" fill="#b48a52" rx="1"/>` +
+            `<g transform="translate(-22 -3) scale(${e.scale.toFixed(3)})">${seatedBody(e.looks[0])}</g><g transform="translate(22 -3) scale(${(-e.scale).toFixed(3)} ${e.scale.toFixed(3)})">${seatedBody(e.looks[1])}</g></g>`;
+        } else {
+          const b = bob(true);
+          out += `<g transform="translate(${e.x.toFixed(1)} ${(e.y - b).toFixed(1)}) scale(${(e.dir * e.scale).toFixed(3)} ${e.scale.toFixed(3)})">${personBody(e.looks[0])}</g>` +
+            `<g transform="translate(${(e.x - e.dir * 22).toFixed(1)} ${(e.y - b * 0.6).toFixed(1)}) scale(${(e.dir * e.scale).toFixed(3)} ${e.scale.toFixed(3)})">${personBody(e.looks[1])}</g>`;
+        }
+      }
+    });
+    return out;
+  }
+
   // ---- Wildlife: gulls crossing the sky, tiny crabs on the far sand, a fox at the tree line ----
   // These live behind the building (the .background-life layer) and are not saved.
   let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
@@ -1230,7 +1363,7 @@
     }
     const group = svg.querySelector('.background-life');
     if (!group) return;
-    group.innerHTML = critters.filter(c => c.kind !== 'dolphin').map(c => {
+    group.innerHTML = extrasSvg() + critters.filter(c => c.kind !== 'dolphin').map(c => {
       const flip = c.dir === -1 ? ' scale(-1 1)' : '';
       if (c.kind === 'bird') {
         const up = Math.sin(c.phase) > 0;
@@ -1262,6 +1395,7 @@
     advanceClock(dt * 1000, now);
     updatePets(dt, now);
     updateWeather(dt, now);
+    updateExtras(dt, now);
     updateWildlife(dt, now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
