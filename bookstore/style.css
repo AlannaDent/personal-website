@@ -1,6 +1,8 @@
-/* Styles specific to the bookshop game. Shared colours come from ../style.css. */
+/* Styles specific to the bookshop game. Shared colors come from ../style.css. */
 
-.site-header.compact { padding-top: 1.2rem; }
+/* The game's header sits in the same 1120px column as the picture, so the caret at
+   left: 1rem lines up with the picture's left edge whether the header is open or folded. */
+.site-header.compact { max-width: 1120px; margin: 0 auto; padding: 1.2rem 1rem 1rem; }
 .home-link {
   display: inline-block;
   margin-bottom: 0.4rem;
@@ -18,7 +20,7 @@
   align-items: start;
   max-width: 1120px;
   margin: 0.2rem auto 0;
-  padding: 0 1rem;
+  padding: 0;
 }
 /* The caret that folds the header. Open: it floats in the top-left corner, level with
    the big title. Folded: it leads a single slim line with the small title. */
@@ -58,7 +60,7 @@
 .site-header.collapsed .mini-title { display: inline; font-size: 1rem; color: var(--teal-dark); }
 .site-header.collapsed .home-link { margin: 0 0 0 auto; }
 .site-header.collapsed .header-full { display: none; }
-@media (max-width: 640px) { .header-toggle { top: 4.4rem; left: 0.5rem; } }
+@media (max-width: 640px) { .header-toggle { top: 4.4rem; } }
 /* A gold dot on the caret while an upgrade is waiting, so a folded header still says so. */
 .header-toggle.ready::after {
   content: '';
@@ -398,6 +400,47 @@
 }
 .panel h3 { font-size: 1.05rem; }
 
+/* ---- Stats card: folded by default; the numbers the old Stats tab used to show ---- */
+.stats-panel { margin-top: 1rem; }
+.stats-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-family: Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--teal-dark);
+  cursor: pointer;
+  text-align: left;
+}
+.stats-toggle svg { color: #a9a294; transition: transform 0.2s ease; flex: 0 0 12px; }
+.stats-toggle:hover svg { color: var(--brick); }
+.stats-panel.collapsed .stats-toggle svg { transform: rotate(-90deg); }
+.stats-hint { margin-left: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 0.85rem; font-style: italic; color: var(--ink-soft); }
+.stats-body .intro { font-size: 0.9rem; margin: 0.8rem 0 0; }
+.stats-body h4 { font-family: Georgia, serif; font-weight: normal; font-size: 0.95rem; color: var(--teal-dark); margin: 1.1rem 0 0.2rem; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.stat {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+}
+.stat .value { display: block; font-family: Georgia, serif; font-size: 1.6rem; color: var(--brick); line-height: 1.1; }
+.stat .label { display: block; margin-top: 0.3rem; color: var(--ink-soft); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat .detail { display: block; margin-top: 0.2rem; color: var(--ink); font-size: 0.85rem; }
+.stat.soon { opacity: 0.55; }
+.stat.soon .value { color: var(--ink-soft); }
+
 /* ---- The shop journal: ruled paper, red margin, fountain-pen ink ---- */
 .panel.journal {
   --ink-blue: #1f2a5a;              /* blue-black fountain pen ink */
@@ -563,7 +606,7 @@
 /* ---- Seasons ----
    The page carries a season class; trees, ground and sky respond. */
 .bare { display: none; }
-.seasonal .autumn-leaves, .seasonal .snow-drifts, .seasonal .wildflowers, .seasonal .summer-sun { display: none; }
+.seasonal .autumn-leaves, .seasonal .snow-drifts, .seasonal .wildflowers, .summer-sun { display: none; }
 body.season-spring .wildflowers { display: inline; }
 body.season-summer .summer-sun { display: inline; }
 body.season-autumn .autumn-leaves { display: inline; }
@@ -587,10 +630,10 @@ svg .weather, svg .background-life, svg .sea-life { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .cloud, .waves, .foam { animation: none; } }
 
 /* ---- Sketch mode ----
-   Every painted layer holds a colour copy (.fills) and an ink copy (.lines).
-   Off: ink hidden, colour keeps its outlines, gentle wobble. On: colour loses its
+   Every painted layer holds a color copy (.fills) and an ink copy (.lines).
+   Off: ink hidden, color keeps its outlines, gentle wobble. On: color loses its
    outlines and goes a little dusty; ink shows, wobbles more, and sits slightly off
-   the colour; paper grain over the top. People, boxes and decor are never touched. */
+   the color; paper grain over the top. People, boxes and decor are never touched. */
 svg .lines { display: none; }
 svg .fills { filter: url(#wobble); }
 svg .paper { display: none; pointer-events: none; }
@@ -602,7 +645,7 @@ body.sketch svg .lines * { fill: none !important; }
 body.sketch svg .paper { display: inline; opacity: 0.4; mix-blend-mode: multiply; }
 
 
-/* The colour washes and floating text sit over the picture; clicks must pass through them. */
+/* The color washes and floating text sit over the picture; clicks must pass through them. */
 .scene .season-tint, .scene .daylight, .scene .effects { pointer-events: none; }
 .scene .delivery-box.waiting { cursor: default; }
 .button:disabled { cursor: not-allowed; }

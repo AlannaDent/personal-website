@@ -1,12 +1,17 @@
 /* stats.js
-   Reads the bookshop game's saved numbers from this browser and shows them.
-   The game writes two things to localStorage:
+   Reads the bookshop game's saved numbers from this browser and shows them in the
+   Stats card on the game page (it used to be its own tab). The game writes two things
+   to localStorage:
      saltyJellyfish.stageOne  - the current shop (one save)
      saltyJellyfish.lifetime  - counters across every shop ever opened here
-   This page only reads. It never changes them and never sends them anywhere.
+   This script only reads. It never changes them. The shared counters come from
+   Supabase's get_stats() function, read with the public key.
+
+   game.js calls SaltyStats.render() when the card is opened, and now and then while
+   it stays open.
 */
 
-(function () {
+window.SaltyStats = (function () {
   'use strict';
 
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
@@ -31,9 +36,12 @@
     return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
+  function render() {
+  const $ = (id) => document.getElementById(id);
+  if (!$('device-stats')) return;
   // ---- On this device ----
   const life = read('saltyJellyfish.lifetime');
-  const deviceGrid = document.getElementById('device-stats');
+  const deviceGrid = $('device-stats');
   if (life && life.shopsOpened) {
     deviceGrid.innerHTML =
       stat(number(life.shopsOpened), 'Shops opened') +
@@ -41,11 +49,12 @@
       stat(number(life.coinsEarned), 'Coins earned') +
       stat(number(life.daysPlayed), 'Days played', 'three minutes each') +
       stat(number(life.bestShopSold), 'Best single shop', life.bestShopName ? `sold by ${life.bestShopName}` : '') +
-      stat(STAGE_NAMES[life.furthestStage] || 'Stage ' + life.furthestStage, 'Furthest stage', `${number(life.upgrades)} ${life.upgrades === 1 ? 'move' : 'moves'} made`);
+      stat(STAGE_NAMES[life.furthestStage] || 'Stage ' + life.furthestStage, 'Furthest stage', `${number(life.upgrades)} ${life.upgrades === 1 ? 'move' : 'moves'} made`) +
+      stat(number(life.dolphins), 'Dolphins spotted', life.dolphins ? 'lucky you' : 'keep watching the water');
     document.getElementById('device-note').textContent = life.firstPlayed ? `First played here on ${niceDate(life.firstPlayed)}.` : '';
   } else {
     deviceGrid.innerHTML = stat('0', 'Shops opened');
-    document.getElementById('device-note').innerHTML = 'No shops yet on this device. <a href="../bookstore/index.html">Open one.</a>';
+    document.getElementById('device-note').textContent = 'No shops yet on this device.';
   }
 
   // ---- Your current shop ----
@@ -64,12 +73,14 @@
     document.getElementById('shop-note').textContent = '';
   } else {
     shopGrid.innerHTML = stat('—', 'No shop open');
-    document.getElementById('shop-note').innerHTML = 'Nothing saved right now. <a href="../bookstore/index.html">Start a library.</a>';
+    document.getElementById('shop-note').textContent = 'Nothing saved right now.';
   }
 
   // ---- Across all players ----
   const globalGrid = document.getElementById('global-stats');
   const globalNote = document.getElementById('global-note');
+  // Remember the note's original wording so repeated renders do not pile up "Last updated".
+  if (!globalNote.dataset.base) globalNote.dataset.base = globalNote.textContent.trim();
   const DASH = '\u2014';
   const placeholders = (why) =>
     stat(DASH, 'People who have played', why, true) +
@@ -99,11 +110,14 @@
           stat(number(g.pets_adopted), 'Pets adopted') +
           stat(number(g.coats_of_paint), 'Coats of paint');
         const when = g.updated_at ? new Date(g.updated_at) : null;
-        if (when && !isNaN(when)) globalNote.textContent += ` Last updated ${when.toLocaleString()}.`;
+        globalNote.textContent = globalNote.dataset.base + (when && !isNaN(when) ? ` Last updated ${when.toLocaleString()}.` : '');
       })
       .catch(() => {
         globalGrid.innerHTML = placeholders('unavailable right now');
         globalNote.textContent = 'The shared counters could not be reached just now. The game itself is unaffected.';
       });
   }
+  }
+
+  return { render };
 })();
