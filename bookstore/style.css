@@ -678,3 +678,19 @@ body.sketch svg .paper { display: inline; opacity: 0.4; mix-blend-mode: multiply
   from { transform: translateY(0); opacity: 1; }
   to   { transform: translateY(-34px); opacity: 0; }
 }
+
+/* ---- Typewriter lettering ----
+   The title, the date line, the pills over the picture and the whole order / inventory
+   card are typed rather than printed. Last in the file so it wins over the Georgia settings above. */
+.site-header h1,
+.mini-title,
+.dateline,
+.hud-chip,
+.hud-chip .rename,
+.corner-button,
+.shop-panel,
+.shop-panel .subtab,
+.shop-panel .item-name,
+.shop-panel .rename {
+  font-family: 'Special Elite', 'Courier Prime', 'Courier New', Courier, monospace;
+}
