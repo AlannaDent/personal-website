@@ -152,19 +152,30 @@
     }[kind] || '')
   };
 
-  // Journal lines for a new day, by season.
+  // Journal lines for a new day, by season. These show up every day, so each season
+  // mixes plain lines (first row) with quippy ones (second row) and picks one at random.
   const DAY_LINES = {
-    Spring: ['The hydrangeas are thinking about it. No promises.', 'Fog until ten, then showing off.', 'First tourists of the year, blinking like they\u2019d just been unboxed.', 'The peepers in the marsh have started rehearsals.'],
-    Summer: ['Tourists. So many tourists. One asked where the ocean was. Pointed.', 'Band concert on the green tonight. Tuba confirmed.', 'Sand in the till again. Sand in everything, honestly.', 'Sold out of beach reads by noon. The beach remains undefeated.'],
-    Autumn: ['The cranberry bogs are blushing.', 'Gold light all day. Everyone is walking slower on purpose.', 'Half the high street shuttered for the season. Not us. Never us.', 'Sweater weather. Also reading weather. Same weather.'],
-    Winter: ['Fog, then snow, then fog. The sky can\u2019t make up its mind.', 'Two customers. Both regulars. Both brought muffins.', 'The harbor froze at the edges, like a pie crust.', 'Wind off the water. Kettle on. Kettle on again.']
+    Spring: ['Hydrangeas thinking about it.', 'Fog until ten, then glorious.', 'First tourists of the year, blinking.', 'Peepers loud in the marsh tonight.',
+      'The hydrangeas are thinking about it. No promises.', 'Fog until ten, then showing off.', 'First tourists of the year, blinking like they\u2019d just been unboxed.', 'The peepers in the marsh have started rehearsals.'],
+    Summer: ['Tourists. So many tourists.', 'Band concert on the green tonight.', 'Sand in the till again.', 'Sold out of beach reads by noon.',
+      'Tourists. So many tourists. One asked where the ocean was. Pointed.', 'Band concert on the green tonight. Tuba confirmed.', 'Sand in the till again. Sand in everything, honestly.', 'Sold out of beach reads by noon. The beach remains undefeated.'],
+    Autumn: ['Cranberry bogs going red.', 'The light is gold and everyone is calm.', 'Half the shops shuttered for the season. Not us.', 'Sweater weather. Reading weather.',
+      'The cranberry bogs are blushing.', 'Gold light all day. Everyone is walking slower on purpose.', 'Half the high street shuttered for the season. Not us. Never us.', 'Sweater weather. Also reading weather. Same weather.'],
+    Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbor froze at the edges.', 'Wind off the water. Kettle on.',
+      'Fog, then snow, then fog. The sky can\u2019t make up its mind.', 'Two customers. Both regulars. Both brought muffins.', 'The harbor froze at the edges, like a pie crust.', 'Wind off the water. Kettle on. Kettle on again.']
   };
-  // What the journal says at closing time, by season.
+  // How the journal starts its closing-time line. One is picked at random each night.
+  const CLOSING_OPENERS = ['Closed up for the night.', 'Closed up for the night.', 'Locked up.', 'Flipped the sign to Closed.', 'Turned the key and called it a day.'];
+  // What the journal says at closing time, by season. Plain first row, quippy second.
   const NIGHT_LINES = {
-    Spring: ['The peepers are loud in the marsh. They have a lot to say.', 'Fog rolling back in off the water, right on schedule.', 'Left the porch light on for the moths. They all came.'],
-    Summer: ['Fireflies over the green, showing off.', 'The band concert is still going somewhere. Encore number four.', 'Warm enough to read on the step. Did. Three chapters.'],
-    Autumn: ['Woodsmoke. Somebody lit their first fire of the year and wants the whole street to know.', 'Dark by supper now. The lamps don\u2019t mind.', 'Wind knocking the sign around. It\u2019ll live.'],
-    Winter: ['Snow starting. The quietest sound there is, and the whole town is listening.', 'Harbor lights and not much else. Just how we like it.', 'Kettle, blanket, a chapter or two. Possibly five.']
+    Spring: ['Peepers loud in the marsh.', 'Fog rolling back in off the water.', 'Left the porch light on for the moths.',
+      'The peepers are loud in the marsh. They have a lot to say.', 'Fog rolling back in off the water, right on schedule.', 'Left the porch light on for the moths. They all came.'],
+    Summer: ['Fireflies over the green.', 'Band concert still going somewhere.', 'Warm enough to read on the step.',
+      'Fireflies over the green, showing off.', 'The band concert is still going somewhere. Encore number four.', 'Warm enough to read on the step. Did. Three chapters.'],
+    Autumn: ['Woodsmoke. Somebody\u2019s first fire of the year.', 'Dark by supper now.', 'Wind knocking the sign around.',
+      'Woodsmoke. Somebody lit their first fire of the year and wants the whole street to know.', 'Dark by supper now. The lamps don\u2019t mind.', 'Wind knocking the sign around. It\u2019ll live.'],
+    Winter: ['Snow starting. Quietest sound there is.', 'Harbor lights and not much else.', 'Kettle, blanket, a chapter or two.',
+      'Snow starting. The quietest sound there is, and the whole town is listening.', 'Harbor lights and not much else. Just how we like it.', 'Kettle, blanket, a chapter or two. Possibly five.']
   };
   // How the day is lit, as a fraction of the way through it.
   const PHASES = [
@@ -933,7 +944,7 @@
     state.clock.night = true;
     customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
     customers = [];
-    addLog(`Closed up for the night. ${randomFrom(NIGHT_LINES[seasonName()])}`);
+    addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(NIGHT_LINES[seasonName()])}`);
     deliverOrders();
     // Boxes are only drawn outside. If the van came while the player was inside, step
     // out to meet it so the boxes (and the reason Begin Day is waiting) are in view.
