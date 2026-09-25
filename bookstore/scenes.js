@@ -1258,7 +1258,7 @@ const Scenes = (function () {
     id: 'dutch-colonial',
     stage: 3,
     name: 'Dutch colonial',
-    blurb: 'Gambrel roof, white clapboard, a blue door and a balcony nobody uses. A Cape classic.',
+    blurb: 'Gambrel roof, white clapboard, a blue door, and a balcony nobody uses. A Cape classic.',
     location: 'street3dutch',
     capacity: 250,
     interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },

@@ -74,6 +74,14 @@
   };
   const PET_GREET_LINES = ['stopped to pet {pet}.', 'crouched down to say hello to {pet}.', 'was thoroughly inspected by {pet}.'];
   const PET_PLAY_LINES = ['{a} and {b} chased each other round the sign.', '{a} and {b} were caught playing when they should have been napping.', '{a} tried to teach {b} a game. {b} had a different game in mind.'];
+  // With ten or more pets out, the day's pet line is sometimes about the crowd instead.
+  const PET_CROWD_FROM = 10;
+  const PET_CROWD_LINES = [
+    'Counted {n} pets on the doorstep. Counted again. Still {n}.',
+    '{n} pets out front today. A customer asked whether the books were the side business.',
+    'Someone asked to adopt one. Declined politely, on behalf of all {n}.',
+    'The mail carrier now brings treats. {n} of them, every morning.'
+  ];
   const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
@@ -1145,13 +1153,17 @@
     el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
   }
 
-  // "Biscuit", "Biscuit and Mabel", "Biscuit, Mabel and Otis".
-  function namesList(names) { return names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1]; }
+  // "Biscuit", "Biscuit and Mabel", "Biscuit, Mabel, and Otis" (with the Oxford comma).
+  function namesList(names) {
+    if (names.length < 3) return names.join(' and ');
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+  }
 
   let lastPetLogDay = -1;
   function petJournal(line) {
     if (lastPetLogDay === dayIndex()) return;          // one pet note a day, however many pets
     lastPetLogDay = dayIndex();
+    if (petActors.length >= PET_CROWD_FROM && Math.random() < 0.4) line = randomFrom(PET_CROWD_LINES).split('{n}').join(petActors.length);
     addLog(line);
     drawLog();
     save();
@@ -2154,7 +2166,10 @@
     state.decor.paint = null;             // the new place wears its own paint until you change it
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
     if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
-    if ((state.decor.pets || []).length) addLog(`${state.decor.pets.length > 3 ? 'All ' + state.decor.pets.length + ' pets' : namesList(state.decor.pets.map(p => p.name))} came along and immediately went exploring.`);
+    const pets = state.decor.pets || [];
+    if (pets.length >= PET_CROWD_FROM) addLog(`All ${pets.length} pets came along. It\u2019s giving \u201ccrazy cat lady\u201d\u2026`);
+    else if (pets.length > 3) addLog(`All ${pets.length} pets came along and immediately went exploring.`);
+    else if (pets.length) addLog(`${namesList(pets.map(p => p.name))} came along and immediately went exploring.`);
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
     reportProgress();
@@ -2296,7 +2311,7 @@
     $('site-header').classList.toggle('collapsed', !open);
     const toggle = $('header-toggle');
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.title = open ? 'Hide the title, stage and goal' : 'Show the title, stage and goal';
+    toggle.title = open ? 'Hide the title, stage, and goal' : 'Show the title, stage, and goal';
     try { localStorage.setItem(HEADER_KEY, open ? 'open' : 'closed'); } catch (e) { /* fine */ }
   }
   function headerOpen() {
