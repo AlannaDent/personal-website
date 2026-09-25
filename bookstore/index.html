@@ -7,8 +7,8 @@
   <!-- Shared site styles first, then this game's own styles on top. -->
   <!-- The ?v= stamps make browsers fetch fresh copies after a change. Bump the number when
        style.css or a script changes, or a visitor may keep an old cached copy for a while. -->
-  <link rel="stylesheet" href="../style.css?v=31">
-  <link rel="stylesheet" href="style.css?v=31">
+  <link rel="stylesheet" href="../style.css?v=33">
+  <link rel="stylesheet" href="style.css?v=33">
   <!-- A handwriting font for the shop journal and a typewriter font for the title, the
        date line, the pills over the picture and the order card, both served by Google Fonts. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
   <header class="site-header compact" id="site-header">
     <!-- The caret folds the whole header (big title, stage and goal) down to one slim line
          with a small title, giving the picture more room. Remembered per browser. -->
-    <button id="header-toggle" class="header-toggle" type="button" aria-expanded="true" aria-controls="header-full" title="Hide the title, stage and goal">
+    <button id="header-toggle" class="header-toggle" type="button" aria-expanded="true" aria-controls="header-full" title="Hide the title, stage, and goal">
       <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 4 L6 8 L10 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <!-- Only visible while folded. -->
@@ -199,11 +199,11 @@
   <!-- books.js lists the real books; scenes.js draws the backgrounds; game.js
        runs the game. Order matters: game.js uses things defined in the other
        two, so they load first. -->
-  <script src="../stats/config.js?v=31"></script>
-  <script src="books.js?v=31"></script>
-  <script src="scenes.js?v=31"></script>
-  <script src="tips.js?v=31"></script>
-  <script src="../stats/stats.js?v=31"></script>
-  <script src="game.js?v=31"></script>
+  <script src="../stats/config.js?v=33"></script>
+  <script src="books.js?v=33"></script>
+  <script src="scenes.js?v=33"></script>
+  <script src="tips.js?v=33"></script>
+  <script src="../stats/stats.js?v=33"></script>
+  <script src="game.js?v=33"></script>
 </body>
 </html>

@@ -29,7 +29,7 @@ window.NIGHT_TIPS = [
   'Customers can’t buy from your storage room, shelve or miss sales!',
   'Pets increase sales (you’re telling me you wouldn’t come hang out with the bookshop kitten?)',
   'Mystery boxes are cheap and usually small. Sometimes not.',
-  'Your books, paint, plants and pets all come with you when you upgrade your shop.',
+  'Your books, paint, plants, and pets all come with you when you upgrade your shop.',
   'From stage three on, step inside. The rooms keep the style of the house.',
   'Click the pencil beside a pet’s name to rename it. We promise they don’t mind',
   'About one winter day in three is a snow day. The journal will say.',

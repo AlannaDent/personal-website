@@ -57,7 +57,7 @@
   const DECOR_SLOT_CHANCE = 0.7;                  // slots two and three carry decor when there is any left to buy
   const SPARE_BOOK_CHANCE = 0.5;                  // otherwise, another book box (else the slot is empty)
   const PET_DAILY_CHANCE = 0.15;                  // about one or two pets a season
-  const MAX_PETS = 3;
+  const MAX_PETS = 12;
 
   // Pets. Colors and names are chosen when the pet is offered.
   const PET_KINDS = {
@@ -74,6 +74,14 @@
   };
   const PET_GREET_LINES = ['stopped to pet {pet}.', 'crouched down to say hello to {pet}.', 'was thoroughly inspected by {pet}.'];
   const PET_PLAY_LINES = ['{a} and {b} chased each other round the sign.', '{a} and {b} were caught playing when they should have been napping.', '{a} tried to teach {b} a game. {b} had a different game in mind.'];
+  // With ten or more pets out, the day's pet line is sometimes about the crowd instead.
+  const PET_CROWD_FROM = 10;
+  const PET_CROWD_LINES = [
+    'Counted {n} pets on the doorstep. Counted again. Still {n}.',
+    '{n} pets out front today. A customer asked whether the books were the side business.',
+    'Someone asked to adopt one. Declined politely, on behalf of all {n}.',
+    'The mail carrier now brings treats. {n} of them, every morning.'
+  ];
   const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
@@ -1096,6 +1104,23 @@
   let petActors = [];
   const petScale = () => personScale() * 0.9;
   function petBounds() { return state.view === 'inside' ? [150, 650] : [70, 730]; }
+  // A crowd of pets: past four, everyone is drawn a little smaller (three-quarters at twelve)
+  // and some stand a row further back, so they overlap like a crowd rather than pile up.
+  const CROWD_FROM = 4;
+  function crowdScale() { return 1 - Math.max(0, petActors.length - CROWD_FROM) * 0.03; }
+  function crowded() { return petActors.length > CROWD_FROM; }
+
+  // Somewhere to go: try a few spots and take the one furthest from the other pets.
+  function openSpot(a) {
+    const [lo, hi] = petBounds();
+    let best = null, bestGap = -1;
+    for (let i = 0; i < 6; i++) {
+      const x = lo + Math.random() * (hi - lo);
+      const gap = Math.min(Infinity, ...petActors.filter(o => o !== a).map(o => Math.abs((o.targetX === null ? o.x : o.targetX) - x)));
+      if (gap > bestGap) { best = x; bestGap = gap; }
+    }
+    return best;
+  }
 
   // Rebuild the actors from the save: called when the scene is drawn or pets change.
   function syncPets() {
@@ -1105,10 +1130,12 @@
     petActors = petActors.filter(a => out.some(p => p.id === a.pet.id));
     out.forEach(p => {
       if (!petActors.some(a => a.pet.id === p.id)) {
-        const [lo, hi] = petBounds();
-        petActors.push({ pet: p, x: lo + Math.random() * (hi - lo), dir: 1, state: 'sit', until: performance.now() + 1500, targetX: null, pose: null, partner: null, lastLogDay: -1 });
+        const a = { pet: p, x: 0, dir: 1, state: 'sit', until: performance.now() + 1500, targetX: null, pose: null, partner: null, row: Math.random() < 0.5 ? 1 : 0 };
+        a.x = openSpot(a);
+        petActors.push(a);
       }
     });
+    petActors.sort((a, b) => b.row - a.row);           // the back row is drawn first
     const group = svg.querySelector('.pets');
     group.innerHTML = petActors.map(a => `<g id="${a.pet.id}" class="pet"></g>`).join('');
     petActors.forEach(a => { a.pose = null; renderPet(a); });
@@ -1119,15 +1146,24 @@
     if (!el) return;
     const pose = a.state === 'nap' ? 'nap' : (a.state === 'sit' || a.state === 'greet') ? 'sit' : 'stand';
     if (pose !== a.pose) { el.innerHTML = Scenes.petSvg(a.pet, pose); a.pose = pose; }
-    const s = petScale();
+    const back = crowded() ? a.row : 0;
+    const s = petScale() * crowdScale() * (1 - 0.1 * back);
     const flip = a.pet.kind === 'crab' ? 1 : a.dir;      // crabs face the viewer and scuttle sideways
     const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s : 0;
-    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - bob).toFixed(1)}) scale(${flip * s} ${s})`);
+    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
   }
 
-  function petJournal(a, line) {
-    if (a.lastLogDay === dayIndex()) return;           // one note per pet per day is plenty
-    a.lastLogDay = dayIndex();
+  // "Biscuit", "Biscuit and Mabel", "Biscuit, Mabel, and Otis" (with the Oxford comma).
+  function namesList(names) {
+    if (names.length < 3) return names.join(' and ');
+    return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+  }
+
+  let lastPetLogDay = -1;
+  function petJournal(line) {
+    if (lastPetLogDay === dayIndex()) return;          // one pet note a day, however many pets
+    lastPetLogDay = dayIndex();
+    if (petActors.length >= PET_CROWD_FROM && Math.random() < 0.4) line = randomFrom(PET_CROWD_LINES).split('{n}').join(petActors.length);
     addLog(line);
     drawLog();
     save();
@@ -1141,7 +1177,7 @@
       const info = PET_KINDS[a.pet.kind];
       if (a.state === 'wander') {
         const speed = info.speed * (0.7 + 0.3 * personScale());
-        if (a.targetX === null) a.targetX = lo + Math.random() * (hi - lo);
+        if (a.targetX === null) a.targetX = openSpot(a);
         const dx = a.targetX - a.x;
         a.dir = dx >= 0 ? 1 : -1;
         if (Math.abs(dx) < speed * dt) {
@@ -1154,7 +1190,7 @@
             if (t && t.companion && !t.companion.carried && t.state === 'browsing') floatText(t.x - t.dir * 24 * personScale(), Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
             a.greetTarget = null;
           }
-          else if (Math.random() < (night ? 0.7 : 0.3)) { a.state = 'nap'; a.until = now + 8000 + Math.random() * 8000; if (!night && Math.random() < 0.5) petJournal(a, randomFrom(PET_NAP_LINES).replace('{pet}', a.pet.name)); }
+          else if (Math.random() < (night ? 0.7 : 0.3)) { a.state = 'nap'; a.until = now + 8000 + Math.random() * 8000; if (!night && Math.random() < 0.5) petJournal(randomFrom(PET_NAP_LINES).replace('{pet}', a.pet.name)); }
           else { a.state = 'sit'; a.until = now + 2000 + Math.random() * 4000; }
         } else {
           a.x += Math.sign(dx) * speed * dt;
@@ -1172,8 +1208,8 @@
           a.targetX = Math.max(lo, Math.min(hi, c.x + beside));
           a.greeting = true;
           a.greetTarget = c;
-          if (c.companion && !c.companion.carried) petJournal(a, randomFrom(SNIFF_LINES).split('{pet}').join(a.pet.name).replace('{kind}', PET_KINDS[c.companion.kind].name));
-          else if (Math.random() < 0.5) petJournal(a, `${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
+          if (c.companion && !c.companion.carried) petJournal(randomFrom(SNIFF_LINES).split('{pet}').join(a.pet.name).replace('{kind}', PET_KINDS[c.companion.kind].name));
+          else if (Math.random() < 0.5) petJournal(`${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
         }
       }
     });
@@ -1184,7 +1220,7 @@
       const meet = Math.max(lo, Math.min(hi, (a.x + b.x) / 2));
       a.partner = b; b.partner = a;
       a.targetX = meet - 10 * petScale(); b.targetX = meet + 10 * petScale();
-      petJournal(a, randomFrom(PET_PLAY_LINES).split('{a}').join(a.pet.name).split('{b}').join(b.pet.name));
+      petJournal(randomFrom(PET_PLAY_LINES).split('{a}').join(a.pet.name).split('{b}').join(b.pet.name));
     }
     petActors.forEach(renderPet);
   }
@@ -1759,7 +1795,7 @@
       const spot = putOut('plant:' + kind);   // the newest plant takes the first free spot
       addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}${spot ? '' : ' Nowhere to put it yet; it waits in the back.'}`);
     } else if (box.kind === 'pet' && box.pet) {
-      if ((decor.pets || []).length >= MAX_PETS) { addLog('The carrier came, but three is the limit. Sent back with apologies and a treat.'); }
+      if ((decor.pets || []).length >= MAX_PETS) { addLog(`The carrier came, but ${MAX_PETS} pets is the limit. Sent back with apologies and a treat.`); }
       else {
         const pet = { id: 'p' + Math.random().toString(36).slice(2, 8), kind: box.pet.kind, color: box.pet.color, name: box.pet.name };
         decor.pets = decor.pets || [];
@@ -2130,7 +2166,10 @@
     state.decor.paint = null;             // the new place wears its own paint until you change it
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
     if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
-    if ((state.decor.pets || []).length) addLog(`${state.decor.pets.map(p => p.name).join(' and ')} came along and immediately went exploring.`);
+    const pets = state.decor.pets || [];
+    if (pets.length >= PET_CROWD_FROM) addLog(`All ${pets.length} pets came along. It\u2019s giving \u201ccrazy cat lady\u201d\u2026`);
+    else if (pets.length > 3) addLog(`All ${pets.length} pets came along and immediately went exploring.`);
+    else if (pets.length) addLog(`${namesList(pets.map(p => p.name))} came along and immediately went exploring.`);
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
     reportProgress();
@@ -2272,7 +2311,7 @@
     $('site-header').classList.toggle('collapsed', !open);
     const toggle = $('header-toggle');
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    toggle.title = open ? 'Hide the title, stage and goal' : 'Show the title, stage and goal';
+    toggle.title = open ? 'Hide the title, stage, and goal' : 'Show the title, stage, and goal';
     try { localStorage.setItem(HEADER_KEY, open ? 'open' : 'closed'); } catch (e) { /* fine */ }
   }
   function headerOpen() {
