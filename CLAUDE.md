@@ -71,9 +71,10 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
   other artists' work and are ignored by git on purpose.
 - `bookstore/art/` (not created yet) is where Alanna's own paintings will go when they
   start replacing the placeholder drawings.
-- `TODO.md` at the root is the open-items list. It is deliberately untracked.
-- `notes/` holds private notes (decisions log, art pipeline, art checklist). It is ignored
-  via `.git/info/exclude`, so it exists only on this Mac and never reaches GitHub.
+- `TODO.md` at the root is the open-items list, and `notes/` holds private notes (decisions
+  log, art pipeline, art checklist). Both are private: ignored via `.git/info/exclude`
+  (not `.gitignore`), so they exist only on this machine and never reach GitHub. On a new
+  laptop, copy them over by hand and add both lines to `.git/info/exclude` again.
 
 ### How the game saves
 - Everything is in the browser's localStorage under keys starting `saltyJellyfish.`: the
