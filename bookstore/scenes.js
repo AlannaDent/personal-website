@@ -349,6 +349,64 @@ const Scenes = (function () {
     </g>`;
   }
 
+  // ---- Indoor-only decor (stage three on) ----
+  // Same conventions as the things out front: (x, y) is the bottom center, and scale
+  // follows the people.
+  // A squishy armchair in faded rust velvet: fat rolled arms, a sagging seat cushion.
+  function armchair(x, y, scale) {
+    return `<g class="armchair" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="24" ry="2.4" fill="#000" opacity="0.14"/>
+      <g fill="#5a3e2c"><rect x="-18" y="-4" width="3" height="4" rx="0.8"/><rect x="15" y="-4" width="3" height="4" rx="0.8"/></g>
+      <path d="M-16 -18 Q-17 -40 0 -40 Q17 -40 16 -18 Z" fill="#a8574a" stroke="#6e3a31" stroke-width="0.8"/>
+      <path d="M-8 -36 Q0 -38 8 -36" stroke="#6e3a31" stroke-width="0.7" fill="none" opacity="0.6"/>
+      <rect x="-20" y="-17" width="40" height="13" rx="3" fill="#9a4c40" stroke="#6e3a31" stroke-width="0.8"/>
+      <path d="M-14 -18 Q0 -23 14 -18 Q14 -13 0 -12 Q-14 -13 -14 -18 Z" fill="#b8665a" stroke="#6e3a31" stroke-width="0.6"/>
+      <rect x="-24" y="-26" width="10" height="22" rx="4.5" fill="#a8574a" stroke="#6e3a31" stroke-width="0.8"/>
+      <rect x="14" y="-26" width="10" height="22" rx="4.5" fill="#a8574a" stroke="#6e3a31" stroke-width="0.8"/>
+      <g fill="none" stroke="#6e3a31" stroke-width="0.7" opacity="0.7"><circle cx="-19" cy="-22" r="2.4"/><circle cx="19" cy="-22" r="2.4"/></g>
+      <path d="M-7 -30 l5 -3 l6 2 l-2 5 l-7 1 z" fill="#e9e2cf" opacity="0.9"/>
+    </g>`;
+  }
+  // A leaning pile of board games, the lids in faded primary colors.
+  function boardGames(x, y, scale) {
+    const boxes = [['#6f8a99', -11, 22], ['#b7736b', -9, 20], ['#d9a441', -12, 23], ['#4f7a4a', -8, 18], ['#e9e2cf', -10, 19]];
+    let out = `<g class="board-games" transform="translate(${x} ${y}) scale(${scale})"><ellipse cx="0" cy="0" rx="15" ry="1.8" fill="#000" opacity="0.14"/>`;
+    boxes.forEach(([color, left, w], i) => {
+      const top = -4.2 * (i + 1), tilt = [0, 2, -1.5, 3, -2][i];
+      out += `<g transform="rotate(${tilt} ${left + w / 2} ${top + 2})"><rect x="${left}" y="${top}" width="${w}" height="4.2" fill="${color}" stroke="#3b332c" stroke-width="0.5"/><rect x="${left + 2}" y="${top + 1.3}" width="${w * 0.4}" height="1.2" fill="#fff" opacity="0.5"/></g>`;
+    });
+    return out + `</g>`;
+  }
+  // A brass reading lamp with a pleated cream shade. It glows after dark like the
+  // lamppost (same .lamp-glow and .lamp-glass hooks).
+  function readingLamp(x, y, scale) {
+    return `<g class="reading-lamp" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="9" ry="1.4" fill="#000" opacity="0.14"/>
+      <ellipse class="lamp-glow" cx="0" cy="-50" rx="22" ry="18" fill="url(#windowGlow)" opacity="0"/>
+      <ellipse cx="0" cy="-1" rx="7" ry="1.8" fill="#8a6a3a"/>
+      <rect x="-0.9" y="-48" width="1.8" height="47" fill="#b08a4a"/>
+      <path class="lamp-glass" d="M-9 -45 L-6 -58 H6 L9 -45 Z" fill="#f4ecd4"/>
+      <path d="M-9 -45 L-6 -58 H6 L9 -45 Z" fill="none" stroke="#b08a4a" stroke-width="0.8"/>
+      <g stroke="#c9b28a" stroke-width="0.5" opacity="0.8"><line x1="-4" y1="-58" x2="-6" y2="-45"/><line x1="0" y1="-58" x2="0" y2="-45"/><line x1="4" y1="-58" x2="6" y2="-45"/></g>
+    </g>`;
+  }
+  // A globe on a wooden stand, tilted on its brass meridian.
+  function globe(x, y, scale) {
+    return `<g class="globe" transform="translate(${x} ${y}) scale(${scale})">
+      <ellipse cx="0" cy="0" rx="12" ry="1.6" fill="#000" opacity="0.14"/>
+      <g stroke="#6b4a3a" stroke-width="1.8" stroke-linecap="round"><line x1="0" y1="-12" x2="-9" y2="0"/><line x1="0" y1="-12" x2="9" y2="0"/><line x1="0" y1="-12" x2="0" y2="-1"/></g>
+      <rect x="-1.5" y="-17" width="3" height="6" fill="#6b4a3a"/>
+      <circle cx="0" cy="-29" r="12" fill="#7fa3ad" stroke="#3b5a66" stroke-width="0.6"/>
+      <g fill="#c9b27a"><path d="M-8 -35 q4 -3 7 0 q-1 4 -4 5 q-3 -1 -3 -5 z"/><path d="M2 -29 q5 -2 7 2 q-2 5 -6 6 q-2 -3 -1 -8 z"/><path d="M-6 -24 q2 0 3 3 q-2 2 -3 0 z"/></g>
+      <path d="M-9 -37 A13 13 0 0 1 9 -21" stroke="#b08a4a" stroke-width="1.6" fill="none" transform="rotate(-20 0 -29)"/>
+      <circle cx="-4" cy="-34" r="2.5" fill="#fff" opacity="0.35"/>
+    </g>`;
+  }
+  const INDOOR_DRAWINGS = { armchair, games: boardGames, readinglamp: readingLamp, globe };
+  function indoorItem(kind, x, y, scale) {
+    return (INDOOR_DRAWINGS[kind] || armchair)(x, y, scale);
+  }
+
   // The time-of-day layer: a color wash, a scatter of stars, and a glow from the
   // shop's windows. The game sets their opacity as the day goes by.
   function daylightLayer(glowX, glowY, glowRx, glowRy) {
@@ -1044,6 +1102,9 @@ const Scenes = (function () {
   const BIG_INTERIOR_SHELVES = interiorShelves(10, 132, 22, 14, 6);    // 10 x 50 = 500
   const INTERIOR_STOPS = { left: 220, right: 480 };
   const INTERIOR_PERSON_SCALE = 2.0;    // about as tall as the counter is wide
+  // Where decor can stand inside, left to right: four spots across the open floor between
+  // the left wall's props and the counter. The same in every interior.
+  const INTERIOR_DECOR_SLOTS = [180, 285, 390, 495];
 
   // ---- Stage one: the Little Free Library box ----
   BUILDINGS.lfl = {
@@ -1261,7 +1322,7 @@ const Scenes = (function () {
     blurb: 'Gambrel roof, white clapboard, a blue door, and a balcony nobody uses. A Cape classic.',
     location: 'street3dutch',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 350 },
     paint: '#f4f1e8',
     shelves: houseShelves(),
@@ -1306,7 +1367,7 @@ const Scenes = (function () {
     blurb: 'Named for the place. Steep roof, three dormers, green shutters, two chimneys, one cat.',
     location: 'street3cape',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 350 },
     paint: '#f6f3ea',
     shelves: houseShelves(),
@@ -1354,7 +1415,7 @@ const Scenes = (function () {
     blurb: 'Brick below, timber and plaster above, an arched door that creaks on purpose.',
     location: 'street3tudor',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 350 },
     paint: '#8f5b4a',
     shelves: houseShelves(),
@@ -1600,7 +1661,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 350 },
     sign: { size: 11, small: 9 },
     stops: { left: 235, right: 565 },
@@ -1641,7 +1702,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 455, y: 365 },
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
@@ -1685,7 +1746,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#4a3024',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 232 },
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
@@ -1783,6 +1844,7 @@ const Scenes = (function () {
       <g class="books"></g>
       ${painted('front', interiorFront(style, building.sign.size))}
       <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
+      <g class="decor"></g>
       <g class="pets"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
@@ -1831,7 +1893,12 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return b.decorSlots || [230, 300, 500, 570];
   }
+  // Where decor can stand inside, left to right. Empty for buildings with no interior.
+  function interiorDecorSlotsFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return (b.interior && b.interior.decorSlots) || [];
+  }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, chalkboard, plant, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();
