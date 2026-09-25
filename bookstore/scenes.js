@@ -1521,9 +1521,10 @@ const Scenes = (function () {
 
   // Builds an interior from a style description. Each field is optional and
   // returns SVG text: texture(), floor(), ceiling(), left(), right(), props(), lamp().
-  function interior(style, shelves) {
+  // wallColor, if given, is the player's own paint on the walls.
+  function interior(style, shelves, wallColor) {
     const top = shelves[0].bottom - shelves[0].minH - shelves[0].varH - 6;
-    let s = `<rect width="800" height="450" fill="${style.wall}"/>`;
+    let s = `<rect width="800" height="450" fill="${wallColor || style.wall}"/>`;
     if (style.texture) s += style.texture();
     s += style.floor();
     s += `<rect x="0" y="366" width="800" height="7" fill="${style.trim}"/>`;
@@ -1797,10 +1798,11 @@ const Scenes = (function () {
   // fills the empty .books and .customers groups as the game runs.
   // view is 'outside' (default) or 'inside'. Inside is only available for
   // buildings that define an interior.
-  // paintColor, if given, is the player's own coat of paint on the walls.
-  function render(locationId, buildingId, view, paintColor) {
+  // paintColor, if given, is the player's own coat of paint on the walls; wallColor is
+  // the same for the walls inside.
+  function render(locationId, buildingId, view, paintColor, wallColor) {
     const building = BUILDINGS[buildingId] || BUILDINGS.lfl;
-    if (view === 'inside' && building.interior) return renderInterior(building);
+    if (view === 'inside' && building.interior) return renderInterior(building, wallColor);
     const locId = BACKDROPS[locationId] ? locationId : 'park';
     const loc = LOCATIONS.find(l => l.id === locId);
     const color = paintColor || building.paint || (loc && loc.boxColor) || '#a9b5b7';
@@ -1836,11 +1838,11 @@ const Scenes = (function () {
       <g class="effects"></g>
     </svg>`;
   }
-  function renderInterior(building) {
+  function renderInterior(building, wallColor) {
     const style = INTERIORS[building.id];
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs('#ffffff', '#ffffff')}
-      ${painted('backdrop', interior(style, building.interior.shelves))}
+      ${painted('backdrop', interior(style, building.interior.shelves, wallColor))}
       <g class="books"></g>
       ${painted('front', interiorFront(style, building.sign.size))}
       <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
