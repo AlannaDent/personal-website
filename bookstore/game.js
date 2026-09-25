@@ -68,30 +68,30 @@
   const PET_COLOR_NAMES = { white: 'White', black: 'Black', tuxedo: 'Tuxedo', gray: 'Gray', brown: 'Brown', tabby: 'Tabby', yellow: 'Yellow lab', red: 'Red' };
   const PET_NAMES = ['Biscuit', 'Mabel', 'Captain', 'Pickles', 'Scallop', 'Fog', 'Barnacle', 'Marlow', 'Pippin', 'Hazel', 'Otis', 'Juniper', 'Wendell', 'Clementine', 'Gus', 'Nell', 'Salty', 'Moby', 'Quahog', 'Tilly'];
   const PET_ADOPTED = {
-    cat: ['has opinions about the top shelf.', 'chose the window seat within a minute.', 'inspected every box and approved none.'],
-    dog: ['greeted three customers before lunch.', 'has already found the warmest patch of floor.', 'wagged at the van. Wags at everything.'],
-    crab: ['scuttled under the counter and claimed it.', 'is red, obviously.', 'clicked at a customer. Friendly, we think.']
+    cat: ['has opinions about the top shelf and has already shared them.', 'claimed the window seat within a minute. Paperwork pending.', 'inspected every box, approved none, and sat in all of them.'],
+    dog: ['greeted three customers before lunch and one mailbox after.', 'found the warmest patch of floor and is not taking questions.', 'wagged at the van. Wags at everything. Is right to.'],
+    crab: ['scuttled under the counter and declared it a small, independent nation.', 'is red, obviously. Has never been more red.', 'clicked at a customer. Friendly, we think. Hard to say with crabs.']
   };
-  const PET_GREET_LINES = ['stopped to pet {pet}.', 'crouched down to say hello to {pet}.', 'was thoroughly inspected by {pet}.'];
-  const PET_PLAY_LINES = ['{a} and {b} chased each other round the sign.', '{a} and {b} were caught playing when they should have been napping.', '{a} tried to teach {b} a game. {b} had a different game in mind.'];
+  const PET_GREET_LINES = ['stopped to pet {pet} and lost all track of time.', 'crouched down to say hello to {pet} and got a full report.', 'was thoroughly inspected by {pet} and passed, narrowly.'];
+  const PET_PLAY_LINES = ['{a} and {b} chased each other around the sign until the sign got dizzy.', '{a} and {b} were caught playing during scheduled nap time. A warning was issued.', '{a} tried to teach {b} a game. {b} invented a better one.'];
   // With ten or more pets out, the day's pet line is sometimes about the crowd instead.
   const PET_CROWD_FROM = 10;
   const PET_CROWD_LINES = [
-    'Counted {n} pets on the doorstep. Counted again. Still {n}.',
-    '{n} pets out front today. A customer asked whether the books were the side business.',
-    'Someone asked to adopt one. Declined politely, on behalf of all {n}.',
-    'The mail carrier now brings treats. {n} of them, every morning.'
+    'Counted {n} pets on the doorstep. Counted again. Still {n}. Nobody would hold still.',
+    '{n} pets out front today. A customer asked whether the books were the side business. Fair question.',
+    'Someone asked to adopt one. All {n} declined, politely, in unison.',
+    'The mail carrier now brings {n} treats every morning and leaves with {n} new best friends.'
   ];
   // Chase lines: {a} is the chaser, {b} the runner.
   const CHASE_LINES = [
-    '{a} chased {b} from one end to the other. Then {b} chased {a} back.',
-    '{a} and {b} played tag. Nobody could agree on who was it.',
-    '{a} chased {b} past three customers, one of whom cheered.'
+    '{a} chased {b} from one end to the other. Then {b} chased {a} back. Honor was satisfied.',
+    '{a} and {b} played tag. Nobody could agree on who was it. The matter is still under review.',
+    '{a} chased {b} past three customers. One cheered. One started taking bets.'
   ];
-  const CHASE_LINES_DOG_CAT = ['{a} chased {b}. {b} allowed it, briefly.', '{a} chased {b} round the sign twice. {b} then sat down and washed, as if nothing had happened.'];
-  const CHASE_LINES_CRAB_CHASER = ['{a} chased {b} sideways across the whole front. {b} did not look back.', '{a} went after {b} with both claws up. {b} took it seriously.'];
-  const CHASE_LINES_CRAB_RUNNER = ['{b} escaped {a} at a sideways sprint. Nobody saw that coming.', '{a} chased {b}, who simply went sideways. {a} is still thinking about it.'];
-  const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
+  const CHASE_LINES_DOG_CAT = ['{a} chased {b}. {b} allowed it, briefly, as a personal favor.', '{a} chased {b} around the sign twice. {b} then sat down and washed, as if none of it were worth mentioning.'];
+  const CHASE_LINES_CRAB_CHASER = ['{a} chased {b} sideways across the whole front. {b} did not look back. {a} could not look forward.', '{a} went after {b} with both claws up, like a very small, very cross conductor. {b} took it seriously.'];
+  const CHASE_LINES_CRAB_RUNNER = ['{b} escaped {a} at a sideways sprint. Nobody saw that coming, least of all {a}.', '{a} chased {b}, who simply went sideways. {a} is still thinking about it. Philosophically.'];
+  const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon. Professional work.', '{pet} slept on the doorstep and had to be stepped over, like a very soft speed bump.', '{pet} found the one warm spot and defended it without waking up.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
     { color: '#2f6f6a', name: 'Harbor Teal' },
@@ -100,24 +100,24 @@
     { color: '#d98c9c', name: 'Hydrangea Pink' }
   ];
   const PLANTS = [
-    { kind: 'snake', name: 'Snake plant', price: 8, line: 'Set it by the door. Very hard to kill, apparently.' },
-    { kind: 'monstera', name: 'Monstera', price: 14, line: 'Enormous leaves. Already reaching for the window.' },
-    { kind: 'spider', name: 'Spider plant', price: 7, line: 'Came with three babies dangling off it. Free plants.' },
-    { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect”. Can do.' },
-    { kind: 'zz', name: 'ZZ plant', price: 10, line: 'Glossy, upright, unbothered. Thrives on being ignored.' },
-    { kind: 'inch', name: 'Inch plant', price: 6, line: 'Purple and striped, already trailing over the rim. Grows an inch a week, allegedly.' },
-    { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist.' },
-    { kind: 'cactus', name: 'Cactus', price: 9, line: 'Came with a warning label and one pink flower. Wants sun and to be left alone.' },
-    { kind: 'hydrangea-pink', name: 'Pink hydrangea bush', price: 16, line: 'Pink as a Cape Cod postcard. The soil must be sweet.' },
-    { kind: 'hydrangea-blue', name: 'Blue hydrangea bush', price: 16, line: 'Blue as the harbor in June. The soil must be sour.' }
+    { kind: 'snake', name: 'Snake plant', price: 8, line: 'Set it by the door. Said to be unkillable. Please do not take that as a challenge.' },
+    { kind: 'monstera', name: 'Monstera', price: 14, line: 'Enormous leaves. Already reaching for the window like it has somewhere to be.' },
+    { kind: 'spider', name: 'Spider plant', price: 7, line: 'Came with three babies dangling off it. Buy one plant, get a whole family.' },
+    { kind: 'orchid', name: 'Orchid', price: 12, line: 'Pink blooms. Instructions say “benign neglect.” Finally, a skill we already have.' },
+    { kind: 'zz', name: 'ZZ plant', price: 10, line: 'Glossy, upright, unbothered. Thrives on being ignored. Relatable.' },
+    { kind: 'inch', name: 'Inch plant', price: 6, line: 'Purple and striped, already trailing over the rim. Grows an inch a week, allegedly. Keeping a ruler handy.' },
+    { kind: 'fern', name: 'Fern', price: 9, line: 'Wants mist and shade. The Cape can manage the mist. The Cape can always manage the mist.' },
+    { kind: 'cactus', name: 'Cactus', price: 9, line: 'Came with a warning label and one pink flower. Wants sun and to be left alone. Same.' },
+    { kind: 'hydrangea-pink', name: 'Pink hydrangea bush', price: 16, line: 'Pink as a Cape Cod postcard. The soil must be sweet. So must the neighbors.' },
+    { kind: 'hydrangea-blue', name: 'Blue hydrangea bush', price: 16, line: 'Blue as the harbor in June. The soil must be sour. The hydrangea is not.' }
   ];
   // Indoor-only decor. The van only carries these once the shop has an inside to put
   // them in (stage three on).
   const INDOOR_ITEMS = [
-    { kind: 'armchair', name: 'Squishy armchair', price: 26, meta: 'faded velvet, well sat-in', line: 'Sat in it to test it. Woke up forty minutes later.' },
-    { kind: 'games', name: 'Pile of board games', price: 14, meta: 'most of the pieces', line: 'Checked every box. Most of the pieces are there. The dice are anyone\u2019s guess.' },
-    { kind: 'readinglamp', name: 'Reading lamp', price: 16, meta: 'brass, pleated shade', line: 'Plugged it in by the shelves. The whole corner went golden.' },
-    { kind: 'globe', name: 'Globe on a stand', price: 18, meta: 'a few borders out of date', line: 'A few of the countries have changed names since. Customers love pointing this out.' }
+    { kind: 'armchair', name: 'Squishy armchair', price: 26, meta: 'faded velvet, well sat-in', line: 'Sat in it to test it. Woke up forty minutes later. Test passed.' },
+    { kind: 'games', name: 'Pile of board games', price: 14, meta: 'most of the pieces', line: 'Checked every box. Most of the pieces are there. The dice are anyone\u2019s guess. So are the rules.' },
+    { kind: 'readinglamp', name: 'Reading lamp', price: 16, meta: 'brass, pleated shade', line: 'Plugged it in by the shelves. The whole corner went golden, and a customer sighed happily.' },
+    { kind: 'globe', name: 'Globe on a stand', price: 18, meta: 'a few borders out of date', line: 'A few of the countries have changed names since. Customers love pointing this out. We love letting them.' }
   ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
     [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }, { kind: 'chair', name: 'Adirondack chair', price: 18 }, { kind: 'lamp', name: 'Iron lamppost', price: 20 }],
@@ -154,17 +154,17 @@
 
   // Journal lines for a new day, by season.
   const DAY_LINES = {
-    Spring: ['Hydrangeas thinking about it.', 'Fog until ten, then glorious.', 'First tourists of the year, blinking.', 'Peepers loud in the marsh tonight.'],
-    Summer: ['Tourists. So many tourists.', 'Band concert on the green tonight.', 'Sand in the till again.', 'Sold out of beach reads by noon.'],
-    Autumn: ['Cranberry bogs going red.', 'The light is gold and everyone is calm.', 'Half the shops shuttered for the season. Not us.', 'Sweater weather. Reading weather.'],
-    Winter: ['Fog, then snow, then fog.', 'Two customers. Both regulars. Both lovely.', 'The harbor froze at the edges.', 'Wind off the water. Kettle on.']
+    Spring: ['The hydrangeas are thinking about it. No promises.', 'Fog until ten, then showing off.', 'First tourists of the year, blinking like they\u2019d just been unboxed.', 'The peepers in the marsh have started rehearsals.'],
+    Summer: ['Tourists. So many tourists. One asked where the ocean was. Pointed.', 'Band concert on the green tonight. Tuba confirmed.', 'Sand in the till again. Sand in everything, honestly.', 'Sold out of beach reads by noon. The beach remains undefeated.'],
+    Autumn: ['The cranberry bogs are blushing.', 'Gold light all day. Everyone is walking slower on purpose.', 'Half the high street shuttered for the season. Not us. Never us.', 'Sweater weather. Also reading weather. Same weather.'],
+    Winter: ['Fog, then snow, then fog. The sky can\u2019t make up its mind.', 'Two customers. Both regulars. Both brought muffins.', 'The harbor froze at the edges, like a pie crust.', 'Wind off the water. Kettle on. Kettle on again.']
   };
   // What the journal says at closing time, by season.
   const NIGHT_LINES = {
-    Spring: ['Peepers loud in the marsh.', 'Fog rolling back in off the water.', 'Left the porch light on for the moths.'],
-    Summer: ['Fireflies over the green.', 'Band concert still going somewhere.', 'Warm enough to read on the step.'],
-    Autumn: ['Woodsmoke. Somebody\u2019s first fire of the year.', 'Dark by supper now.', 'Wind knocking the sign about.'],
-    Winter: ['Snow starting. Quietest sound there is.', 'Harbor lights and not much else.', 'Kettle, blanket, a chapter or two.']
+    Spring: ['The peepers are loud in the marsh. They have a lot to say.', 'Fog rolling back in off the water, right on schedule.', 'Left the porch light on for the moths. They all came.'],
+    Summer: ['Fireflies over the green, showing off.', 'The band concert is still going somewhere. Encore number four.', 'Warm enough to read on the step. Did. Three chapters.'],
+    Autumn: ['Woodsmoke. Somebody lit their first fire of the year and wants the whole street to know.', 'Dark by supper now. The lamps don\u2019t mind.', 'Wind knocking the sign around. It\u2019ll live.'],
+    Winter: ['Snow starting. The quietest sound there is, and the whole town is listening.', 'Harbor lights and not much else. Just how we like it.', 'Kettle, blanket, a chapter or two. Possibly five.']
   };
   // How the day is lit, as a fraction of the way through it.
   const PHASES = [
@@ -177,10 +177,10 @@
   // The night-sky tips live in tips.js so they are easy to add to. One shows each night.
   const NIGHT_TIPS = window.NIGHT_TIPS || [];
   const SEASON_LINES = {
-    Spring: 'Spring arrived. The town shook itself off.',
+    Spring: 'Spring arrived. The town shook itself off like a wet dog.',
     Summer: 'Summer arrived, and with it the whole eastern seaboard.',
-    Autumn: 'Autumn arrived. The tourists left. The books stayed.',
-    Winter: 'Winter arrived. Fog rolled in and settled on the shelves.'
+    Autumn: 'Autumn arrived. The tourists left. The books stayed. So did we.',
+    Winter: 'Winter arrived. Fog rolled in and settled on the shelves like it had a library card.'
   };
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
@@ -220,13 +220,13 @@
   const STOCK_FLOOR = 0.35;
   const BUY_FLOOR = 0.55;
   const THIN_SHELF_LINES = [
-    'Shelves looked a bit thin. Said they\u2019d come back.', 'Peered at the gaps on the shelves and drifted off.',
-    'Found nothing that grabbed them. Not much to grab.', 'Asked when the next delivery was.'
+    'Said the shelves looked a bit thin. Promised to come back when they\u2019d filled out.', 'Peered at the gaps on the shelves and drifted off like a disappointed gull.',
+    'Found nothing that grabbed them. To be fair, there wasn\u2019t much to grab.', 'Asked when the next delivery was. Then asked again, to be sure.'
   ];
   const BROWSED_LINES = [
-    'Browsed every shelf. Bought nothing. Smiled anyway.', 'Read half a chapter standing up, then put it back.',
-    'Asked if we had it in paperback. We did not.', 'Just looking, thanks. Looked for a long time.',
-    'Photographed the shop. Did not buy the book.', 'Left a bookmark in something. Will be back for it, probably.'
+    'Browsed every shelf. Bought nothing. Smiled on the way out, which counts for something.', 'Read half a chapter standing up, then put it back at the most exciting part.',
+    'Asked if we had it in paperback. We did not. Nobody ever does.', 'Just looking, thanks. Looked for forty-five minutes.',
+    'Photographed the shop from six angles. Bought nothing. The shop looked great, though.', 'Left a bookmark in something. Will be back for it. Probably. Maybe.'
   ];
 
   // Small print under the stage title. One is chosen at random on each page load,
@@ -303,26 +303,26 @@
 
   // Little observations for the journal, in the spirit of a bookshop clerk's logbook.
   const OBSERVATIONS = [
-    'Lingered over the spines.', 'Hummed while browsing.', 'Read the first page standing up.',
-    'Asked about the fog.', 'Left a thumbprint on the glass.', 'Seemed pleased.',
-    'Paid in exact change.', 'Said the box needed paint. Not wrong.', 'Sniffed the pages.',
-    'Waved at the church.', 'Checked the roof for leaks.', 'Promised to come back Tuesday.'
+    'Lingered over the spines like they were a menu.', 'Hummed while browsing. Off-key, with conviction.', 'Read the first page standing up and gasped.',
+    'Asked about the fog. Got a very long answer.', 'Left a thumbprint on the glass, like a signature.', 'Seemed pleased. Tried to hide it. Failed.',
+    'Paid in exact change, triumphantly.', 'Said the place could use a coat of paint. Not wrong.', 'Sniffed the pages first, like a wine expert.',
+    'Waved at a gull. The gull did not wave back.', 'Checked the sky for rain, then the roof, then the sky again.', 'Promised to come back Tuesday. Did not say which Tuesday.'
   ];
   const EMPTY_OBSERVATIONS = [
-    'Peered in. Shelves bare. Sighed.', 'Found nothing. Rattled the door anyway.',
-    'Stared at the empty shelves a long moment, then left.', 'Tutted. Walked on.'
+    'Peered in. Shelves bare. Sighed, dramatically.', 'Found nothing. Rattled the door anyway, for luck.',
+    'Stared at the empty shelves a long moment, as if books might grow there.', 'Made a small, disappointed noise. Walked on.'
   ];
   // What the journal says the day you move in.
   const MOVING_IN = {
-    'garden-shed': 'Moved into the garden shed. A hundred slots. The spiders are unimpressed.',
-    container: 'Moved into the container on the beach. A hundred slots and a view. Rust is decorative.',
-    garage: 'Moved into the garage down the block. A hundred slots. The oil stain stays.',
-    'dutch-colonial': 'Moved into the Dutch colonial on the high street. Two hundred and fifty slots. A real shop. Painted the door blue anyway.',
-    'cape-cod': 'Moved into the Cape on the high street. Two hundred and fifty slots. A real shop. The cat approves.',
-    tudor: 'Moved into the Tudor on the high street. Two hundred and fifty slots. A real shop. The door creaked a welcome.',
-    church: 'Moved into the old church on the green. Five hundred slots. The bell rang once, on its own.',
-    lighthouse: 'Moved into the lighthouse. Five hundred slots and the whole sea for a window. The light still turns.',
-    ship: 'Moved aboard the schooner at the town dock. Five hundred slots below decks. The floor moves. Slightly.'
+    'garden-shed': 'Moved into the garden shed. A hundred slots. The spiders have filed a complaint.',
+    container: 'Moved into the container on the beach. A hundred slots and a view. The rust is a design choice.',
+    garage: 'Moved into the garage down the block. A hundred slots. The oil stain has tenure.',
+    'dutch-colonial': 'Moved into the Dutch colonial on the high street. Two hundred and fifty slots. A real shop. Painted the door blue, just because.',
+    'cape-cod': 'Moved into the Cape on the high street. Two hundred and fifty slots. A real shop. The cat approves, which is the only review that matters.',
+    tudor: 'Moved into the Tudor on the high street. Two hundred and fifty slots. A real shop. The door creaked a welcome and hasn\u2019t stopped since.',
+    church: 'Moved into the old church on the green. Five hundred slots. The bell rang once, on its own. Taking that as a yes.',
+    lighthouse: 'Moved into the lighthouse. Five hundred slots and the whole sea for a window. The light still turns. The stairs count as exercise.',
+    ship: 'Moved aboard the schooner at the town dock. Five hundred slots below decks. The floor moves. Slightly. Constantly.'
   };
 
   // Who wanders by. Personality comes from clothes and props, per STYLE.md.
@@ -620,7 +620,7 @@
     $('start-button').addEventListener('click', () => {
       const name = DEFAULT_SHOP_NAME;   // renamed later from the pencil on the name pill
       state = freshState(name, chosenLocation);
-      addLog(`Opened ${name} today. ${capacity()} books. High hopes. Spring, Year 1.`);
+      addLog(`Opened ${name} today. ${capacity()} books. Enormous hopes. Spring, Year 1.`);
       bumpLifetime(life => { life.shopsOpened += 1; });
       save();
       startGame();
@@ -739,7 +739,7 @@
     if (name && name !== state.shopName) {
       const old = state.shopName;
       state.shopName = name;
-      addLog(`Repainted the sign. ${old} is now ${name}.`);
+      addLog(`Repainted the sign. ${old} is now ${name}. The gulls will need time to adjust.`);
       drawLog();
       drawShopName();
       save();
@@ -938,7 +938,7 @@
     // Boxes are only drawn outside. If the van came while the player was inside, step
     // out to meet it so the boxes (and the reason Begin Day is waiting) are in view.
     if (state.view === 'inside' && state.deliveries.length) {
-      addLog('Stepped outside to meet the van.');
+      addLog('Stepped outside to meet the van, like a dog hearing the mail.');
       state.view = 'outside';
       switchView();
     }
@@ -966,14 +966,14 @@
       c.season = (c.season + 1) % SEASONS.length;
       if (c.season === 0) {
         c.year += 1;
-        addLog(`Year ${c.year}. Still here. Still open.`);
+        addLog(`Year ${c.year}. Still here. Still open. Still shelving.`);
       }
       addLog(SEASON_LINES[seasonName()]);
       applySeasonTint();
     } else {
       addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
     }
-    if (isSnowDay()) addLog('Snow today. The kind that squeaks underfoot.');
+    if (isSnowDay()) addLog('Snow today. The squeaky kind. Everyone is walking like a penguin.');
     weather = [];
     ensureCatalogue();
     nextSpawnAt = performance.now() + Math.min(8000, nextArrivalGap());
@@ -1396,7 +1396,7 @@
       if (now >= nextFlurryAt) {
         flurryUntil = now + 25000 + Math.random() * 20000;
         nextFlurryAt = now + 120000 + Math.random() * 120000;
-        addLog('A flurry. Gone almost before it lands.');
+        addLog('A flurry. Gone almost before it landed. Show-off.');
         drawLog();
       }
     }
@@ -1413,7 +1413,7 @@
       if (now >= nextShowerAt) {
         showerUntil = now + 20000 + Math.random() * 20000;
         nextShowerAt = now + 100000 + Math.random() * 140000;
-        addLog('Spring shower. Umbrellas up; browsing continues.');
+        addLog('Spring shower. Umbrellas up. Suddenly everyone is a very slow browser.');
         drawLog();
       }
     }
@@ -1563,7 +1563,7 @@
   // These live behind the building (the .background-life layer) and are not saved.
   let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
   let nextBirdAt = 0, nextCrabAt = 0, nextFoxAt = 0, nextDolphinAt = 0, lastCritterDraw = 0;
-  const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop stopped to look.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little.'];
+  const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop pressed its nose to the window.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little. Two pretended not to.'];
   const OUTDOORS = () => state.view !== 'inside';
   function updateWildlife(dt, now) {
     if (!OUTDOORS()) { critters = []; return; }
@@ -1599,7 +1599,7 @@
       if (now >= nextFoxAt) {
         if (dusk || Math.random() < 0.4) {
           critters.push({ kind: 'fox', x: 96, y: 296, dir: 1, speed: 26, scale: 0.55, phase: 0, state: 'out', until: 0, turnX: 200 + Math.random() * 90 });
-          addLog(night ? 'A fox at the edge of the trees, eyes catching the light.' : 'A fox at the edge of the trees. Gone before anyone could point.');
+          addLog(night ? 'A fox at the edge of the trees, eyes catching the light. Minding its own business, mostly.' : 'A fox at the edge of the trees. Gone before anyone could point. Classic fox.');
           drawLog();
         }
         nextFoxAt = now + 70000 + Math.random() * 90000;
@@ -1862,7 +1862,7 @@
     if (item.kind === 'pet') addLog(`Arranged to adopt a ${item.name.toLowerCase().replace(' \u00b7 ', ' called ')} for ${item.price} coins. The carrier arrives ${when}.`);
     else if (item.kind && item.kind !== 'books') addLog(`Ordered ${withArticle(item.name.toLowerCase())} for ${item.price} coins. Arrives ${when}.`);
     else addLog(item.mystery
-      ? `Ordered a mystery box for ${item.price} coins. Arrives ${when}. Could be anything.`
+      ? `Ordered a mystery box for ${item.price} coins. Arrives ${when}. Could be anything. Could be all cookbooks.`
       : `Ordered ${item.name.toLowerCase()} (${item.books} books) for ${item.price} coins. Arrives ${when}.`);
     bumpLifetime(life => { life.boxesOrdered = (life.boxesOrdered || 0) + 1; });
     refresh();
@@ -1874,7 +1874,7 @@
     if (!due.length) return;
     state.orders = state.orders.filter(o => o.arrives > dayIndex());
     due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null, indoor: o.indoor || null, pet: o.pet || null }));
-    addLog(`The van came at closing. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
+    addLog(`The van came at closing. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step. The driver honked hello.`);
   }
 
   // Opening a box is a night-time job, after the shop has closed. Books go on the
@@ -1900,9 +1900,9 @@
     state.reserve = (state.reserve || 0) + spare;
     state.deliveries = state.deliveries.filter(d => d.id !== id);
     floatText(Scenes.deliveryXFor(state.building) + 20, Scenes.GROUND_Y - 30 * personScale(), `+${box.books} books`, '#2f6f6a');
-    if (spare === 0) addLog(`Opened the ${box.name.toLowerCase()}. ${n} books shelved.`);
-    else if (n === 0) addLog(`Opened the ${box.name.toLowerCase()}. Shelves full, so all ${spare} went to the back room.`);
-    else addLog(`Opened the ${box.name.toLowerCase()}. ${n} shelved, ${spare} to the back room.`);
+    if (spare === 0) addLog(`Opened the ${box.name.toLowerCase()}. ${n} books shelved, spines out and proud.`);
+    else if (n === 0) addLog(`Opened the ${box.name.toLowerCase()}. Shelves full, so all ${spare} went to the back room to wait their turn.`);
+    else addLog(`Opened the ${box.name.toLowerCase()}. ${n} shelved, ${spare} to the back room to wait their turn.`);
     bumpLifetime(life => { life.boxesOpened = (life.boxesOpened || 0) + 1; });
     refresh();
     drawInventory();
@@ -1916,7 +1916,7 @@
     if (n <= 0) return;
     for (let k = 0; k < n; k++) state.books[emptySlots[k]] = randomFrom(BOOK_COLORS);
     state.reserve -= n;
-    addLog(`Shelved ${n} ${n === 1 ? 'book' : 'books'} from the back room.`);
+    addLog(`Brought ${n} ${n === 1 ? 'book' : 'books'} out of the back room and into the light.`);
     refresh();
     drawInventory();
   }
@@ -1933,7 +1933,7 @@
     } else if (box.kind === 'sign') {
       decor.signs += 1;
       const spot = placeNew('sign');
-      addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it${spot ? ` and set it ${slotLabel(spot)}.` : '. No room out front yet, so it waits in the back.'}`);
+      addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it in our very best handwriting${spot ? ` and set it ${slotLabel(spot)}.` : '. No room out front yet, so it waits in the back.'}`);
     } else if (box.kind === 'bench') {
       decor.bench = 1;
       const spot = placeNew('bench');
@@ -2012,7 +2012,7 @@
     if (pet && name && name !== pet.name) {
       const old = pet.name;
       pet.name = name;
-      addLog(`${old} is now ${name}. ${name} didn\u2019t mind.`);
+      addLog(`${old} is now ${name}. ${name} didn\u2019t mind, and still won\u2019t come when called.`);
       drawLog();
       save();
     }
@@ -2369,11 +2369,11 @@
     state.decor.paint = null;             // the new place wears its own paint until you change it
     state.decor.wallPaint = null;         // inside and out
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
-    if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
+    if (state.decor.paints.length) addLog('The paint buckets came too, sloshing hopefully. The new walls could use them.');
     const pets = state.decor.pets || [];
     if (pets.length >= PET_CROWD_FROM) addLog(`All ${pets.length} pets came along. It\u2019s giving \u201ccrazy cat lady\u201d\u2026`);
-    else if (pets.length > 3) addLog(`All ${pets.length} pets came along and immediately went exploring.`);
-    else if (pets.length) addLog(`${namesList(pets.map(p => p.name))} came along and immediately went exploring.`);
+    else if (pets.length > 3) addLog(`All ${pets.length} pets came along and immediately claimed the best spots.`);
+    else if (pets.length) addLog(`${namesList(pets.map(p => p.name))} came along and immediately claimed the best spots.`);
     bumpLifetime(life => { life.upgrades += 1; life.furthestStage = Math.max(life.furthestStage || 1, b.stage); });
     save();
     reportProgress();
