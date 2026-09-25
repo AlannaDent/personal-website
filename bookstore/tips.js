@@ -36,4 +36,5 @@ window.NIGHT_TIPS = [
   'One in seven visitors browses without buying. That’s bookshops.',
   'Balance your spending and your saving. Stock and decor drive revenue, but if you’re too spendy you’ll never upgrade!',
   'Crabs around here behave a lot like cats and dogs. Don’t ask us why.',
+  'As you upgrade your shop, new decor options become available to purchase.',
 ];

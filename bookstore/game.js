@@ -111,9 +111,18 @@
     { kind: 'hydrangea-pink', name: 'Pink hydrangea bush', price: 16, line: 'Pink as a Cape Cod postcard. The soil must be sweet.' },
     { kind: 'hydrangea-blue', name: 'Blue hydrangea bush', price: 16, line: 'Blue as the harbor in June. The soil must be sour.' }
   ];
+  // Indoor-only decor. The van only carries these once the shop has an inside to put
+  // them in (stage three on).
+  const INDOOR_ITEMS = [
+    { kind: 'armchair', name: 'Squishy armchair', price: 26, meta: 'faded velvet, well sat-in', line: 'Sat in it to test it. Woke up forty minutes later.' },
+    { kind: 'games', name: 'Pile of board games', price: 14, meta: 'most of the pieces', line: 'Checked every box. Most of the pieces are there. The dice are anyone\u2019s guess.' },
+    { kind: 'readinglamp', name: 'Reading lamp', price: 16, meta: 'brass, pleated shade', line: 'Plugged it in by the shelves. The whole corner went golden.' },
+    { kind: 'globe', name: 'Globe on a stand', price: 18, meta: 'a few borders out of date', line: 'A few of the countries have changed names since. Customers love pointing this out.' }
+  ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
     [{ kind: 'sign', name: 'Chalkboard sign', price: 15 }, { kind: 'bench', name: 'Park bench', price: 22 }, { kind: 'chair', name: 'Adirondack chair', price: 18 }, { kind: 'lamp', name: 'Iron lamppost', price: 20 }],
-    PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price }))
+    PLANTS.map(pl => ({ kind: 'plant', plant: pl.kind, name: pl.name, price: pl.price })),
+    INDOOR_ITEMS.map(it => ({ kind: 'indoor', indoor: it.kind, name: it.name, price: it.price }))
   );
   // The small descriptor under an order-form row (books and pets have their own).
   const DECOR_META = { paint: 'one bucket', sign: 'A-frame, chalk included', bench: 'weathered oak', chair: 'weathered blue', lamp: 'black wrought iron' };
@@ -128,6 +137,7 @@
     bench: () => `<svg class="icon" viewBox="0 0 24 24"><g fill="#a5794f"><rect x="4" y="6" width="16" height="2" rx="0.5"/><rect x="4" y="9.5" width="16" height="2" rx="0.5"/></g><rect x="3" y="13" width="18" height="3" fill="#b98a5b"/><rect x="3" y="16" width="18" height="1.2" fill="#8a6240"/><g stroke="#3e3a36" stroke-width="1.4" stroke-linecap="round"><line x1="6" y1="17" x2="6" y2="21"/><line x1="18" y1="17" x2="18" y2="21"/><line x1="5.5" y1="13" x2="4.5" y2="6"/><line x1="18.5" y1="13" x2="19.5" y2="6"/></g></svg>`,
     sign: () => `<svg class="icon" viewBox="0 0 24 24"><polygon points="7,3 17,3 20,21 4,21" fill="#7d6b58"/><rect x="7.5" y="5" width="9" height="10" fill="#2f3a36"/><line x1="9.5" y1="9" x2="14.5" y2="9" stroke="#f4efe4" stroke-width="1"/><line x1="10" y1="12" x2="14" y2="12" stroke="#f4efe4" stroke-width="0.8" opacity="0.7"/></svg>`,
     pet: (pet) => `<svg class="icon" viewBox="-16 -26 32 30">${Scenes.petSvg(pet, 'sit')}</svg>`,
+    indoor: (kind) => `<svg class="icon" viewBox="${({ armchair: '-25 -44 50 46', games: '-15 -27 30 29', readinglamp: '-22 -60 44 62', globe: '-21 -42 42 44' })[kind] || '-25 -44 50 46'}">${Scenes.indoorItem(kind, 0, 0, 1)}</svg>`,
     plant: (kind) => ({
       snake: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-7h6l1 7z" fill="#b8734f"/><g fill="#4f7a4a" stroke="#d9c46a" stroke-width="0.5"><path d="M10 14q-2-5 0-11q2 6 1 11z"/><path d="M13 14q2-6 1-12q-3 6-2 12z"/><path d="M11.5 14q-1-7 1-13q1 7 0 13z"/></g></svg>`,
       monstera: `<svg class="icon" viewBox="0 0 24 24"><path d="M8 21l1-6h6l1 6z" fill="#8a8f94"/><g fill="#3f6b3a"><ellipse cx="8" cy="9" rx="4" ry="5" transform="rotate(-25 8 9)"/><ellipse cx="16" cy="9" rx="4" ry="5" transform="rotate(25 16 9)"/><ellipse cx="12" cy="6" rx="3.5" ry="5"/></g><g stroke="#c9d9b8" stroke-width="0.8"><line x1="12" y1="2" x2="12" y2="10"/><line x1="8" y1="5" x2="8" y2="13"/><line x1="16" y1="5" x2="16" y2="13"/></g></svg>`,
@@ -202,7 +212,7 @@
   // appeal (decor) and the season. Even a fully decorated shop in high summer should
   // fall short of selling out: the maximum is about 17 sales against 20 books at stage one.
   const BASE_CUSTOMERS_PER_DAY = { 1: 6, 2: 22, 3: 50, 4: 90 };
-  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, chair: 0.1, lamp: 0.1, max: 2.2 };   // extraPlant: each further plant out front
+  const APPEAL = { paint: 0.4, sign: 0.5, plantOut: 0.3, extraPlant: 0.1, bench: 0.15, chair: 0.1, lamp: 0.1, inside: 0.08, max: 2.2 };   // extraPlant: each further plant out front; inside: each thing standing inside
   const SEASON_FOOTFALL = { Spring: 1.0, Summer: 1.3, Autumn: 1.0, Winter: 0.7 };
   const BUY_CHANCE = 0.85;                // the rest browse and leave, when the shelves are full
   // Well-stocked shelves draw people in. At empty shelves footfall falls to STOCK_FLOOR of
@@ -347,10 +357,14 @@
   //   state.orders    : boxes paid for and on their way: [{ id, name, books, mystery, arrives (dayIndex) }]
   //   state.deliveries: boxes outside the shop, waiting to be opened: [{ id, name, books, mystery, kind, color }]
   //   state.decor     : what the shop owns and shows: { paint (color on the walls or null),
+  //                     wallPaint (color on the walls inside, from stage three, or null),
   //                     paints: [colors owned, kept for good], signs, bench,
   //                     plants: [plant kinds owned],
   //                     spots: { L2, L1, R1, R2 } -> which item stands in each spot out front
   //                       ('sign', 'bench', 'plant:<kind>' or null),
+  //                     indoor: [indoor-only kinds owned],
+  //                     insideSpots: { I1..I4 } -> which item stands in each spot inside, from
+  //                       stage three ('indoor:<kind>' or anything that can stand out front),
   //                     pets: [{ id, kind, color, name }], petsOut: [ids out and about] }
   //   state.coins     : money in the tin
   //   state.books     : one entry per slot, each a color (a book) or null (empty)
@@ -380,6 +394,7 @@
     if (isOut('bench')) a += APPEAL.bench;      // somewhere to sit means someone stays
     if (isOut('chair')) a += APPEAL.chair;
     if (isOut('lamp')) a += APPEAL.lamp;
+    a += APPEAL.inside * insideKeys().length;   // a cozy inside gets talked about
     a += 0.15 * ((d.petsOut || []).length);   // a shop cat is worth a great deal
     return Math.min(APPEAL.max, a);
   }
@@ -409,7 +424,7 @@
     for (let i = 0; i < Scenes.BUILDINGS.lfl.capacity; i++) books.push(randomFrom(BOOK_COLORS));
     return { shopName, stage: 1, building: 'lfl', location, view: 'outside', coins: 0, books, reserve: 0, sold: 0, log: [], clock: freshClock(), catalogue: null, orders: [], deliveries: [], decor: freshDecor() };
   }
-  function freshDecor() { return { paint: null, paints: [], signs: 0, bench: 0, chair: 0, lamp: 0, plants: [], spots: freshSpots(), pets: [], petsOut: [] }; }
+  function freshDecor() { return { paint: null, wallPaint: null, paints: [], signs: 0, bench: 0, chair: 0, lamp: 0, plants: [], indoor: [], spots: freshSpots(), insideSpots: {}, pets: [], petsOut: [] }; }
   // ---- Decor spots out front ----
   // Four spots, left to right. Each holds one item key: 'sign', 'bench', 'plant:<kind>'.
   // Spot ids for a building, left to right: L2 L1 R1 R2 for two a side, L3..R3 for three.
@@ -421,6 +436,7 @@
     return left.concat(right);
   }
   function slotLabel(id) {
+    if (id[0] === 'I') return 'inside, ' + INSIDE_LABELS[id];
     const n = slotIds().length / 2, side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
     if (k === 1) return `${side} of the door`;
     if (k === n) return `far ${side}`;
@@ -443,15 +459,51 @@
   const isOut = (key) => slotOf(key) !== null;
   const outKeys = () => slotIds().map(id => spots()[id]).filter(Boolean);
   const freeSlot = () => putOutOrder().find(id => !spots()[id]) || null;
-  // Put an item in the first free spot. Returns the spot, or null if everything is full.
+  // ---- Decor spots inside (stage three on) ----
+  // Four spots across the shop floor, left to right: I1..I4. Anything that can stand out
+  // front can stand inside too; indoor-only things ('indoor:<kind>') stand only inside.
+  // An item is in one place at a time: out front, inside, or in the back.
+  const INSIDE_LABELS = { I1: 'far left', I2: 'left of center', I3: 'right of center', I4: 'by the counter' };
+  function insideSlotIds(buildingId = state.building) {
+    return Scenes.interiorDecorSlotsFor(buildingId).map((x, i) => 'I' + (i + 1));
+  }
+  const hasInside = () => insideSlotIds().length > 0;
+  const insideSpots = () => {
+    const sp = state.decor.insideSpots || (state.decor.insideSpots = {});
+    insideSlotIds().forEach(id => { if (!(id in sp)) sp[id] = null; });
+    return sp;
+  };
+  const insideSlotOf = (key) => insideSlotIds().find(id => insideSpots()[id] === key) || null;
+  const isInside = (key) => insideSlotOf(key) !== null;
+  const insideKeys = () => insideSlotIds().map(id => insideSpots()[id]).filter(Boolean);
+  const freeInsideSlot = () => insideSlotIds().find(id => !insideSpots()[id]) || null;
+  const isIndoorOnly = (key) => key.startsWith('indoor:');
+  // Put an item in the first free spot out front (moving it from inside if need be).
+  // Returns the spot, or null if everything is full or the item belongs indoors.
   function putOut(key) {
     if (isOut(key)) return slotOf(key);
+    if (isIndoorOnly(key)) return null;
     const id = freeSlot();
-    if (id) spots()[id] = key;
+    if (id) { takeIn(key); spots()[id] = key; }
     return id;
   }
-  function takeIn(key) { const id = slotOf(key); if (id) spots()[id] = null; }
-  const itemName = (key) => key === 'sign' ? 'the chalkboard' : key === 'bench' ? 'the bench' : key === 'chair' ? 'the chair' : key === 'lamp' ? 'the lamppost' : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
+  // The same, for the first free spot inside.
+  function putInside(key) {
+    if (isInside(key)) return insideSlotOf(key);
+    const id = freeInsideSlot();
+    if (id) { takeIn(key); insideSpots()[id] = key; }
+    return id;
+  }
+  // Something new out of its box: out front if there is room, else inside, else the back.
+  const placeNew = (key) => putOut(key) || putInside(key);
+  function takeIn(key) {
+    const id = slotOf(key); if (id) spots()[id] = null;
+    const inId = insideSlotOf(key); if (inId) insideSpots()[inId] = null;
+  }
+  const indoorInfo = (kind) => INDOOR_ITEMS.find(i => i.kind === kind) || { name: 'armchair' };
+  const itemName = (key) => key === 'sign' ? 'the chalkboard' : key === 'bench' ? 'the bench' : key === 'chair' ? 'the chair' : key === 'lamp' ? 'the lamppost'
+    : isIndoorOnly(key) ? 'the ' + indoorInfo(key.slice(7)).name.toLowerCase()
+    : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
   function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
@@ -613,7 +665,7 @@
   // =========================================================
   function drawScene() {
     if (!building().interior) state.view = 'outside';
-    $('scene').innerHTML = Scenes.render(state.location, state.building, state.view, state.decor.paint);
+    $('scene').innerHTML = Scenes.render(state.location, state.building, state.view, state.decor.paint, state.decor.wallPaint);
     critters = [];
     extras = [];
     const svg = $('scene').querySelector('svg');
@@ -769,7 +821,7 @@
     const t = dayFraction();
     let color = '#1f2a5a', opacity = 0, starOpacity = 0, glowOpacity = 0;
     if (state.clock.night) {
-      color = '#1f2a5a'; opacity = inside ? 0.22 : 0.58; starOpacity = inside ? 0 : 0.9; glowOpacity = inside ? 0 : 0.8;
+      color = '#1f2a5a'; opacity = inside ? 0.22 : 0.58; starOpacity = inside ? 0 : 0.9; glowOpacity = 0.8;
     } else if (t < 0.12) {                                  // sunrise: warm and fading
       color = '#f6b98a'; opacity = 0.28 * (1 - t / 0.12);
     } else if (t < 0.72) {                                  // daytime: clear
@@ -777,18 +829,18 @@
     } else if (t < 0.92) {                                  // sunset: gold deepening to violet
       const u = (t - 0.72) / 0.2;
       color = mixColor('#f6a86a', '#8a5a8a', u); opacity = 0.06 + 0.26 * u;
-      glowOpacity = inside ? 0 : 0.35 * u;
+      glowOpacity = 0.35 * u;
     } else {                                                // dusk: settling into night
       const u = (t - 0.92) / 0.08;
       color = mixColor('#8a5a8a', '#1f2a5a', u); opacity = 0.32 + 0.24 * u;
-      starOpacity = inside ? 0 : 0.9 * u; glowOpacity = inside ? 0 : 0.35 + 0.45 * u;
+      starOpacity = inside ? 0 : 0.9 * u; glowOpacity = 0.35 + 0.45 * u;
     }
     if (inside && !state.clock.night) opacity *= 0.45;
     wash.setAttribute('fill', color);
     wash.setAttribute('opacity', opacity.toFixed(3));
     stars.setAttribute('opacity', starOpacity.toFixed(2));
-    glow.setAttribute('opacity', glowOpacity.toFixed(2));
-    // Lampposts out front come on with the shop's windows: a glow, and warm glass.
+    glow.setAttribute('opacity', (inside ? 0 : glowOpacity).toFixed(2));
+    // Lamps come on with the shop's windows: a glow, and warm glass. Inside too.
     svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
     svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
     moveSkyBodies(svg, t);
@@ -1744,10 +1796,11 @@
         !(d.kind === 'chair' && owned.chair > 0) &&
         !(d.kind === 'lamp' && owned.lamp > 0) &&
         !(d.kind === 'plant' && owned.plants.includes(d.plant)) &&
+        !(d.kind === 'indoor' && (!hasInside() || (owned.indoor || []).includes(d.indoor))) &&
         !(d.kind === 'paint' && owned.paints.includes(d.color)));
       const decorItem = () => {
         const d = decorChoices.splice(Math.floor(Math.random() * decorChoices.length), 1)[0];
-        return { id: newId(), kind: d.kind, name: d.name, books: 0, price: d.price, mystery: false, ordered: false, color: d.color || null, plant: d.plant || null };
+        return { id: newId(), kind: d.kind, name: d.name, books: 0, price: d.price, mystery: false, ordered: false, color: d.color || null, plant: d.plant || null, indoor: d.indoor || null };
       };
       const petItem = () => {
         const kind = randomFrom(Object.keys(PET_KINDS));
@@ -1780,7 +1833,7 @@
     // order at night and it arrives tomorrow night.
     const arrives = dayIndex() + (state.clock.night ? 1 : 0);
     const when = state.clock.night ? 'tomorrow night' : 'tonight';
-    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, pet: item.pet || null, arrives });
+    state.orders.push({ id: 'o' + Math.random().toString(36).slice(2, 8), name: item.name, books: item.books, mystery: item.mystery, kind: item.kind || 'books', color: item.color || null, plant: item.plant || null, indoor: item.indoor || null, pet: item.pet || null, arrives });
     if (item.kind === 'pet') addLog(`Arranged to adopt a ${item.name.toLowerCase().replace(' \u00b7 ', ' called ')} for ${item.price} coins. The carrier arrives ${when}.`);
     else if (item.kind && item.kind !== 'books') addLog(`Ordered ${withArticle(item.name.toLowerCase())} for ${item.price} coins. Arrives ${when}.`);
     else addLog(item.mystery
@@ -1795,7 +1848,7 @@
     const due = state.orders.filter(o => o.arrives <= dayIndex());
     if (!due.length) return;
     state.orders = state.orders.filter(o => o.arrives > dayIndex());
-    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null, pet: o.pet || null }));
+    due.forEach(o => state.deliveries.push({ id: o.id, name: o.name, books: o.books, mystery: o.mystery, kind: o.kind || 'books', color: o.color || null, plant: o.plant || null, indoor: o.indoor || null, pet: o.pet || null }));
     addLog(`The van came at closing. ${due.length} ${due.length === 1 ? 'box' : 'boxes'} on the step.`);
   }
 
@@ -1843,7 +1896,8 @@
     drawInventory();
   }
 
-  // Paint goes in the cupboard; a sign or a plant goes straight out front.
+  // Paint goes in the cupboard; a sign or a plant goes straight out front (or inside, if
+  // the front is full); indoor things go straight inside.
   function openDecorBox(box) {
     state.deliveries = state.deliveries.filter(d => d.id !== box.id);
     const decor = state.decor;
@@ -1853,26 +1907,33 @@
       addLog(`Opened the box: a bucket of ${paint ? paint.name : 'paint'}. Into the cupboard. It will never run out; that is how paint works here.`);
     } else if (box.kind === 'sign') {
       decor.signs += 1;
-      const spot = putOut('sign');
+      const spot = placeNew('sign');
       addLog(`Opened the box: a chalkboard sign. Wrote ${state.shopName} on it${spot ? ` and set it ${slotLabel(spot)}.` : '. No room out front yet, so it waits in the back.'}`);
     } else if (box.kind === 'bench') {
       decor.bench = 1;
-      const spot = putOut('bench');
+      const spot = placeNew('bench');
       addLog(spot ? `Opened the crate: a park bench. Set it ${slotLabel(spot)}. Someone sat on it before the straw was swept up.` : 'Opened the crate: a park bench. Every spot out front is taken, so it waits in the back.');
     } else if (box.kind === 'chair') {
       decor.chair = 1;
-      const spot = putOut('chair');
+      const spot = placeNew('chair');
       addLog(spot ? `Opened the crate: an Adirondack chair. Set it ${slotLabel(spot)}. Nobody has got up from it since.` : 'Opened the crate: an Adirondack chair. Every spot out front is taken, so it waits in the back.');
     } else if (box.kind === 'lamp') {
       decor.lamp = 1;
-      const spot = putOut('lamp');
+      const spot = placeNew('lamp');
       addLog(spot ? `Opened the crate: an iron lamppost. Stood it ${slotLabel(spot)}. It comes on by itself at dusk, which feels like a small miracle.` : 'Opened the crate: an iron lamppost. Every spot out front is taken, so it waits in the back.');
     } else if (box.kind === 'plant') {
       const kind = box.plant || 'snake';
       const info = PLANTS.find(p => p.kind === kind) || PLANTS[0];
       if (!decor.plants.includes(kind)) decor.plants.push(kind);
-      const spot = putOut('plant:' + kind);   // the newest plant takes the first free spot
+      const spot = placeNew('plant:' + kind);   // the newest plant takes the first free spot
       addLog(`Opened the box: a ${info.name.toLowerCase()}. ${info.line}${spot ? '' : ' Nowhere to put it yet; it waits in the back.'}`);
+    } else if (box.kind === 'indoor') {
+      const kind = box.indoor || 'armchair';
+      const info = indoorInfo(kind);
+      decor.indoor = decor.indoor || [];
+      if (!decor.indoor.includes(kind)) decor.indoor.push(kind);
+      const spot = putInside('indoor:' + kind);
+      addLog(`Opened the box: ${withArticle(info.name.toLowerCase())}. ${info.line}${spot ? '' : ' Every spot inside is taken, so it waits in the back.'}`);
     } else if (box.kind === 'pet' && box.pet) {
       if ((decor.pets || []).length >= MAX_PETS) { addLog(`The carrier came, but ${MAX_PETS} pets is the limit. Sent back with apologies and a treat.`); }
       else {
@@ -1896,11 +1957,16 @@
   // ---- The inventory: paint, sign, plant ----
   const buildingWord = () => ({ 1: 'library box', 2: 'shed', 3: 'shop', 4: 'shop' })[state.stage] || 'shop';
 
-  function paintBuilding(color) {
-    if (!state.decor.paints.includes(color) || state.decor.paint === color) return;
-    state.decor.paint = color;
+  // where: 'outside' (the building) or 'inside' (the walls inside, from stage three).
+  function paintBuilding(color, where) {
+    const inside = where === 'inside' && hasInside();
+    const field = inside ? 'wallPaint' : 'paint';
+    if (!state.decor.paints.includes(color) || state.decor[field] === color) return;
+    state.decor[field] = color;
     const paint = PAINTS.find(p => p.color === color);
-    addLog(`Painted the ${buildingWord()} ${paint ? paint.name : 'a new color'}. Two coats. Very satisfying.`);
+    const name = paint ? paint.name : 'a new color';
+    addLog(inside ? `Painted the walls inside ${name}. Dusted every shelf while the paint dried, which was overdue anyway.`
+      : `Painted the ${buildingWord()} ${name}. Two coats. Very satisfying.`);
     bumpLifetime(life => { life.coatsOfPaint = (life.coatsOfPaint || 0) + 1; });
     drawScene();
     drawInventory();
@@ -1928,14 +1994,17 @@
     drawInventory();
   }
 
-  function toggleDecor(kind, plantKind, petId) {
+  // where: 'front', 'inside' or 'back' (the inventory's buttons say which).
+  function toggleDecor(kind, sub, petId, where) {
     const key = kind === 'sign' && state.decor.signs > 0 ? 'sign'
       : kind === 'bench' && state.decor.bench > 0 ? 'bench'
       : kind === 'chair' && state.decor.chair > 0 ? 'chair'
       : kind === 'lamp' && state.decor.lamp > 0 ? 'lamp'
-      : kind === 'plant' && state.decor.plants.includes(plantKind) ? 'plant:' + plantKind : null;
+      : kind === 'plant' && state.decor.plants.includes(sub) ? 'plant:' + sub
+      : kind === 'indoor' && (state.decor.indoor || []).includes(sub) ? 'indoor:' + sub : null;
     if (key) {
-      if (isOut(key)) takeIn(key);
+      if (where === 'back') takeIn(key);
+      else if (where === 'inside') { if (!putInside(key)) { addLog(`No free spot inside for ${itemName(key)}. Put something away first.`); drawLog(); } }
       else if (!putOut(key)) { addLog(`No free spot out front for ${itemName(key)}. Take something in first.`); drawLog(); }
     }
     if (kind === 'pet' && petId) {
@@ -1949,10 +2018,15 @@
   }
 
   // ---- Dragging decor to a new spot ----
-  // Press on an item out front and pull it sideways. The four spots show as soft marks on
-  // the ground, the nearest one brightens, and letting go drops the item there (swapping
-  // with whatever was in it). Pointer events cover mouse and touch alike.
+  // Press on an item out front (or inside) and pull it sideways. The spots show as soft
+  // marks on the ground, the nearest one brightens, and letting go drops the item there
+  // (swapping with whatever was in it). Pointer events cover mouse and touch alike.
   let drag = null;   // { key, el, fromX, dx }
+  // The spots in the view on screen: out front, or inside.
+  const zoneIds = () => state.view === 'inside' ? insideSlotIds() : slotIds();
+  const zoneXs = () => state.view === 'inside' ? Scenes.interiorDecorSlotsFor(state.building) : Scenes.decorSlotsFor(state.building);
+  const zoneSpots = () => state.view === 'inside' ? insideSpots() : spots();
+  const zoneSlotOf = (key) => zoneIds().find(id => zoneSpots()[id] === key) || null;
   const sceneX = (clientX) => {
     const r = $('scene').querySelector('svg').getBoundingClientRect();
     return (clientX - r.left) / r.width * Scenes.VIEW.width;   // pixels on screen -> picture units
@@ -1965,17 +2039,17 @@
     drag = { key, el: item, fromX: sceneX(e.clientX), dx: 0 };
     item.classList.add('dragging');
     const group = $('scene').querySelector('svg .decor');
-    const xs = Scenes.decorSlotsFor(state.building);
+    const xs = zoneXs();
     const r = personScale() * 0.75 * 16;
-    group.insertAdjacentHTML('beforeend', `<g class="slot-markers">${slotIds().map((id, i) => `<ellipse class="slot-marker" data-slot="${id}" cx="${xs[i]}" cy="${Scenes.GROUND_Y}" rx="${r.toFixed(0)}" ry="${(r * 0.22).toFixed(1)}"/>`).join('')}</g>`);
+    group.insertAdjacentHTML('beforeend', `<g class="slot-markers">${zoneIds().map((id, i) => `<ellipse class="slot-marker" data-slot="${id}" cx="${xs[i]}" cy="${Scenes.GROUND_Y}" rx="${r.toFixed(0)}" ry="${(r * 0.22).toFixed(1)}"/>`).join('')}</g>`);
     updateDragMarker();
   }
   function dragTargetSlot() {
-    const xs = Scenes.decorSlotsFor(state.building);
-    const here = xs[slotIds().indexOf(slotOf(drag.key))] + drag.dx;
+    const xs = zoneXs();
+    const here = xs[zoneIds().indexOf(zoneSlotOf(drag.key))] + drag.dx;
     let best = 0;
     xs.forEach((x, i) => { if (Math.abs(x - here) < Math.abs(xs[best] - here)) best = i; });
-    return slotIds()[best];
+    return zoneIds()[best];
   }
   function updateDragMarker() {
     const target = dragTargetSlot();
@@ -1990,11 +2064,12 @@
   function endDecorDrag() {
     if (!drag) return;
     const target = dragTargetSlot();
-    const from = slotOf(drag.key);
+    const from = zoneSlotOf(drag.key);
     if (Math.abs(drag.dx) > 3 && target !== from) {
-      const other = spots()[target];
-      spots()[target] = drag.key;
-      spots()[from] = other || null;
+      const sp = zoneSpots();
+      const other = sp[target];
+      sp[target] = drag.key;
+      sp[from] = other || null;
       save();
     }
     drag = null;
@@ -2005,12 +2080,20 @@
   function drawInventory() {
     const decor = state.decor;
     const rows = [];
-    // The buttons for an item that can stand out front: move left / right and take in,
-    // or put out (disabled when every spot is taken).
-    const placeButtons = (key, toggleAttrs) => isOut(key)
-      ? `<button class="button small" ${toggleAttrs}>Take in</button>`
-      : `<button class="button small" ${toggleAttrs}${freeSlot() ? '' : ' disabled title="Every spot out front is taken"'}>Put out</button>`;
-    const whereIs = (key, inBack) => isOut(key) ? `Out front, ${slotLabel(slotOf(key))}` : inBack;
+    // The buttons for an item that can be placed: take in (or put away) when it is placed;
+    // otherwise put out, and from stage three a second button for inside. Each is
+    // disabled when every spot in its place is taken.
+    const placeButtons = (key, toggleAttrs) => {
+      if (isOut(key)) return `<button class="button small" ${toggleAttrs} data-where="back">Take in</button>`;
+      if (isInside(key)) return `<button class="button small" ${toggleAttrs} data-where="back">Put away</button>`;
+      const front = isIndoorOnly(key) ? ''
+        : `<button class="button small" ${toggleAttrs} data-where="front"${freeSlot() ? '' : ' disabled title="Every spot out front is taken"'}>${hasInside() ? 'Out front' : 'Put out'}</button>`;
+      const inside = !hasInside() ? ''
+        : `<button class="button small" ${toggleAttrs} data-where="inside"${freeInsideSlot() ? '' : ' disabled title="Every spot inside is taken"'}>${isIndoorOnly(key) ? 'Put inside' : 'Inside'}</button>`;
+      return `<span class="place-buttons">${front}${inside}</span>`;
+    };
+    const whereIs = (key, inBack) => isOut(key) ? `Out front, ${slotLabel(slotOf(key))}`
+      : isInside(key) ? `Inside, ${INSIDE_LABELS[insideSlotOf(key)]}` : inBack;
     const onShelves = booksInStock();
     const reserve = state.reserve || 0;
     const room = capacity() - onShelves;
@@ -2020,7 +2103,16 @@
     decor.paints.forEach(color => {
       const paint = PAINTS.find(p => p.color === color) || { name: 'Paint' };
       const current = decor.paint === color;
-      rows.push(`<li><div class="item-row">${ICONS.paint(color)}<div><span class="item-name">${paint.name} paint</span><span class="item-meta">${current ? 'On the walls now' : 'In the cupboard'}</span></div></div>${current ? '<span class="ordered">Current</span>' : `<button class="button small primary" data-paint="${color}">Paint the ${buildingWord()}</button>`}</li>`);
+      if (!hasInside()) {
+        rows.push(`<li><div class="item-row">${ICONS.paint(color)}<div><span class="item-name">${paint.name} paint</span><span class="item-meta">${current ? 'On the walls now' : 'In the cupboard'}</span></div></div>${current ? '<span class="ordered">Current</span>' : `<button class="button small primary" data-paint="${color}">Paint the ${buildingWord()}</button>`}</li>`);
+        return;
+      }
+      // From stage three, the same bucket can do the walls outside, inside, or both.
+      const within = decor.wallPaint === color;
+      const meta = current && within ? 'On the walls inside and out' : current ? 'On the outside walls' : within ? 'On the walls inside' : 'In the cupboard';
+      const buttons = (current ? '' : `<button class="button small primary" data-paint="${color}" data-where="outside" title="Paint the outside of the ${buildingWord()}">Outside</button>`) +
+        (within ? '' : `<button class="button small primary" data-paint="${color}" data-where="inside" title="Paint the walls inside">Inside</button>`);
+      rows.push(`<li><div class="item-row">${ICONS.paint(color)}<div><span class="item-name">${paint.name} paint</span><span class="item-meta">${meta}</span></div></div>${buttons ? `<span class="place-buttons">${buttons}</span>` : '<span class="ordered">Current</span>'}</li>`);
     });
     if (decor.signs > 0) {
       rows.push(`<li><div class="item-row">${ICONS.sign()}<div><span class="item-name">Chalkboard sign</span><span class="item-meta">${whereIs('sign', 'In the back')}</span></div></div>${placeButtons('sign', 'data-toggle="sign"')}</li>`);
@@ -2037,6 +2129,9 @@
     decor.plants.forEach(kind => {
       const info = PLANTS.find(p => p.kind === kind) || { name: kind };
       rows.push(`<li><div class="item-row">${ICONS.plant(kind)}<div><span class="item-name">${info.name}</span><span class="item-meta">${whereIs('plant:' + kind, 'In the back')}</span></div></div>${placeButtons('plant:' + kind, `data-toggle="plant" data-plant="${kind}"`)}</li>`);
+    });
+    (decor.indoor || []).forEach(kind => {
+      rows.push(`<li><div class="item-row">${ICONS.indoor(kind)}<div><span class="item-name">${indoorInfo(kind).name}</span><span class="item-meta">${whereIs('indoor:' + kind, 'In the back')}</span></div></div>${placeButtons('indoor:' + kind, `data-toggle="indoor" data-indoor="${kind}"`)}</li>`);
     });
     (decor.pets || []).forEach(pet => {
       const out = (decor.petsOut || []).includes(pet.id);
@@ -2059,8 +2154,10 @@
       box.addEventListener('blur', () => finishRename(box.dataset.renameInput, box.value));
     }
     const paint = PAINTS.find(p => p.color === decor.paint);
+    const wall = hasInside() && PAINTS.find(p => p.color === decor.wallPaint);
     $('inventory-hint').textContent = (paint ? `The ${buildingWord()} is painted ${paint.name}.` : `The ${buildingWord()} still wears its original paint.`) +
-      (outKeys().length ? ' Drag anything out front to a new spot in the picture.' : '');
+      (wall ? ` Inside, the walls are ${wall.name}.` : '') +
+      (outKeys().length || insideKeys().length ? ' Drag any decor in the picture to a new spot.' : '');
     drawAppeal();
   }
 
@@ -2074,6 +2171,7 @@
     if (!isOut('sign')) missing.push('the chalkboard out front');
     if (!outKeys().some(k => k.startsWith('plant:'))) missing.push('a plant by the door');
     if (!isOut('bench')) missing.push('a bench to sit on');
+    if (hasInside() && !insideKeys().length) missing.push('something cozy inside');
     const season = SEASON_FOOTFALL[seasonName()];
     const seasonNote = season > 1 ? ' Summer crowds help.' : season < 1 ? ' Winter is quiet.' : '';
     const fill = shelfFill();
@@ -2086,20 +2184,20 @@
     note.setAttribute('aria-label', `${lit} of 5 stars. ${note.dataset.tip}`);
   }
 
-  // The chalkboard and the plant, drawn outside the shop when they are out.
+  // The decor in the view on screen: what stands out front, or what stands inside.
   function drawDecor() {
     const group = $('scene').querySelector('svg .decor');
     if (!group) return;
-    if (state.view === 'inside') { group.innerHTML = ''; return; }
-    const xs = Scenes.decorSlotsFor(state.building);
+    const xs = zoneXs();
     const scale = personScale() * 0.75;
     let out = '';
     // Each occupied spot draws its item. Items can be dragged to another spot.
-    slotIds().forEach((id, i) => {
-      const key = spots()[id];
+    zoneIds().forEach((id, i) => {
+      const key = zoneSpots()[id];
       if (!key) return;
       const x = xs[i], y = Scenes.GROUND_Y;
-      const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : key === 'chair' ? Scenes.adirondack(x, y, scale) : key === 'lamp' ? Scenes.lamppost(x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
+      const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : key === 'chair' ? Scenes.adirondack(x, y, scale) : key === 'lamp' ? Scenes.lamppost(x, y, scale)
+        : isIndoorOnly(key) ? Scenes.indoorItem(key.slice(7), x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
       out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move)</title>${art}</g>`;
     });
     group.innerHTML = out;
@@ -2141,10 +2239,11 @@
         const kind = item.kind || 'books';
         const descriptor = kind === 'pet' ? PET_KINDS[item.pet.kind].meta
           : kind === 'plant' ? (PLANT_META[item.plant] || 'terracotta pot')
+          : kind === 'indoor' ? (indoorInfo(item.indoor).meta || 'for inside')
           : kind === 'books' ? (item.mystery ? 'size unknown' : `${item.books} books`)
           : (DECOR_META[kind] || 'for out front');
         const meta = `${descriptor} \u00b7 ${item.price} coins`;
-        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'chair' ? ICONS.chair() : kind === 'lamp' ? ICONS.lamp() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
+        const icon = kind === 'paint' ? ICONS.paint(item.color) : kind === 'sign' ? ICONS.sign() : kind === 'bench' ? ICONS.bench() : kind === 'chair' ? ICONS.chair() : kind === 'lamp' ? ICONS.lamp() : kind === 'pet' ? ICONS.pet(item.pet) : kind === 'indoor' ? ICONS.indoor(item.indoor) : kind === 'plant' ? ICONS.plant(item.plant || 'snake') : item.mystery ? ICONS.mystery() : ICONS.books();
         const action = item.ordered
           ? `<span class="ordered">Ordered \u2713</span>`
           : `<button class="button small primary" data-order="${item.id}" ${state.coins < item.price ? 'disabled' : ''}>Order</button>`;
@@ -2243,6 +2342,7 @@
     state.books = books;
     state.view = 'outside';
     state.decor.paint = null;             // the new place wears its own paint until you change it
+    state.decor.wallPaint = null;         // inside and out
     addLog(MOVING_IN[b.id] || `Moved into the ${b.name.toLowerCase()}.`);
     if (state.decor.paints.length) addLog('The paint buckets came too. The new walls could use them.');
     const pets = state.decor.pets || [];
@@ -2358,6 +2458,11 @@
       }
       slotIds(data.building).forEach(id => { if (!(id in data.decor.spots)) data.decor.spots[id] = null; });
       if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
+      // Saves from before indoor decor: nothing owned for inside, every inside spot empty.
+      if (!Array.isArray(data.decor.indoor)) data.decor.indoor = [];
+      if (!data.decor.insideSpots) data.decor.insideSpots = {};
+      if (data.decor.wallPaint === undefined) data.decor.wallPaint = null;   // and before painting inside
+      insideSlotIds(data.building).forEach(id => { if (!(id in data.decor.insideSpots)) data.decor.insideSpots[id] = null; });
       const b = Scenes.BUILDINGS[data.building];
       if (!b || data.books.length !== b.capacity) return null;
       return data;
@@ -2433,11 +2538,11 @@
       const open = e.target.closest('[data-open]');
       if (open) { openDelivery(open.dataset.open); return; }
       const paint = e.target.closest('[data-paint]');
-      if (paint) { paintBuilding(paint.dataset.paint); return; }
+      if (paint) { paintBuilding(paint.dataset.paint, paint.dataset.where); return; }
       const shelve = e.target.closest('[data-shelve]');
       if (shelve) { shelveReserve(); return; }
       const toggle = e.target.closest('[data-toggle]');
-      if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant, toggle.dataset.pet); return; }
+      if (toggle) { toggleDecor(toggle.dataset.toggle, toggle.dataset.plant || toggle.dataset.indoor, toggle.dataset.pet, toggle.dataset.where); return; }
       const rename = e.target.closest('[data-rename]');
       if (rename) { startRename(rename.dataset.rename); return; }
     });
