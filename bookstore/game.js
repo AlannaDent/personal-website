@@ -849,6 +849,18 @@
     if (inside && !state.clock.night) opacity *= 0.45;
     wash.setAttribute('fill', color);
     wash.setAttribute('opacity', opacity.toFixed(3));
+    // Outside, the wash rect only covers the sky (so the moon and stars can sit on top of
+    // it); everything in front gets the same wash through a filter, switched off when clear.
+    const nightWash = svg.querySelector('.night-wash');
+    if (nightWash) {
+      const flood = nightWash.querySelector('.wash-flood');
+      flood.setAttribute('flood-color', color);
+      flood.setAttribute('flood-opacity', opacity.toFixed(3));
+      svg.querySelectorAll('.washed').forEach(g => {
+        if (opacity > 0) g.setAttribute('filter', `url(#${nightWash.id})`);
+        else g.removeAttribute('filter');
+      });
+    }
     stars.setAttribute('opacity', starOpacity.toFixed(2));
     glow.setAttribute('opacity', (inside ? 0 : glowOpacity).toFixed(2));
     // Lamps come on with the shop's windows: a glow, and warm glass. Inside too.

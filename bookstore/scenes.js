@@ -407,19 +407,26 @@ const Scenes = (function () {
     return (INDOOR_DRAWINGS[kind] || armchair)(x, y, scale);
   }
 
-  // The time-of-day layer: a color wash, a scatter of stars, and a glow from the
-  // shop's windows. The game sets their opacity as the day goes by.
-  function daylightLayer(glowX, glowY, glowRx, glowRy) {
+  // The night sky: a color wash, a scatter of stars, and the moon. Outside, it sits just
+  // above the sky and the sun and behind everything else, so the moon and stars stay
+  // bright while houses, trees and people pass in front of them (those get their own
+  // wash from the night-wash filter). The game sets the opacities as the day goes by.
+  function nightSky() {
     let stars = '';
     let seed = 7;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     for (let i = 0; i < 34; i++) {
       stars += `<circle cx="${(rnd() * 800).toFixed(0)}" cy="${(rnd() * 200).toFixed(0)}" r="${(0.8 + rnd() * 1.3).toFixed(1)}" fill="#f6f2e4"/>`;
     }
-    return `<g class="daylight">
-      <rect class="sky-wash" width="${VIEW.width}" height="${VIEW.height}" fill="#1f2a5a" opacity="0"/>
+    return `<rect class="sky-wash" width="${VIEW.width}" height="${VIEW.height}" fill="#1f2a5a" opacity="0"/>
       <g class="stars" opacity="0">${stars}</g>
-      ${moonSvg()}
+      ${moonSvg()}`;
+  }
+  // The time-of-day layer, over the whole picture: a glow from the shop's windows. Inside,
+  // where there is no sky, it carries the night sky's wash too (withSky), over everything.
+  function daylightLayer(glowX, glowY, glowRx, glowRy, withSky) {
+    return `<g class="daylight">
+      ${withSky ? nightSky() : ''}
       <ellipse class="window-glow" cx="${glowX}" cy="${glowY}" rx="${glowRx}" ry="${glowRy}" fill="url(#windowGlow)" opacity="0"/>
     </g>`;
   }
@@ -561,8 +568,8 @@ const Scenes = (function () {
     }
     return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g>`;
   }
-  // The sun and the moon. Slotted into the sky right behind the clouds (see render), so
-  // clouds drift across them and gulls fly in front. Each is drawn around its own origin;
+  // The sun and the moon. Drawn right after the sky, in layers of their own (see render),
+  // so clouds, gulls, buildings and decor all pass in front. Each is drawn around its own origin;
   // game.js moves them along an arc through the day (applyDaylight) and fades the moon in
   // at dusk. The starting transform is only for pictures no game is running in, such as the
   // location cards on the setup screen.
@@ -574,8 +581,8 @@ const Scenes = (function () {
     const sun = `<g class="sun" transform="translate(560 90)"><circle class="sun-glow" r="46" fill="#f6d9a8" opacity="0.28"/><circle class="sun-disc" r="26" fill="#f6d9a8"/><g class="sun-rays" stroke="#f6d9a8" stroke-width="2" opacity="0.6">${rays}</g></g>`;
     return sun;
   }
-  // The moon lives in the daylight layer (see daylightLayer), above the night wash, so it
-  // stays bright while everything under the wash goes blue. game.js moves and fades it.
+  // The moon lives in the night sky (see nightSky), above the sky's own wash, so it stays
+  // bright while the sky goes blue. game.js moves and fades it.
   function moonSvg() {
     return `<g class="moon" transform="translate(640 80)" opacity="0"><circle r="30" fill="#f4f1e8" opacity="0.16"/><circle r="18" fill="#f4f1e8"/><g fill="#dcd6c6" opacity="0.8"><circle cx="-6" cy="-4" r="3.2"/><circle cx="6" cy="6" r="2.2"/><circle cx="5" cy="-8" r="1.6"/><circle cx="-3" cy="8" r="1.3"/></g></g>`;
   }
@@ -588,6 +595,7 @@ const Scenes = (function () {
 
   // The definitions block: sky gradient, awning stripes, and the "wobble" filter,
   // which nudges every edge slightly so shapes feel hand-drawn rather than ruler-straight.
+  let nightWashCount = 0;
   function defs(skyTop, skyBottom) {
     return `<defs>
       <filter id="wobble" x="-2%" y="-2%" width="104%" height="104%">
@@ -615,6 +623,15 @@ const Scenes = (function () {
       <filter id="paperGrain" x="0" y="0" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="5" result="noise"/>
         <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.93  0 0 0 0 0.90  0 0 0 0 0.82  0 0 0 0.55 0"/>
+      </filter>
+      <!-- The night wash for everything in front of the sky: the same color and strength as
+           the sky's wash rect, but painted only onto the shapes themselves, so the moon and
+           stars behind them are left bright. game.js sets the flood and switches it on.
+           Every picture gets its own id, as the setup screen shows several at once. -->
+      <filter id="nightWash${++nightWashCount}" class="night-wash" filterUnits="userSpaceOnUse" x="0" y="0" width="${VIEW.width}" height="${VIEW.height}" color-interpolation-filters="sRGB">
+        <feFlood class="wash-flood" flood-color="#1f2a5a" flood-opacity="0" result="tint"/>
+        <feComposite in="tint" in2="SourceGraphic" operator="in" result="tintOnShapes"/>
+        <feComposite in="tintOnShapes" in2="SourceGraphic" operator="over"/>
       </filter>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="${skyTop}"/>
@@ -1809,30 +1826,43 @@ const Scenes = (function () {
     const [skyTop, skyBottom] = SKIES[locId];
     // A backdrop is one string, or { far, near } when part of it should be painted in front
     // of the background people (the beach's dune fence, for instance). Every backdrop starts
-    // with the sky; the sun and moon go straight after it, behind the clouds.
+    // with the sky. It is lifted out and drawn first, with the sun and the night sky (stars
+    // and moon) straight after it, so everything else in the backdrop, clouds included, is
+    // in front of them. The sun gets a painted layer of its own: inside the backdrop's, its
+    // sketch-mode ink copy would be drawn over the neighbors' houses.
     const drawn = BACKDROPS[locId](building.backdropOpts || {});
     const far = typeof drawn === 'string' ? drawn : drawn.far;
     const near = typeof drawn === 'string' ? '' : drawn.near;
     const skyRect = `<rect width="800" height="450" fill="url(#sky)"/>`;
-    const backdrop = far.replace(skyRect, skyRect + skyBodies());
+    const backdrop = far.replace(skyRect, '');
     const bldg = building.draw(color);
     const front = building.front();
+    // The two .washed groups hold everything in front of the sky; at night game.js gives
+    // them the night-wash filter. The paper grain sits between them, unwashed, as it blends
+    // with whatever is beneath it.
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
-      ${painted('backdrop', backdrop)}
-      <g class="background-life"></g>
-      ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
-      ${near ? painted('backdrop-near', near) : ''}
-      ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
-      ${painted('building', bldg)}
-      <g class="books"></g>
-      ${painted('front', front)}
+      ${skyRect}
+      ${painted('sky-bodies', skyBodies())}
+      <g class="night-sky">${nightSky()}</g>
+      <g class="washed">
+        ${painted('backdrop', backdrop)}
+        <g class="background-life"></g>
+        ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
+        ${near ? painted('backdrop-near', near) : ''}
+        ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
+        ${painted('building', bldg)}
+        <g class="books"></g>
+        ${painted('front', front)}
+      </g>
       <rect class="paper" width="${VIEW.width}" height="${VIEW.height}" filter="url(#paperGrain)"/>
-      <g class="decor"></g>
-      <g class="deliveries"></g>
-      <g class="pets"></g>
-      <g class="customers"></g>
-      <g class="weather"></g>
+      <g class="washed">
+        <g class="decor"></g>
+        <g class="deliveries"></g>
+        <g class="pets"></g>
+        <g class="customers"></g>
+        <g class="weather"></g>
+      </g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 320, 190, 110)}
       <g class="effects"></g>
@@ -1850,7 +1880,7 @@ const Scenes = (function () {
       <g class="pets"></g>
       <g class="customers"></g>
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
-      ${daylightLayer(400, 240, 0, 0)}
+      ${daylightLayer(400, 240, 0, 0, true)}
       <g class="effects"></g>
     </svg>`;
   }
