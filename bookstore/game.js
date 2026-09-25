@@ -82,6 +82,15 @@
     'Someone asked to adopt one. Declined politely, on behalf of all {n}.',
     'The mail carrier now brings treats. {n} of them, every morning.'
   ];
+  // Chase lines: {a} is the chaser, {b} the runner.
+  const CHASE_LINES = [
+    '{a} chased {b} from one end to the other. Then {b} chased {a} back.',
+    '{a} and {b} played tag. Nobody could agree on who was it.',
+    '{a} chased {b} past three customers, one of whom cheered.'
+  ];
+  const CHASE_LINES_DOG_CAT = ['{a} chased {b}. {b} allowed it, briefly.', '{a} chased {b} round the sign twice. {b} then sat down and washed, as if nothing had happened.'];
+  const CHASE_LINES_CRAB_CHASER = ['{a} chased {b} sideways across the whole front. {b} did not look back.', '{a} went after {b} with both claws up. {b} took it seriously.'];
+  const CHASE_LINES_CRAB_RUNNER = ['{b} escaped {a} at a sideways sprint. Nobody saw that coming.', '{a} chased {b}, who simply went sideways. {a} is still thinking about it.'];
   const PET_NAP_LINES = ['{pet} napped in the sun for most of the afternoon.', '{pet} slept on the doorstep and had to be stepped over.', '{pet} found the one warm spot and kept it.'];
   const PAINTS = [
     { color: '#a5443a', name: 'Cranberry' },
@@ -1149,7 +1158,8 @@
     const back = crowded() ? a.row : 0;
     const s = petScale() * crowdScale() * (1 - 0.1 * back);
     const flip = a.pet.kind === 'crab' ? 1 : a.dir;      // crabs face the viewer and scuttle sideways
-    const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s : 0;
+    const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s
+      : a.state === 'chase' ? Math.abs(Math.sin(a.x / 5)) * (a.pet.kind === 'crab' ? 1.2 : 3) * s : 0;
     el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
   }
 
@@ -1169,12 +1179,80 @@
     save();
   }
 
+  // ---- Chases ----
+  // Now and then one pet chases another. Both run flat out, the runner away and the chaser
+  // after it. A catch is a tag (they swap, and the new chaser gives a half-second head start);
+  // a runner out of room turns and dashes back past. After a few seconds both sit to catch
+  // their breath. Crabs are slow, so they get tagged a lot and then chase dogs they cannot catch.
+  const CHASE_ODDS = {           // chaser -> runner: how likely each pairing is picked
+    dog: { cat: 3, dog: 2, crab: 1 },
+    cat: { dog: 1, cat: 1, crab: 1 },
+    crab: { dog: 1, cat: 1, crab: 1 }
+  };
+  const CHASE_BOOST = 2.3;       // how much faster than a stroll
+  const CHASER_EDGE = 1.15;      // the chaser is a touch faster, so it gains
+
+  function startChase(chaser, runner, now) {
+    const until = now + 4000 + Math.random() * 4000;
+    [chaser, runner].forEach(p => { p.state = 'chase'; p.until = until; p.targetX = null; p.partner = null; p.greeting = false; });
+    chaser.chase = { other: runner, role: 'chaser', waitUntil: 0 };
+    runner.chase = { other: chaser, role: 'runner', runDir: runner.x >= chaser.x ? 1 : -1 };
+    const kinds = chaser.pet.kind + '>' + runner.pet.kind;
+    const lines = kinds === 'dog>cat' ? CHASE_LINES_DOG_CAT : chaser.pet.kind === 'crab' && runner.pet.kind !== 'crab' ? CHASE_LINES_CRAB_CHASER
+      : runner.pet.kind === 'crab' && chaser.pet.kind !== 'crab' ? CHASE_LINES_CRAB_RUNNER : CHASE_LINES;
+    petJournal(randomFrom(lines).split('{a}').join(chaser.pet.name).split('{b}').join(runner.pet.name));
+  }
+
+  function endChase(a, now) {
+    [a, a.chase && a.chase.other].forEach(p => {
+      if (!p || p.state !== 'chase') return;
+      p.chase = null; p.state = 'sit'; p.targetX = null;
+      p.until = now + 2000 + Math.random() * 3000;
+    });
+  }
+
+  function runChase(a, dt, now, lo, hi) {
+    const c = a.chase, o = c.other;
+    if (!petActors.includes(o) || o.state !== 'chase' || now >= a.until) { endChase(a, now); return; }
+    const speed = PET_KINDS[a.pet.kind].speed * (0.7 + 0.3 * personScale()) * CHASE_BOOST * (c.role === 'chaser' ? CHASER_EDGE : 1);
+    if (c.role === 'chaser') {
+      if (now < c.waitUntil) return;                   // counting to one, fairly
+      const dx = o.x - a.x;
+      a.dir = dx >= 0 ? 1 : -1;
+      if (Math.abs(dx) < 12 * petScale()) {            // tag, you're it
+        a.chase = { other: o, role: 'runner', runDir: -a.dir };
+        o.chase = { other: a, role: 'chaser', waitUntil: now + 500 };
+        return;
+      }
+    } else {
+      if (a.x <= lo) c.runDir = 1;                     // out of room: turn and dash back past
+      if (a.x >= hi) c.runDir = -1;
+      a.dir = c.runDir;
+    }
+    a.x = Math.max(lo, Math.min(hi, a.x + a.dir * speed * dt));
+  }
+
+  // Pick a chaser and a runner from the pets who are free, weighted by CHASE_ODDS.
+  function maybeStartChase(now, night) {
+    if (night) return;
+    const idle = petActors.filter(a => (a.state === 'wander' || a.state === 'sit') && !a.partner && !a.greeting);
+    const running = petActors.filter(a => a.state === 'chase').length / 2;
+    if (idle.length < 2 || running >= 1 + Math.floor(petActors.length / 5)) return;
+    if (Math.random() >= 0.00025 * (idle.length - 1)) return;   // per frame: more pets, more chases
+    const pairs = [];
+    idle.forEach(c => idle.forEach(r => { if (c !== r) pairs.push([c, r, CHASE_ODDS[c.pet.kind][r.pet.kind]]); }));
+    let pick = Math.random() * pairs.reduce((sum, p) => sum + p[2], 0);
+    const pair = pairs.find(p => (pick -= p[2]) < 0) || pairs[0];
+    startChase(pair[0], pair[1], now);
+  }
+
   function updatePets(dt, now) {
     if (!petActors.length) return;
     const [lo, hi] = petBounds();
     const night = state.clock.night;
     petActors.forEach(a => {
       const info = PET_KINDS[a.pet.kind];
+      if (a.state === 'chase') { runChase(a, dt, now, lo, hi); return; }
       if (a.state === 'wander') {
         const speed = info.speed * (0.7 + 0.3 * personScale());
         if (a.targetX === null) a.targetX = openSpot(a);
@@ -1222,6 +1300,7 @@
       a.targetX = meet - 10 * petScale(); b.targetX = meet + 10 * petScale();
       petJournal(randomFrom(PET_PLAY_LINES).split('{a}').join(a.pet.name).split('{b}').join(b.pet.name));
     }
+    maybeStartChase(now, night);
     petActors.forEach(renderPet);
   }
 
