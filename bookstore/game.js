@@ -1070,6 +1070,7 @@
     const side = randomFrom(Scenes.sidesFor(state.building, state.view));
     const onSameSide = customers.filter(c => c.side === side).length;
     const stops = Scenes.stopsFor(state.building, state.view);
+    const door = Scenes.doorFor(state.building, state.view);
     const gap = 38 * personScale();                  // bigger people stand further apart
     const look = randomFrom(CUSTOMER_LOOKS);
     const c = {
@@ -1078,7 +1079,11 @@
       companion: look.companion ? { kind: look.companion.kind, color: randomFrom(look.companion.colors), small: !!look.companion.small, carried: !!look.companion.carried } : null,
       side,
       x: side === 'left' ? -40 * personScale() : Scenes.VIEW.width + 40 * personScale(),
-      stopX: side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap),
+      // With a door out front, everyone walks all the way up to it and goes inside.
+      // Without one (the outdoor shelves of stages one and two), they stop and browse
+      // on the sidewalk, queued a little further out per person already standing there.
+      stopX: door ? door.x : (side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap)),
+      door,
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0
@@ -1156,6 +1161,13 @@
     if (!el) return;
     const scale = customerScale(c);
     el.setAttribute('transform', `translate(${c.x} ${Scenes.GROUND_Y - bob}) scale(${c.dir * scale} ${scale})`);
+  }
+
+  // Hides a customer while they're inside browsing out of sight, and brings them back
+  // when they come back out to leave.
+  function setCustomerVisible(c, visible) {
+    const el = document.getElementById(c.id);
+    if (el) el.style.display = visible ? '' : 'none';
   }
 
   // ---- Pets out and about ----
@@ -1710,16 +1722,29 @@
         moveCustomerElement(c, bob());
         if (arrived) {
           c.x = c.stopX;
-          c.state = 'browsing';
-          c.browseUntil = now + 1800 + Math.random() * 1800;
+          if (c.door) {
+            // A shop with a door: stand a beat at the threshold, then go inside out of sight.
+            c.state = 'entering';
+            c.browseUntil = now + 500;
+          } else {
+            c.state = 'browsing';
+            c.browseUntil = now + 1800 + Math.random() * 1800;
+          }
           if (c.companion) redrawCustomer(c);
           moveCustomerElement(c, 0);
         }
-      } else if (c.state === 'browsing') {
+      } else if (c.state === 'entering') {
+        if (now >= c.browseUntil) {
+          c.state = 'inside';
+          c.browseUntil = now + 1800 + Math.random() * 1800;
+          setCustomerVisible(c, false);
+        }
+      } else if (c.state === 'browsing' || c.state === 'inside') {
         if (now >= c.browseUntil) {
           completeVisit(c);
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
+          if (c.door) setCustomerVisible(c, true);
           if (c.companion) redrawCustomer(c);
         }
       } else if (c.state === 'leaving') {
