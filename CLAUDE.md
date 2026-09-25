@@ -37,6 +37,8 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
   is called Autumn (never Fall), the town's main road is the high street (never Main
   Street), and the shop is a bookshop (never a bookstore). Keep those three; Americanize
   everything else.
+- Always use the Oxford comma in lists of three or more ("Biscuit, Otis, and Mabel"), on the
+  site, in the game, and in commit and PR descriptions.
 - Git identity to use here (set locally, not globally): Alanna Dent
   <55811081+AlannaDent@users.noreply.github.com>. This is GitHub's no-reply address, so
   public commits show my name but not my real email.
