@@ -1878,6 +1878,13 @@ const Scenes = (function () {
     if (view === 'inside' && b.interior) return ['left', 'right'];
     return b.sides || ['left', 'right'];
   }
+  // The front door, for buildings a customer can walk up and into (stage three on).
+  // Undefined from the inside view, or for a building with no door of its own.
+  function doorFor(buildingId, view) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    if (view === 'inside') return null;
+    return b.door || null;
+  }
   // How big people are drawn in this view. 1 is the size that suits a house.
   function personScaleFor(buildingId, view) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
@@ -1902,5 +1909,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();
