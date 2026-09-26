@@ -547,7 +547,8 @@ const Scenes = (function () {
   // stylesheet only in its season. grassy: whether wildflowers make sense here.
   // edgeX: where the ground ends, for a scene that drops away (the cliff). Drifts centered
   // past it are left out; render also clips the whole layer to the ground.
-  function seasonalLayer(grassy, edgeX = 800) {
+  // path: [top, bottom] of a path across the scene that flowers shouldn't grow on.
+  function seasonalLayer(grassy, edgeX = 800, path = null) {
     let seed = 41;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     let leaves = '';
@@ -565,6 +566,7 @@ const Scenes = (function () {
       const petals = ['#d98c9c', '#e8c46a', '#ffffff', '#9b7f9c', '#b6413a'];
       for (let i = 0; i < 26; i++) {
         const x = rnd() * 800, y = 380 + rnd() * 50;
+        if (path && y > path[0] && y < path[1] + 6) continue;
         flowers += `<line x1="${x.toFixed(0)}" y1="${y.toFixed(0)}" x2="${x.toFixed(0)}" y2="${(y - 6).toFixed(0)}" stroke="#4f7a4a" stroke-width="1"/><circle cx="${x.toFixed(0)}" cy="${(y - 7).toFixed(0)}" r="2.2" fill="${petals[i % 5]}"/>`;
       }
     }
@@ -595,6 +597,8 @@ const Scenes = (function () {
   const GROUND = {
     cliff: { outline: '0,330 660,330 690,450 0,450', edgeX: 670 }
   };
+  // Scenes with a path people walk along: its top and bottom, kept clear of flowers.
+  const PATHS = { green: [393, 423] };
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -1004,7 +1008,39 @@ const Scenes = (function () {
 
   // ---- Stage four places ----
 
-  // The town green: old trees, a fence, a path. The church stands here.
+  // A churchyard stone, its bottom center at (x, y), h tall, leaning a few degrees.
+  // kind: 'round' (the classic curved top), 'shoulder' (a tablet with scalloped
+  // shoulders), 'cross', 'celtic' (a cross with a ring) or 'obelisk'.
+  function headstone(kind, x, y, h, lean) {
+    const w = h * 0.62;
+    let shape;
+    if (kind === 'round') shape = `<path d="M${-w / 2} 0 V${-h + w / 2} A${w / 2} ${w / 2} 0 0 1 ${w / 2} ${-h + w / 2} V0 Z"/>`;
+    else if (kind === 'shoulder') shape = `<path d="M${-w / 2} 0 V${-h * 0.8} Q${-w / 2} ${-h * 0.92} ${-w * 0.28} ${-h * 0.88} Q0 ${-h * 1.1} ${w * 0.28} ${-h * 0.88} Q${w / 2} ${-h * 0.92} ${w / 2} ${-h * 0.8} V0 Z"/>`;
+    else if (kind === 'obelisk') shape = `<path d="M${-w * 0.3} -4 L${-w * 0.2} ${-h * 0.88} L0 ${-h} L${w * 0.2} ${-h * 0.88} L${w * 0.3} -4 Z"/><rect x="${-w / 2}" y="-5" width="${w}" height="5"/>`;
+    else {   // cross or celtic
+      const arm = w * 0.8;
+      shape = `<path d="M-2.6 -3 V${-h * 0.62} H${-arm / 2} V${-h * 0.76} H-2.6 V${-h} H2.6 V${-h * 0.76} H${arm / 2} V${-h * 0.62} H2.6 V-3 Z"/><rect x="-6" y="-3" width="12" height="3"/>`;
+      if (kind === 'celtic') shape += `<circle cx="0" cy="${-h * 0.69}" r="${arm * 0.3}" fill="none" stroke="#9a968c" stroke-width="2"/>`;
+    }
+    const lines = kind === 'round' || kind === 'shoulder'
+      ? `<g stroke="#7d7a72" stroke-width="0.8" opacity="0.7"><line x1="${-w * 0.25}" y1="${-h * 0.62}" x2="${w * 0.25}" y2="${-h * 0.62}"/><line x1="${-w * 0.18}" y1="${-h * 0.5}" x2="${w * 0.18}" y2="${-h * 0.5}"/></g>` : '';
+    return `<g transform="translate(${x} ${y}) rotate(${lean})"><g fill="#a8a49a" stroke="#7d7a72" stroke-width="0.8">${shape}</g>${lines}<ellipse cx="${-w * 0.2}" cy="-1" rx="${w * 0.3}" ry="2" fill="#6f8f5a" opacity="0.7"/></g>`;
+  }
+  // A little family mausoleum: a stone temple with two columns, a pediment and an iron
+  // gate, ivy climbing one corner. (x, y) is the middle of its bottom step.
+  function mausoleum(x, y) {
+    let s = `<rect x="${x - 34}" y="${y - 6}" width="68" height="6" fill="#a8a49a" stroke="#7d7a72" stroke-width="0.8"/><rect x="${x - 30}" y="${y - 10}" width="60" height="4" fill="#b8b3a7" stroke="#7d7a72" stroke-width="0.8"/>`;
+    s += `<rect x="${x - 27}" y="${y - 42}" width="54" height="32" fill="#b8b3a7" stroke="#7d7a72" stroke-width="0.8"/>`;
+    s += `<g fill="#cfcabe" stroke="#9a968c" stroke-width="0.6"><rect x="${x - 25}" y="${y - 40}" width="7" height="30"/><rect x="${x + 18}" y="${y - 40}" width="7" height="30"/></g>`;
+    s += `<path d="M${x - 10} ${y - 10} v-18 a10 10 0 0 1 20 0 v18 z" fill="#3a3f44"/><g stroke="#8a8f94" stroke-width="1">${[-6, -2, 2, 6].map(d => `<line x1="${x + d}" y1="${y - 36}" x2="${x + d}" y2="${y - 10}"/>`).join('')}</g>`;
+    s += `<rect x="${x - 31}" y="${y - 48}" width="62" height="6" fill="#a8a49a" stroke="#7d7a72" stroke-width="0.8"/>`;
+    s += `<polygon points="${x - 33},${y - 48} ${x},${y - 66} ${x + 33},${y - 48}" fill="#a8a49a" stroke="#7d7a72" stroke-width="0.8"/><circle cx="${x}" cy="${y - 55}" r="3" fill="none" stroke="#7d7a72" stroke-width="0.8"/>`;
+    s += `<g fill="#6f8f5a">${[[-30, -8, 5], [-27, -16, 4.5], [-31, -24, 4], [-26, -31, 3.5], [-22, -12, 3.5]].map(([dx, dy, r]) => `<circle cx="${x + dx}" cy="${y + dy}" r="${r}"/>`).join('')}</g>`;
+    return s;
+  }
+
+  // The town green: old trees, a small churchyard behind the fence, and a path along the
+  // fence where people walk. The church stands here.
   function green() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += cloud(140, 70, 55) + cloud(660, 95, 60);
@@ -1016,7 +1052,12 @@ const Scenes = (function () {
       s += `<g class="leaf" fill="#6f9556"><circle cx="${cx}" cy="${cy}" r="72"/><circle cx="${cx - 45}" cy="${cy + 40}" r="46"/><circle cx="${cx + 48}" cy="${cy + 30}" r="52"/></g>`;
       s += `<g class="leaf alt" fill="#7fa563"><circle cx="${cx - 10}" cy="${cy - 22}" r="40"/><circle cx="${cx + 36}" cy="${cy}" r="28"/></g>`;
     });
-    s += `<polygon points="370,400 430,400 470,450 330,450" fill="#d5c7a2"/>`;
+    // the churchyard: a mausoleum at the back and stones of all sorts, older ones leaning
+    s += mausoleum(160, 358);
+    s += headstone('round', 102, 376, 22, -5) + headstone('obelisk', 206, 370, 34, 0) + headstone('shoulder', 232, 378, 20, 3);
+    s += headstone('celtic', 584, 374, 30, 2) + headstone('round', 622, 378, 18, -7) + headstone('cross', 656, 372, 28, 0) + headstone('shoulder', 694, 377, 21, 4);
+    // the path runs along the fence, where people walk
+    s += `<path d="M0 397 Q200 393 400 397 T800 397 L800 419 Q600 423 400 419 T0 419 Z" fill="#d5c7a2"/>`;
     s += picketFence(0, 330, 400) + picketFence(470, 800, 400);
     s += hydrangeas(20, 380) + hydrangeas(740, 380);
     return s;
@@ -1563,12 +1604,54 @@ const Scenes = (function () {
     if (style.props) s += style.props();
     return s;
   }
-  // Things in front of the books: the counter with the name plate, and the lamp.
+  // Things in front of the books: the counter (or the style's own desk) with the name
+  // plate, the lamp, and anything the style puts in the very front of the picture.
   function interiorFront(style, signSize) {
-    let s = counter(style.counterWood, style.counterTop);
+    let s = style.desk ? style.desk() : counter(style.counterWood, style.counterTop);
     s += signBoard(575, 356, 120, 16, signSize);
     if (style.lamp) s += style.lamp();
+    if (style.front) s += style.front();
     return s;
+  }
+
+  // The church's old altar, now the shop desk: a carved oak table on a stone step, dressed
+  // in white linen with a gold-fringed red cloth hanging at each end, brass candlesticks,
+  // the till, and an open ledger on the little stand where the big Bible used to sit.
+  // Same footprint as the counter, so the name plate sits across its front.
+  function altarDesk() {
+    let s = `<rect x="544" y="394" width="182" height="8" fill="#a39a8a" stroke="#7d766c" stroke-width="1"/>`;
+    s += `<rect x="560" y="338" width="150" height="56" fill="#5b4332" stroke="#3d2a22" stroke-width="1"/>`;
+    s += `<g fill="#4a3526" stroke="#3d2a22" stroke-width="0.8">${[580, 604, 628, 652, 676].map(x => `<path d="M${x} 392 v-10 q7 -11 14 0 v10 z"/>`).join('')}</g>`;
+    s += `<rect x="552" y="330" width="166" height="9" rx="1" fill="#f4efe4" stroke="#c9c3b6" stroke-width="1"/>`;
+    [558, 696].forEach(x => {
+      s += `<rect x="${x - 2}" y="338" width="20" height="38" fill="#f4efe4" stroke="#c9c3b6" stroke-width="0.8"/>`;
+      s += `<path d="M${x} 338 h16 v30 l-8 5 l-8 -5 z" fill="#a5443a"/>`;
+      s += `<path d="M${x} 368 l8 5 l8 -5" stroke="#d9a441" stroke-width="1.6" fill="none"/>`;
+      s += `<g stroke="#d9a441" stroke-width="1.3"><line x1="${x + 8}" y1="344" x2="${x + 8}" y2="358"/><line x1="${x + 4}" y1="348" x2="${x + 12}" y2="348"/></g>`;
+    });
+    [568, 702].forEach(x => {
+      s += `<ellipse cx="${x}" cy="329" rx="6" ry="2" fill="#b08a3a"/><rect x="${x - 1.5}" y="314" width="3" height="15" fill="#c9a24a"/><ellipse cx="${x}" cy="314" rx="4" ry="1.5" fill="#b08a3a"/>`;
+      s += `<rect x="${x - 2.5}" y="296" width="5" height="18" fill="#f4efe4"/><ellipse cx="${x}" cy="292" rx="2.5" ry="4" fill="#f2c46a"/>`;
+    });
+    s += `<rect x="596" y="312" width="32" height="18" rx="2" fill="#8a6a2a"/><rect x="600" y="304" width="24" height="9" rx="2" fill="#d9a441"/><rect x="603" y="316" width="18" height="4" fill="#5a4220"/>`;
+    s += `<rect x="662" y="318" width="4" height="12" fill="#6b4a36"/><path d="M648 318 l16 -6 l16 6 v3 l-16 -5 l-16 5 z" fill="#f4efe4" stroke="#8a8070" stroke-width="0.7"/><line x1="664" y1="312" x2="664" y2="316" stroke="#a5443a" stroke-width="1.2"/>`;
+    return s;
+  }
+  // Pew backs across the very front of the picture, as if we were sitting a few rows back:
+  // two banks with the aisle between them, cut off by the bottom edge. They sit below
+  // where people's feet touch the floor, so nobody walks behind them.
+  function pews() {
+    return [[-10, 338], [462, 810]].map(([x1, x2]) => {
+      let p = `<rect x="${x1}" y="421" width="${x2 - x1}" height="30" fill="#6b4a36"/>`;
+      p += `<g stroke="#4a3024" stroke-width="1.2" opacity="0.5">${Array.from({ length: Math.floor((x2 - x1) / 46) }, (_, i) => `<line x1="${x1 + 23 + i * 46}" y1="426" x2="${x1 + 23 + i * 46}" y2="450"/>`).join('')}</g>`;
+      p += `<rect x="${x1}" y="415" width="${x2 - x1}" height="7" rx="3" fill="#4a3024"/>`;
+      // the carved end panel on the aisle side, with a rounded top
+      const ex = x1 < 0 ? x2 - 14 : x1;
+      p += `<path d="M${ex} 450 V412 a7 7 0 0 1 14 0 V450 z" fill="#5a3e2c" stroke="#3d2a22" stroke-width="1"/><circle cx="${ex + 7}" cy="413" r="2.2" fill="#3d2a22" opacity="0.5"/>`;
+      return p;
+    }).join('') +
+      // a hymnal left on each rail
+      `<g><rect x="96" y="409" width="20" height="6" rx="1" fill="#2b3f5c"/><rect x="98" y="410" width="16" height="1.2" fill="#d9a441"/></g><g><rect x="640" y="409" width="18" height="6" rx="1" fill="#a5443a"/><rect x="642" y="410" width="14" height="1.2" fill="#d9a441"/></g>`;
   }
 
   const INTERIORS = {};
@@ -1623,6 +1706,8 @@ const Scenes = (function () {
   INTERIORS.church = {
     wall: '#d9cfb8', trim: '#8a8070', bookcase: '#4a3f36', shelfBoard: '#2b2a28',
     counterWood: '#4a3f36', counterTop: '#2b2a28',
+    desk: altarDesk,
+    front: pews,
     // stone blocks
     texture: () => hLines(0, 800, 22, 360, 22, 0.1) + `<g stroke="#000" stroke-width="1" opacity="0.08">${Array.from({ length: 16 }, (_, r) => Array.from({ length: 9 }, (_, c) => { const x = c * 100 + (r % 2) * 50; return `<line x1="${x}" y1="${r * 22}" x2="${x}" y2="${r * 22 + 22}"/>`; }).join('')).join('')}</g>`,
     floor: stoneFloor,
@@ -1688,6 +1773,7 @@ const Scenes = (function () {
     shelves: [],
     interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
     door: { x: 400, y: 350 },
+    bell: { x: 400, y: 110 },             // the bell's pivot in the belfry: where music notes rise from
     sign: { size: 11, small: 9 },
     stops: { left: 235, right: 565 },
     personScale: 1.0,
@@ -1698,9 +1784,16 @@ const Scenes = (function () {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
       s += `<rect x="250" y="205" width="300" height="195" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       s += hLines(250, 550, 214, 396, 8, 0.05);
-      s += `<polygon points="235,210 400,112 565,210" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+      // the roof, notched where the tower stands, so its sketched outline doesn't cross the belfry
+      s += `<polygon points="235,210 372,129 372,182 428,182 428,129 565,210" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="372" y="70" width="56" height="112" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
-      s += `<g fill="#3a3f44"><path d="M384 120 a8 8 0 0 1 16 0 v26 h-16 z"/><path d="M400 120 a8 8 0 0 1 16 0 v26 h-16 z"/></g>`;
+      // the belfry: one tall open arch with the bell hung in it. game.js swings
+      // .church-bell about its pivot (the yoke) to ring it.
+      const arch = 'M378 152 V122 a22 22 0 0 1 44 0 V152 z';
+      s += `<path d="${arch}" fill="#3a3f44"/><clipPath id="belfry"><path d="${arch}"/></clipPath>`;
+      s += `<g fill="#4a3024"><rect x="378" y="106" width="5" height="8"/><rect x="417" y="106" width="5" height="8"/></g>`;
+      s += `<g clip-path="url(#belfry)"><g transform="translate(400 110)"><g class="church-bell">${churchBell()}</g></g></g>`;
+      s += `<rect x="375" y="150" width="50" height="4" fill="#b5aea0"/>`;
       s += `<polygon points="366,72 400,6 434,72" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="372" y="172" width="56" height="6" fill="#b5aea0"/>`;
       s += `<circle cx="400" cy="175" r="16" fill="#dfe8ea" stroke="#5a5f66" stroke-width="3"/><circle cx="400" cy="175" r="10" fill="#d9a441" opacity="0.8"/>`;
@@ -1717,6 +1810,19 @@ const Scenes = (function () {
     },
     front() { return ''; }
   };
+
+  // A big old bronze bell, the kind that rang across a New England town: a wooden yoke,
+  // a flared lip, a band round the waist, and the clapper just showing. Drawn about its
+  // pivot at (0, 0), at the middle of the yoke.
+  function churchBell() {
+    return `<rect x="-18" y="-4" width="36" height="6" rx="1.5" fill="#6b4a36" stroke="#4a3024" stroke-width="0.8"/>
+      <rect x="-3.5" y="1" width="7" height="4" fill="#7a5a2a"/>
+      <path d="M-8 4 C-11.5 5 -12.5 9 -12.5 15 L-13.5 26 Q-14.5 31 -18.5 33 L18.5 33 Q14.5 31 13.5 26 L12.5 15 C12.5 9 11.5 5 8 4 Z" fill="#b08a3a" stroke="#6e5220" stroke-width="1"/>
+      <line x1="-12" y1="18" x2="12" y2="18" stroke="#8a6a2a" stroke-width="1"/>
+      <path d="M-7 8 C-9 12 -9.5 20 -10.5 28" stroke="#e6c886" stroke-width="2" opacity="0.6" fill="none"/>
+      <rect x="-19" y="32" width="38" height="3" rx="1.5" fill="#8a6a2a"/>
+      <circle cx="0" cy="36.5" r="2.6" fill="#5a4220"/>`;
+  }
 
   BUILDINGS.lighthouse = {
     id: 'lighthouse',
@@ -1860,7 +1966,7 @@ const Scenes = (function () {
         ${near ? painted('backdrop-near', near) : ''}
         ${GROUND[locId]
           ? `<clipPath id="ground-only"><polygon points="${GROUND[locId].outline}"/></clipPath><g clip-path="url(#ground-only)">${painted('seasonal', seasonalLayer(GRASSY.includes(locId), GROUND[locId].edgeX))}</g>`
-          : painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
+          : painted('seasonal', seasonalLayer(GRASSY.includes(locId), 800, PATHS[locId]))}
         ${painted('building', bldg)}
         <g class="books"></g>
         ${painted('front', front)}

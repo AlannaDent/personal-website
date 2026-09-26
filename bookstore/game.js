@@ -888,6 +888,41 @@
     beam.setAttribute('opacity', beamStrength.toFixed(2));
   }
 
+  // ---- The church bell ----
+  // Rung at the start and the end of each day (Begin Day, and closing time). The bell
+  // swings side to side, slowing for the last second, and music notes drift up out of the
+  // belfry. No sound yet. Only the church has a bell; elsewhere this does nothing.
+  const BELL_RING_MS = 5200, BELL_SWING_MS = 1100, BELL_SWING_DEG = 22;
+  let bellRingUntil = 0, nextBellNoteAt = 0, bellAngle = 0;
+  function ringBell() { bellRingUntil = performance.now() + BELL_RING_MS; }
+  function swingBell(now) {
+    const bells = $('scene').querySelectorAll('svg .church-bell');
+    const left = bellRingUntil - now;
+    const angle = left > 0 && bells.length
+      ? BELL_SWING_DEG * Math.min(1, left / 1000) * Math.sin(((BELL_RING_MS - left) / BELL_SWING_MS) * Math.PI * 2) : 0;
+    if (angle !== bellAngle) bells.forEach(b => b.setAttribute('transform', `rotate(${angle.toFixed(1)})`));
+    bellAngle = angle;
+    if (left > 600 && bells.length && now >= nextBellNoteAt) {
+      bellNote();
+      nextBellNoteAt = now + 380 + Math.random() * 320;
+    }
+  }
+  // One note (a quaver, or two joined by a beam) floating up and away from the belfry.
+  function bellNote() {
+    const group = $('scene').querySelector('svg .effects');
+    const bell = (Scenes.BUILDINGS[state.building] || {}).bell;
+    if (!group || !bell) return;
+    const x = bell.x + (Math.random() - 0.5) * 30, y = bell.y + 10;
+    const drift = (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 30);
+    const color = randomFrom(['#2b3f5c', '#a5443a', '#4f7a4a', '#8a6a2a']);
+    const note = Math.random() < 0.6
+      ? `<ellipse cx="0" cy="0" rx="3.4" ry="2.5" transform="rotate(-20)" fill="${color}"/><line x1="3" y1="-1" x2="3" y2="-13" stroke="${color}" stroke-width="1.3"/><path d="M3 -13 q5 2 5 7 q-1 -3 -5 -4" fill="${color}"/>`
+      : `<ellipse cx="0" cy="0" rx="3.4" ry="2.5" transform="rotate(-20)" fill="${color}"/><ellipse cx="10" cy="-2" rx="3.4" ry="2.5" transform="rotate(-20 10 -2)" fill="${color}"/><line x1="3" y1="-1" x2="3" y2="-13" stroke="${color}" stroke-width="1.3"/><line x1="13" y1="-3" x2="13" y2="-15" stroke="${color}" stroke-width="1.3"/><polygon points="3,-13 13,-15 13,-12 3,-10" fill="${color}"/>`;
+    group.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${y})"><g class="bell-note" style="--drift: ${drift.toFixed(0)}px">${note}</g></g>`);
+    const el = group.lastElementChild;
+    setTimeout(() => el.remove(), 2400);
+  }
+
   // The sun climbs from the left horizon at sunrise, arcs over the shop and drops behind
   // the right horizon at dusk; the moon rises as it goes and hangs high all night. Winter's
   // arc is lower than summer's. The horizon line here sits behind the hills, water and
@@ -973,6 +1008,7 @@
   // Closing time: the shop empties and the clock stops.
   function nightfall(now) {
     state.clock.night = true;
+    ringBell();
     customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
     customers = [];
     addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(NIGHT_LINES[seasonName()])}`);
@@ -1002,6 +1038,7 @@
     c.night = false;
     c.ms = 0;
     c.day += 1;
+    ringBell();
     bumpLifetime(life => { life.daysPlayed += 1; });
     if (c.day > DAYS_PER_SEASON) {
       c.day = 1;
@@ -2089,6 +2126,7 @@
     updateExtras(dt, now);
     updateWildlife(dt, now);
     turnBeam(now);
+    swingBell(now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
