@@ -127,13 +127,14 @@
   ];
   // Wall decor: hangs on the wall beside the bookcase, inside, from stage three on. It never
   // stands on the floor, and nothing else hangs on the wall. "a" is how the journal says it.
+  // Late-game treats, so priced above every plant and piece of indoor furniture.
   const WALL_ITEMS = [
-    { kind: 'starfish', name: 'Starfish', a: 'a starfish', price: 8, meta: 'dried in the sun, no frame', line: 'Bright orange and a little crunchy. Tacked it up. It looks pleased about it, somehow.' },
-    { kind: 'bass', name: 'Wall Bass', a: 'a wall bass', price: 18, meta: 'sings, allegedly', line: 'A fish on a plaque with a red button. Pressed the button. It sang. Regretted it. Pressed it again.' },
-    { kind: 'starry', name: 'Starfishy Night', a: 'a painting called Starfishy Night', price: 30, meta: 'oil on canvas, look closely', line: 'Looks very famous from across the room. Up close, every star is a tiny starfish.' },
-    { kind: 'sunset', name: 'Sunset Painting', a: 'a sunset painting', price: 22, meta: 'oil on canvas', line: 'The sun going down over the water, in oils. Customers keep checking the window to compare.' },
-    { kind: 'sunflowers', name: 'Sunflowery Painting', a: 'a sunflowery painting', price: 26, meta: 'painted thick, in the Dutch manner', line: 'Sunflowers in a vase, the paint so thick you could almost pick one. Brightens the foggiest day.' },
-    { kind: 'portrait', name: 'Family Portrait', a: 'the family portrait', price: 34, meta: 'every pet, painted from life', line: 'Nobody sat still. The painter managed anyway, and will add anyone new.' }
+    { kind: 'starfish', name: 'Starfish', a: 'a starfish', price: 30, meta: 'dried in the sun, no frame', line: 'Bright orange and a little crunchy. Tacked it up. It looks pleased about it, somehow.' },
+    { kind: 'bass', name: 'Wall Bass', a: 'a wall bass', price: 45, meta: 'sings, allegedly', line: 'A fish on a plaque with a red button. Pressed the button. It sang. Regretted it. Pressed it again.' },
+    { kind: 'starry', name: 'Starfishy Night', a: 'a painting called Starfishy Night', price: 80, meta: 'oil on canvas, look closely', line: 'Looks very famous from across the room. Up close, every star is a tiny starfish.' },
+    { kind: 'sunset', name: 'Sunset Painting', a: 'a sunset painting', price: 60, meta: 'oil on canvas', line: 'The sun going down over the water, in oils. Customers keep checking the window to compare.' },
+    { kind: 'sunflowers', name: 'Sunflowery Painting', a: 'a sunflowery painting', price: 70, meta: 'painted thick, in the Dutch manner', line: 'Sunflowers in a vase, the paint so thick you could almost pick one. Brightens the foggiest day.' },
+    { kind: 'portrait', name: 'Family Portrait', a: 'the family portrait', price: 95, meta: 'every pet, painted from life', line: 'Nobody sat still. The painter managed anyway, and will add anyone new.' }
   ];
   const DECOR_ITEMS = PAINTS.map(p => ({ kind: 'paint', name: `${p.name} paint`, color: p.color, colorName: p.name, price: 12 })).concat(
     PAINTS.map(p => ({ kind: 'shingles', name: `${p.name} shingles`, color: p.color, colorName: p.name, price: 14 })),
