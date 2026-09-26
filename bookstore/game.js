@@ -866,7 +866,26 @@
     // Lamps come on with the shop's windows: a glow, and warm glass. Inside too.
     svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
     svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
+    beamStrength = 0.22 + 0.63 * Math.min(1, glowOpacity / 0.8);   // the lighthouse: faint by day, bright at night
     moveSkyBodies(svg, t);
+  }
+
+  // ---- The lighthouse's light ----
+  // The lens makes one full turn every BEAM_TURN_MS. Seen from the side, cos is how far the
+  // beam reaches out (negative is to the left) and sin is how much it faces us: the lamp
+  // flashes as it sweeps past, and the beam is a little fainter while it points out to sea.
+  const BEAM_TURN_MS = 9000;
+  let beamStrength = 0.22;
+  function turnBeam(now) {
+    const beam = $('scene').querySelector('svg .lighthouse-beam');
+    if (!beam) return;
+    const angle = (now / BEAM_TURN_MS) * Math.PI * 2;
+    const reach = Math.cos(angle), facing = Math.sin(angle);
+    const sweep = beam.querySelector('.beam-sweep');
+    sweep.setAttribute('transform', `scale(${reach.toFixed(3)} 1)`);
+    sweep.setAttribute('opacity', (0.65 + 0.35 * facing).toFixed(2));
+    beam.querySelector('.beam-flash').setAttribute('opacity', Math.pow(Math.max(0, facing), 6).toFixed(2));
+    beam.setAttribute('opacity', beamStrength.toFixed(2));
   }
 
   // The sun climbs from the left horizon at sunrise, arcs over the shop and drops behind
@@ -1230,7 +1249,16 @@
   // when they come back out to leave.
   function setCustomerVisible(c, visible) {
     const el = document.getElementById(c.id);
-    if (el) el.style.display = visible ? '' : 'none';
+    if (!el) return;
+    el.style.display = visible ? '' : 'none';
+    el.style.opacity = '';
+  }
+  // Stepping through the door: fade out over the beat spent on the threshold.
+  function fadeIntoDoor(c) {
+    const el = document.getElementById(c.id);
+    if (!el) return;
+    el.style.transition = 'opacity 0.5s ease-in';
+    el.style.opacity = '0';
   }
 
   // ---- Customers stopping for a moment ----
@@ -1283,9 +1311,15 @@
   // Someone standing where another customer could walk up to them: out in the open and not
   // already stopped for something else.
   const approachable = (o) => (o.state === 'arriving' || o.state === 'browsing' || o.state === 'leaving') && !o.busy;
+  // A shop with only one way in (the lighthouse, with the cliff on the other side) has
+  // everyone coming and going along the same strip of path. There, people on their way in
+  // walk straight to the door and save the chats and the pets for the way out; otherwise
+  // the arrivals and the leavers stop each other and pile up by the fence.
+  const oneWayIn = () => Scenes.sidesFor(state.building, state.view).length === 1 && !!Scenes.doorFor(state.building, state.view);
+  const headingStraightIn = (c) => c.state === 'arriving' && oneWayIn();
   function maybeMeet(c, now) {
     for (const o of customers) {
-      if (o === c || c.met.has(o.id) || !approachable(o)) continue;
+      if (o === c || c.met.has(o.id) || !approachable(o) || headingStraightIn(o)) continue;
       if (o.companion && maybePetVisitorPet(c, o, now)) return true;
       if (maybeChat(c, o, now)) return true;
     }
@@ -1525,7 +1559,7 @@
   // 'play' (with another pet). Nothing here is saved; pets pick up where they like.
   let petActors = [];
   const petScale = () => personScale() * 0.9;
-  function petBounds() { return state.view === 'inside' ? [150, 650] : [70, 730]; }
+  function petBounds() { return state.view === 'inside' ? [150, 650] : Scenes.petRangeFor(state.building); }
   // A crowd of pets: past four, everyone is drawn a little smaller (three-quarters at twelve)
   // and some stand a row further back, so they overlap like a crowd rather than pile up.
   const CROWD_FROM = 4;
@@ -2054,6 +2088,7 @@
     updateWeather(dt, now);
     updateExtras(dt, now);
     updateWildlife(dt, now);
+    turnBeam(now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
@@ -2068,7 +2103,7 @@
       const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
       const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
       if (c.busy) { runBusy(c, now); return; }
-      if (walking(c) && !state.clock.night && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
+      if (walking(c) && !state.clock.night && !headingStraightIn(c) && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
       if (c.state === 'arriving') {
         c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
@@ -2085,6 +2120,7 @@
           }
           if (c.companion) redrawCustomer(c);
           moveCustomerElement(c, 0);
+          if (c.door) fadeIntoDoor(c);
         }
       } else if (c.state === 'entering') {
         if (now >= c.browseUntil) {

@@ -1018,7 +1018,6 @@ const Scenes = (function () {
   function cliff() {
     let s = `<rect width="800" height="450" fill="url(#sky)"/>`;
     s += `<g fill="#e8b4a0" opacity="0.55"><ellipse cx="180" cy="120" rx="120" ry="14"/><ellipse cx="560" cy="80" rx="150" ry="12"/><ellipse cx="660" cy="150" rx="110" ry="10"/></g>`;
-    s += `<circle cx="690" cy="215" r="26" fill="#f6d9a8" opacity="0.9"/>`;
     s += `<rect x="0" y="236" width="800" height="214" fill="#5f6f95"/>`;
     s += `<g class="waves" stroke="#c9a9b4" stroke-width="2" opacity="0.7"><line x1="600" y1="262" x2="760" y2="262"/><line x1="640" y1="280" x2="780" y2="280"/><line x1="660" y1="300" x2="800" y2="300"/><line x1="680" y1="330" x2="800" y2="330"/></g>`;
     s += `<path d="M120 246 l10 -18 l3 18 z" fill="#f4f1e8" opacity="0.9"/><rect x="117" y="246" width="18" height="3" fill="#3a3f44"/>`;
@@ -1725,13 +1724,14 @@ const Scenes = (function () {
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
     sides: ['left'],                      // the other side is the cliff
+    petRange: [70, 640],                  // the grass ends at the cliff edge, near x 676
+    beam: { x: 330, y: 88 },              // the lamp in the lantern room: its light turns
     personScale: 1.0,
     deliveryX: 110,
     decorSlots: [264, 322, 380, 500, 558, 616], legacySignX: 560, legacyPlantX: 376,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
-      s += `<polygon points="346,96 800,40 800,150" fill="#f2e6b8" opacity="0.28"/>`;
       // tower
       s += `<polygon points="292,400 368,400 352,120 308,120" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       s += `<polygon points="292,400 318,400 322,120 308,120" fill="#000" opacity="0.06"/>`;
@@ -1863,10 +1863,24 @@ const Scenes = (function () {
         <g class="customers"></g>
         <g class="weather"></g>
       </g>
+      ${building.beam ? beamLayer(building.beam) : ''}
       <rect class="season-tint" width="${VIEW.width}" height="${VIEW.height}" fill="#ffffff" opacity="0"/>
       ${daylightLayer(400, 320, 190, 110)}
       <g class="effects"></g>
     </svg>`;
+  }
+  // A lighthouse's light. The lens turns, so from the side the beam swings out one way,
+  // shortens as it points straight at us (the lamp flashes), then swings out the other way
+  // and shortens again as it points out to sea behind the tower. game.js turns it (the
+  // .beam-sweep scale and the .beam-flash opacity) and sets how strong it is for the hour.
+  // Drawn outside the night wash, so it shines out at night. Pointing right to start, so a
+  // still picture of it (the upgrade cards) looks as the lighthouse always did.
+  function beamLayer(b) {
+    return `<g class="lighthouse-beam" transform="translate(${b.x} ${b.y})" opacity="0.3">
+      <defs><linearGradient id="beamFade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff4cc" stop-opacity="0.95"/><stop offset="1" stop-color="#fff4cc" stop-opacity="0"/></linearGradient></defs>
+      <polygon class="beam-sweep" points="0,-5 520,-46 520,46 0,5" fill="url(#beamFade)"/>
+      <circle class="beam-flash" r="26" fill="url(#windowGlow)" opacity="0"/>
+    </g>`;
   }
   function renderInterior(building, wallColor) {
     const style = INTERIORS[building.id];
@@ -1932,6 +1946,12 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return b.decorSlots || [230, 300, 500, 570];
   }
+  // How far left and right the shop's pets may wander out front. Most scenes are grass or
+  // sidewalk edge to edge; the cliff drops away on the right.
+  function petRangeFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return b.petRange || [70, 730];
+  }
   // Where decor can stand inside, left to right. Empty for buildings with no interior.
   function interiorDecorSlotsFor(buildingId) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
@@ -1939,5 +1959,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, petRangeFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();
