@@ -1109,14 +1109,17 @@
       door,
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
-      browseUntil: 0
+      browseUntil: 0,
+      busy: null,                                    // stopped for a moment (see "Customers stopping")
+      met: new Set()                                 // pets and people already passed, so each is a single chance
     };
     customers.push(c);
     $('scene').querySelector('svg .customers').insertAdjacentHTML('beforeend', customerSvg(c));
   }
 
   // The person itself, feet at (0,0), facing right. Shared by customers and background people.
-  function personBody(L) {
+  // With reach set, one arm stretches down in front, to pet something.
+  function personBody(L, reach) {
     let body = `<ellipse cx="0" cy="0" rx="14" ry="3" fill="#000" opacity="0.12"/>`;
     body += `<rect x="-7" y="-26" width="6" height="26" fill="#4a4a55"/><rect x="1" y="-26" width="6" height="26" fill="#4a4a55"/>`;
     body += `<path d="M-12 -30 L12 -30 L15 -6 L-15 -6 Z" fill="${L.coat}"/>`;
@@ -1131,6 +1134,7 @@
     if (L.scarf) body += `<rect x="-10" y="-33" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="-31" width="5" height="12" fill="${L.scarf}"/>`;
     if (L.prop === 'tote') body += `<rect x="13" y="-22" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -22 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
     if (L.prop === 'basket') body += `<path d="M13 -20 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -20 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    if (reach) body += `<path d="M5 -27 Q13 -22 19 -14" stroke="${L.coat}" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="19.5" cy="-13" r="2.4" fill="#f0cfb5"/>`;
     return body;
   }
 
@@ -1150,7 +1154,7 @@
   function customerSvg(c) {
     const L = c.look;
     const scale = customerScale(c);
-    let body = personBody(L);
+    let body = personBody(L, c.busy && c.busy.reach);
     body += companionSvg(c);
     return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
   }
@@ -1168,7 +1172,7 @@
       // peeking out of the basket the girl carries
       return `<g transform="translate(20 -22) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
-    const pose = c.state === 'browsing' ? 'sit' : 'stand';
+    const pose = c.state === 'browsing' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
     return `<line x1="-13" y1="-20" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
       <g transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
@@ -1191,6 +1195,60 @@
   function setCustomerVisible(c, visible) {
     const el = document.getElementById(c.id);
     if (el) el.style.display = visible ? '' : 'none';
+  }
+
+  // ---- Customers stopping for a moment ----
+  // Now and then someone on their way in or out stops to pet one of the shop's pets.
+  // While c.busy is set they stand still (a browser keeps browsing a little longer);
+  // when it runs out they face the way they were going and carry on. Nothing is saved.
+  const PET_STOP_CHANCE = 0.25;  // passing a pet within reach: how often they stop for it
+  const walking = (c) => c.state === 'arriving' || c.state === 'leaving';
+
+  function startBusy(c, kind, until, extra) {
+    c.busy = Object.assign({ kind, until, dir: c.dir, nextFx: 0 }, extra);
+    if (c.state === 'browsing') c.browseUntil = Math.max(c.browseUntil, until + 400);
+    redrawCustomer(c);
+  }
+  function endBusy(c) {
+    c.dir = c.busy.dir;
+    c.busy = null;
+    redrawCustomer(c);
+  }
+
+  // A shop pet someone could stop for: settled, or strolling, and not already being petted.
+  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting
+    && !customers.some(o => o.busy && o.busy.pet === a);
+
+  // Walking past a pet: if one is just ahead and within arm's reach, maybe stop and pet it.
+  function maybePetShopPet(c, now) {
+    const reach = 22 * customerScale(c);
+    const a = petActors.find(p => !c.met.has(p.pet.id) && (p.x - c.x) * c.dir > 0 && Math.abs(p.x - c.x) < reach && pettable(p));
+    if (!a) return false;
+    c.met.add(a.pet.id);
+    if (Math.random() >= PET_STOP_CHANCE) return false;
+    petCustomerPet(c, a, now + 2500 + Math.random() * 2000);
+    if (Math.random() < 0.5) petJournal(`${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
+    return true;
+  }
+
+  // The customer reaches down; the pet stops where it is (a napping pet naps on) and enjoys it.
+  function petCustomerPet(c, a, until) {
+    if (a.state !== 'nap') { a.state = 'greet'; a.targetX = null; a.dir = a.x < c.x ? 1 : -1; }
+    a.until = Math.max(a.until, until);
+    c.dir = a.x >= c.x ? 1 : -1;
+    startBusy(c, 'pet', until, { pet: a, reach: true });
+  }
+
+  // Each frame while stopped: hearts over whatever is being petted, until time is up.
+  function runBusy(c, now) {
+    const b = c.busy;
+    const a = b.pet;
+    const gone = a && (!petActors.includes(a) || (a.state !== 'greet' && a.state !== 'nap'));
+    if (now >= b.until || gone) { endBusy(c); return; }
+    if (now >= b.nextFx) {
+      b.nextFx = now + 900 + Math.random() * 500;
+      if (a) floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '♥', '#d98c9c');
+    }
   }
 
   // ---- Pets out and about ----
@@ -1353,6 +1411,8 @@
             floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
             const t = a.greetTarget;
             if (t && t.companion && !t.companion.carried && t.state === 'browsing') floatText(t.x - t.dir * 24 * personScale(), Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
+            // A browser the pet came to see (rather than their dog) reaches down to pet it.
+            else if (t && t.state === 'browsing' && !t.busy && customers.includes(t)) petCustomerPet(t, a, a.until);
             a.greetTarget = null;
           }
           else if (Math.random() < (night ? 0.7 : 0.3)) { a.state = 'nap'; a.until = now + 8000 + Math.random() * 8000; if (!night && Math.random() < 0.5) petJournal(randomFrom(PET_NAP_LINES).replace('{pet}', a.pet.name)); }
@@ -1739,6 +1799,8 @@
     customers.forEach(c => {
       const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
       const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
+      if (c.busy) { runBusy(c, now); return; }
+      if (walking(c) && !state.clock.night && maybePetShopPet(c, now)) return;
       if (c.state === 'arriving') {
         c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
