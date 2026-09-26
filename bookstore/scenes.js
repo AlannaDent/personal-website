@@ -1121,7 +1121,7 @@ const Scenes = (function () {
   const INTERIOR_PERSON_SCALE = 2.0;    // about as tall as the counter is wide
   // Where decor can stand inside, left to right: four spots across the open floor between
   // the left wall's props and the counter. The same in every interior.
-  const INTERIOR_DECOR_SLOTS = [180, 285, 390, 495];
+  const INTERIOR_DECOR_SLOTS = [147, 263, 379, 495];
 
   // ---- Stage one: the Little Free Library box ----
   BUILDINGS.lfl = {
@@ -1138,7 +1138,7 @@ const Scenes = (function () {
     stops: { left: 212, right: 588 },
     personScale: 3.2,                     // a real person next to a real Little Free Library
     deliveryX: 660,                       // where the van sets boxes down
-    decorSlots: [222, 300, 500, 578],      // far left, left of the door, right, far right legacySignX: 308, legacyPlantX: 492,
+    decorSlots: [96, 282, 518, 704],       // far left, left, right, far right legacySignX: 308, legacyPlantX: 492,
     backdropOpts: {},
     draw(color) {
       return `
@@ -1178,7 +1178,7 @@ const Scenes = (function () {
     stops: { left: 240, right: 560 },
     personScale: 2.3,
     deliveryX: 620,
-    decorSlots: [232, 282, 520, 570], legacySignX: 520, legacyPlantX: 282,
+    decorSlots: [132, 265, 535, 668], legacySignX: 520, legacyPlantX: 282,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1227,7 +1227,7 @@ const Scenes = (function () {
     stops: { left: 232, right: 588 },
     personScale: 1.7,
     deliveryX: 640,
-    decorSlots: [214, 262, 560, 608], legacySignX: 560, legacyPlantX: 262,
+    decorSlots: [163, 262, 560, 659], legacySignX: 560, legacyPlantX: 262,
     backdropOpts: { boardwalkX: 590, signX: 150 },
     draw(color) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1271,7 +1271,7 @@ const Scenes = (function () {
     stops: { left: 400, right: 636 },
     personScale: 1.25,
     deliveryX: 690,
-    decorSlots: [384, 428, 604, 640], legacySignX: 604, legacyPlantX: 428,
+    decorSlots: [355, 428, 604, 677], legacySignX: 604, legacyPlantX: 428,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1347,7 +1347,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
+    decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1392,7 +1392,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
+    decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1440,7 +1440,7 @@ const Scenes = (function () {
     stops: { left: 205, right: 595 },
     personScale: 1.0,
     deliveryX: 640,
-    decorSlots: [216, 262, 310, 490, 538, 582], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
+    decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1685,7 +1685,7 @@ const Scenes = (function () {
     stops: { left: 235, right: 565 },
     personScale: 1.0,
     deliveryX: 650,
-    decorSlots: [236, 280, 325, 475, 520, 566], legacySignX: 566, legacyPlantX: 236,
+    decorSlots: [209, 267, 325, 475, 533, 591], legacySignX: 566, legacyPlantX: 236,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
@@ -1727,7 +1727,7 @@ const Scenes = (function () {
     sides: ['left'],                      // the other side is the cliff
     personScale: 1.0,
     deliveryX: 110,
-    decorSlots: [290, 335, 380, 500, 530, 560], legacySignX: 560, legacyPlantX: 376,
+    decorSlots: [264, 322, 380, 500, 558, 616], legacySignX: 560, legacyPlantX: 376,
     backdropOpts: {},
     draw(color) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
@@ -1770,7 +1770,7 @@ const Scenes = (function () {
     stops: { left: 250, right: 560 },
     personScale: 1.15,
     deliveryX: 660,
-    decorSlots: [160, 215, 270, 530, 585, 640], legacySignX: 610, legacyPlantX: 160,
+    decorSlots: [136, 203, 270, 530, 597, 664], legacySignX: 610, legacyPlantX: 160,
     backdropOpts: {},
     draw(color) {
       let s = '';
