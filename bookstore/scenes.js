@@ -1637,6 +1637,23 @@ const Scenes = (function () {
     s += `<rect x="662" y="318" width="4" height="12" fill="#6b4a36"/><path d="M648 318 l16 -6 l16 6 v3 l-16 -5 l-16 5 z" fill="#f4efe4" stroke="#8a8070" stroke-width="0.7"/><line x1="664" y1="312" x2="664" y2="316" stroke="#a5443a" stroke-width="1.2"/>`;
     return s;
   }
+  // The ship's desk: one of her old cargo barrels, stood on end with a thick plank laid
+  // across the top and the name board nailed to its front. Iron hoops, a brass tap, and on
+  // top the till, a few books, and a ship's lantern. Same footprint as the counter.
+  function barrelDesk() {
+    const cx = 635;
+    let s = `<ellipse cx="${cx}" cy="400" rx="66" ry="4" fill="#000" opacity="0.15"/>`;
+    s += `<path d="M578 338 Q564 369 578 400 L692 400 Q706 369 692 338 Z" fill="#9a6b42" stroke="#4a3024" stroke-width="1.2"/>`;
+    s += `<g stroke="#6b4a2e" stroke-width="1.2" fill="none">${[592, 606, 620, 635, 650, 664, 678].map(x => `<path d="M${x} 338 Q${(x + (x - cx) * 0.12).toFixed(1)} 369 ${x} 400"/>`).join('')}</g>`;
+    s += `<g stroke="#3a3f44" stroke-width="3.2" fill="none">${[[343, 575, 695], [351, 572, 698], [387, 572, 698], [395, 575, 695]].map(([y, l, r]) => `<path d="M${l} ${y} Q${cx} ${y + 2.5} ${r} ${y}"/>`).join('')}</g>`;
+    s += `<rect x="629" y="378" width="12" height="5" rx="1.5" fill="#c9a24a"/><rect x="633" y="383" width="4" height="5" fill="#b08a3a"/>`;
+    s += `<rect x="554" y="327" width="162" height="12" rx="3" fill="#7a5230" stroke="#4a3024" stroke-width="1"/><line x1="558" y1="330" x2="712" y2="330" stroke="#a8784a" stroke-width="1.2"/>`;
+    s += `<g fill="#3a3f44"><circle cx="562" cy="333" r="1.3"/><circle cx="708" cy="333" r="1.3"/></g>`;
+    s += `<rect x="584" y="309" width="32" height="18" rx="2" fill="#8a6a2a"/><rect x="588" y="301" width="24" height="9" rx="2" fill="#d9a441"/><rect x="591" y="313" width="18" height="4" fill="#5a4220"/>`;
+    s += `<g><rect x="634" y="319" width="30" height="8" fill="#6f8a99"/><rect x="637" y="312" width="26" height="7" fill="#b7736b"/></g>`;
+    s += `<rect x="684" y="298" width="18" height="4" fill="#3a3f44"/><rect x="686" y="302" width="14" height="22" rx="2" fill="#f2e6b8" stroke="#3a3f44" stroke-width="1.5"/><rect x="684" y="323" width="18" height="4" fill="#3a3f44"/><path d="M688 298 q5 -8 10 0" stroke="#3a3f44" stroke-width="1.5" fill="none"/>`;
+    return s;
+  }
   // Pew backs across the very front of the picture, as if we were sitting a few rows back:
   // two banks with the aisle between them, cut off by the bottom edge. They sit below
   // where people's feet touch the floor, so nobody walks behind them.
@@ -1743,6 +1760,7 @@ const Scenes = (function () {
   INTERIORS.ship = {
     wall: '#d4b990', trim: '#8a6a48', bookcase: '#b08a5a', shelfBoard: '#8a6a48',
     counterWood: '#b08a5a', counterTop: '#8a6a48',
+    desk: barrelDesk,
     texture: () => hLines(0, 800, 8, 360, 10, 0.12),
     floor: () => floorPlanks('#8a6a48', '#6b4a3a'),
     // deck beams overhead, the hull's curved ribs, and two posts
@@ -1882,11 +1900,15 @@ const Scenes = (function () {
     paint: '#4a3024',
     shelves: [],
     interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
-    door: { x: 400, y: 232 },
+    // Customers board by the gangplank: along the dock to its foot, up it to the gap in the
+    // rail, along the deck to the cabin door. Each point is [x, y, size]: they're drawn a
+    // little smaller up on deck, a step further from us. The cabin door is tall enough.
+    door: { x: 400, y: 252, route: [[700, 400, 1], [490, 252, 0.85], [400, 252, 0.85]] },
+    floats: true,                         // it rides the harbor: game.js bobs .building gently
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
     personScale: 1.15,
-    deliveryX: 660,
+    deliveryX: 752,
     decorSlots: [136, 203, 270, 530, 597, 664], legacySignX: 610, legacyPlantX: 160,
     backdropOpts: {},
     draw(color) {
@@ -1903,23 +1925,48 @@ const Scenes = (function () {
       s += `<polygon points="300,30 300,44 330,37" fill="#b6413a"/>`;
       s += `<line x1="640" y1="262" x2="730" y2="232" stroke="#7a5a3e" stroke-width="6" stroke-linecap="round"/>`;
       // hull
-      s += `<path d="M150 252 Q140 330 200 376 L600 376 Q690 330 735 240 L650 252 Z" fill="${color}" stroke="#2b2a28" stroke-width="1.5"/>`;
-      s += `<g stroke="#000" stroke-width="1" opacity="0.15"><path d="M160 290 Q180 345 230 376"/><path d="M180 290 L640 290"/><path d="M175 320 L650 320"/><path d="M190 350 L620 350"/></g>`;
+      s += `<path d="M150 252 Q140 322 200 366 L600 366 Q690 322 735 240 L650 252 Z" fill="${color}" stroke="#2b2a28" stroke-width="1.5"/>`;
+      s += `<g stroke="#000" stroke-width="1" opacity="0.15"><path d="M160 290 Q180 340 222 366"/><path d="M180 290 L640 290"/><path d="M175 320 L650 320"/><path d="M190 346 L620 346"/></g>`;
       s += `<path d="M150 252 Q140 262 152 272 L640 272 L665 250 Z" fill="#e9e2cf" opacity="0.9"/>`;
       [230, 300, 370, 440, 510, 580].forEach(x => { s += `<circle cx="${x}" cy="318" r="10" fill="#d9a441"/><circle cx="${x}" cy="318" r="7" fill="#f2e6b8"/>`; });
       // deck rail and the deckhouse with its door
-      s += `<g stroke="#e9e2cf" stroke-width="2">${[170, 210, 250, 290, 330, 470, 510, 550, 590, 630].map(x => `<line x1="${x}" y1="236" x2="${x}" y2="252"/>`).join('')}<line x1="160" y1="236" x2="640" y2="236"/></g>`;
-      s += `<rect x="340" y="200" width="120" height="52" fill="#7a5a3e" stroke="#4a3024" stroke-width="1.5"/><rect x="336" y="196" width="128" height="6" fill="#e9e2cf"/>`;
-      s += `<rect x="388" y="212" width="24" height="40" fill="#3a3f44"/><rect x="391" y="215" width="18" height="37" fill="#f2e6b8"/>`;
-      s += `<g fill="#dfe8ea" stroke="#e9e2cf" stroke-width="2"><rect x="350" y="214" width="22" height="18"/><rect x="428" y="214" width="22" height="18"/></g>`;
-      // gangplank down to the dock, and a mooring line
-      s += `<polygon points="466,250 486,250 560,400 536,400" fill="#b39a6f" stroke="#7d6b58" stroke-width="1"/><g stroke="#7d6b58" stroke-width="1.5">${[0, 1, 2, 3, 4].map(i => `<line x1="${476 + i * 14}" y1="${270 + i * 30}" x2="${490 + i * 14}" y2="${270 + i * 30}"/>`).join('')}</g>`;
-      s += `<line x1="470" y1="236" x2="548" y2="384" stroke="#c9b28a" stroke-width="2"/>`;
-      s += `<path d="M205 366 Q150 380 128 372" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
+      // deck rail, open at the gangway (x 470..510)
+      s += `<g stroke="#e9e2cf" stroke-width="2">${[170, 210, 250, 290, 330, 466, 514, 550, 590, 630].map(x => `<line x1="${x}" y1="236" x2="${x}" y2="252"/>`).join('')}<line x1="160" y1="236" x2="466" y2="236"/><line x1="514" y1="236" x2="640" y2="236"/></g>`;
+      // the cabin, its door tall enough for a customer, a window each side
+      s += `<rect x="336" y="186" width="128" height="66" fill="#7a5a3e" stroke="#4a3024" stroke-width="1.5"/><rect x="332" y="182" width="136" height="6" fill="#e9e2cf"/>`;
+      s += `<rect x="385" y="196" width="30" height="56" fill="#3a3f44"/><rect x="388" y="199" width="24" height="53" fill="#f2e6b8"/>`;
+      s += `<g fill="#b7736b" opacity="0.8">${[391, 397, 403].map((x, i) => `<rect x="${x}" y="${214 + (i % 2) * 2}" width="4" height="${12 - (i % 2) * 2}"/>`).join('')}</g><rect x="388" y="226" width="24" height="2" fill="#7a5a3e"/>`;
+      s += `<g fill="#dfe8ea" stroke="#e9e2cf" stroke-width="2"><rect x="346" y="202" width="26" height="20"/><rect x="428" y="202" width="26" height="20"/></g>`;
+      s += `<path d="M205 360 Q150 378 128 372" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
       return s;
     },
-    front() { return ''; }
+    // In front of the ship, and still while it bobs: the harbor water between the hull and
+    // the dock, then the gangplank from the dock up to the gap in the rail.
+    front() { return harborWaterline() + gangplank(); }
   };
+
+  // The strip of harbor between the moored hull and the dock, so the ship floats: the same
+  // blue as the harbor, a darker ripple where it meets the hull, and a few small waves.
+  function harborWaterline() {
+    return `<path d="M140 346 Q240 342 340 346 T540 346 T745 346 V373 H140 Z" fill="#6f8fa0"/>
+      <path d="M140 346 Q240 342 340 346 T540 346 T745 346" stroke="#5a7888" stroke-width="2.5" fill="none"/>
+      <g class="waves" stroke="#9fb8c4" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M200 358 q12 -3 24 0"/><path d="M380 362 q12 -3 24 0"/><path d="M560 356 q12 -3 24 0"/><path d="M660 364 q12 -3 24 0"/></g>`;
+  }
+  // A wide gangplank: a band of boards (seen a little from above, so wide enough to walk
+  // up) with cleats across it, a darker edge, and a rope handrail on posts along the far
+  // side. Its middle runs from the dock at (700, 400) to the deck at (490, 252), the
+  // line customers walk.
+  function gangplank() {
+    const x0 = 700, y0 = 400, x1 = 490, y1 = 252, half = 10;
+    const at = (t) => [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
+    let s = `<polygon points="${x0 + 8},${y0 + half} ${x1 - 6},${y1 + half} ${x1 - 6},${y1 + half + 4} ${x0 + 8},${y0 + half + 4}" fill="#7d6b58"/>`;
+    s += `<polygon points="${x0 + 8},${y0 - half} ${x1 - 6},${y1 - half} ${x1 - 6},${y1 + half} ${x0 + 8},${y0 + half}" fill="#c4ab7c" stroke="#7d6b58" stroke-width="1"/>`;
+    s += `<g stroke="#9c845c" stroke-width="2">${[0.08, 0.2, 0.32, 0.44, 0.56, 0.68, 0.8, 0.92].map(t => { const [x, y] = at(t); return `<line x1="${(x - 3).toFixed(1)}" y1="${(y - half + 2).toFixed(1)}" x2="${(x + 3).toFixed(1)}" y2="${(y + half - 2).toFixed(1)}"/>`; }).join('')}</g>`;
+    const posts = [0.02, 0.35, 0.68, 0.98].map(at);
+    s += `<g stroke="#5a4a42" stroke-width="2.5">${posts.map(([x, y]) => `<line x1="${x.toFixed(1)}" y1="${(y - half).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y - half - 30).toFixed(1)}"/>`).join('')}</g>`;
+    s += `<path d="${posts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${(y - half - 28).toFixed(1)}`).join(' ')}" stroke="#c9b28a" stroke-width="2" fill="none"/>`;
+    return s;
+  }
 
 
   // Which buildings are offered when moving up to each stage.

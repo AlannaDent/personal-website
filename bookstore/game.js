@@ -888,6 +888,19 @@
     beam.setAttribute('opacity', beamStrength.toFixed(2));
   }
 
+  // ---- A ship riding the harbor ----
+  // A building that floats rises and falls a couple of units and rocks a touch, on two
+  // slow waves out of step with each other. The water and the gangplank in front stay put;
+  // people aboard ride along (see feetY).
+  let shipBobY = 0;
+  function bobShip(now) {
+    const g = $('scene').querySelector('svg .building');
+    if (!building().floats || state.view === 'inside' || !g) { shipBobY = 0; return; }
+    shipBobY = 1.8 * Math.sin(now / 1500);
+    const tilt = 0.45 * Math.sin(now / 2300 + 1);
+    g.setAttribute('transform', `translate(0 ${shipBobY.toFixed(2)}) rotate(${tilt.toFixed(2)} 440 330)`);
+  }
+
   // ---- The church bell ----
   // Rung at the start and the end of each day (Begin Day, and closing time). The bell
   // swings side to side, slowing for the last second, and music notes drift up out of the
@@ -1161,8 +1174,10 @@
       // With a door out front, everyone walks all the way up to it and goes inside.
       // Without one (the outdoor shelves of stages one and two), they stop and browse
       // on the sidewalk, queued a little further out per person already standing there.
-      stopX: door ? door.x : (side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap)),
+      stopX: door ? (door.route ? door.route[0][0] : door.x) : (side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap)),
       door,
+      y: Scenes.GROUND_Y,                            // where their feet are: higher up on a gangplank or deck
+      k: 1,                                          // drawn a little smaller when further away (up on deck)
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0,
@@ -1247,7 +1262,8 @@
     const scale = customerScale(c);
     let body = c.state === 'seated' ? sitterBody(L, seatHeight(c), c.bought) : personBody(L, c.busy && c.busy.reach);
     body += companionSvg(c);
-    return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
+    const k = scale * (c.k || 1);
+    return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${feetY(c)}) scale(${c.dir * k} ${k})">${body}</g>`;
   }
 
   // A visiting animal beside its person: a dog on a lead trotting behind (sitting while
@@ -1278,9 +1294,20 @@
   function moveCustomerElement(c, bob) {
     const el = document.getElementById(c.id);
     if (!el) return;
-    const scale = customerScale(c);
-    el.setAttribute('transform', `translate(${c.x} ${Scenes.GROUND_Y - bob}) scale(${c.dir * scale} ${scale})`);
+    const scale = customerScale(c) * (c.k || 1);
+    el.setAttribute('transform', `translate(${c.x} ${feetY(c) - bob}) scale(${c.dir * scale} ${scale})`);
   }
+  // Where a customer's feet are drawn: the ground, or up a gangplank or on deck, where
+  // they ride the ship's bob along with it (fully once on deck, partly on the way up).
+  function feetY(c) {
+    const y = c.y == null ? Scenes.GROUND_Y : c.y;
+    const route = c.door && c.door.route;
+    if (!route || y >= Scenes.GROUND_Y) return y;
+    const deck = route[route.length - 1][1];
+    return y + shipBobY * Math.min(1, (Scenes.GROUND_Y - y) / (Scenes.GROUND_Y - deck));
+  }
+  // Just above a customer's head, for the coins and dots after a visit.
+  const aboveHead = (c) => feetY(c) - 60 * customerScale(c) * (c.k || 1) - 8;
 
   // Hides a customer while they're inside browsing out of sight, and brings them back
   // when they come back out to leave.
@@ -2127,6 +2154,7 @@
     updateWildlife(dt, now);
     turnBeam(now);
     swingBell(now);
+    bobShip(now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
@@ -2148,7 +2176,11 @@
         moveCustomerElement(c, bob());
         if (arrived) {
           c.x = c.stopX;
-          if (c.door) {
+          if (c.door && c.door.route) {
+            // A door up a gangplank: climb it, one waypoint at a time (see below).
+            c.state = 'boarding';
+            c.leg = 1;
+          } else if (c.door) {
             // A shop with a door: stand a beat at the threshold, then go inside out of sight.
             c.state = 'entering';
             c.browseUntil = now + 500;
@@ -2158,7 +2190,35 @@
           }
           if (c.companion) redrawCustomer(c);
           moveCustomerElement(c, 0);
-          if (c.door) fadeIntoDoor(c);
+          if (c.state === 'entering') fadeIntoDoor(c);
+        }
+      } else if (c.state === 'boarding' || c.state === 'disembarking') {
+        // Following the door's route: up the gangplank and along the deck to the door, or
+        // back down. Straight lines between waypoints, shrinking a little on the way up.
+        const route = c.door.route, step = c.state === 'boarding' ? 1 : -1;
+        const [tx, ty, tk] = route[c.leg];
+        const dx = tx - c.x, dy = ty - c.y, dist = Math.hypot(dx, dy);
+        const move = speed * c.k * dt;
+        if (Math.abs(dx) > 0.5) c.dir = dx > 0 ? 1 : -1;
+        if (dist > move) {
+          const f = move / dist;
+          c.x += dx * f; c.y += dy * f; c.k += (tk - c.k) * f;
+          moveCustomerElement(c, bob());
+        } else {
+          c.x = tx; c.y = ty; c.k = tk;
+          c.leg += step;
+          if (c.leg >= route.length) {                   // at the door: step inside
+            c.state = 'entering';
+            c.browseUntil = now + 500;
+            moveCustomerElement(c, 0);
+            fadeIntoDoor(c);
+          } else if (c.leg < 0) {                        // back on the dock: head off
+            c.state = 'leaving';
+            c.dir = c.side === 'left' ? -1 : 1;
+            maybeSit(c);
+            if (c.companion) redrawCustomer(c);
+            moveCustomerElement(c, 0);
+          } else moveCustomerElement(c, bob());
         }
       } else if (c.state === 'entering') {
         if (now >= c.browseUntil) {
@@ -2169,6 +2229,14 @@
       } else if (c.state === 'browsing' || c.state === 'inside') {
         if (now >= c.browseUntil) {
           completeVisit(c);
+          if (c.door && c.door.route) {
+            // back out the door and down the way they came
+            c.state = 'disembarking';
+            c.leg = c.door.route.length - 2;
+            setCustomerVisible(c, true);
+            if (c.companion) redrawCustomer(c);
+            return;
+          }
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
           if (c.door) setCustomerVisible(c, true);
@@ -2207,7 +2275,7 @@
     const buyChance = BUY_CHANCE * (BUY_FLOOR + (1 - BUY_FLOOR) * shelfFill());
     if (stocked.length > 0 && Math.random() > buyChance) {
       addLog(`${c.look.desc}. ${shelfFill() < 0.5 && Math.random() < 0.6 ? randomFrom(THIN_SHELF_LINES) : randomFrom(BROWSED_LINES)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
+      floatText(c.x, aboveHead(c), '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
       const shelf = randomFrom(stocked);
       c.bought = state.books[shelf];                 // its cover color: something to read, if they sit down
@@ -2221,10 +2289,10 @@
       });
       const book = randomFrom(ALL_BOOKS);
       addLog(`${c.look.desc}. Bought <em>${book.title}</em> by ${book.author}. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, `+${SELL_PRICE}`, '#a5443a');
+      floatText(c.x, aboveHead(c), `+${SELL_PRICE}`, '#a5443a');
     } else {
       addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '…', '#5d5a54');
+      floatText(c.x, aboveHead(c), '…', '#5d5a54');
     }
     refresh();
   }
