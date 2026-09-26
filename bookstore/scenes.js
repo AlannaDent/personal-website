@@ -407,6 +407,139 @@ const Scenes = (function () {
     return (INDOOR_DRAWINGS[kind] || armchair)(x, y, scale);
   }
 
+  // ---- Wall decor (stage three on) ----
+  // Things that hang on the wall beside the bookcase. Unlike the things that stand, (x, y)
+  // is the middle of the piece, not its foot. At scale 1 the biggest (the family portrait)
+  // is 58 wide and 46 tall; most are a little smaller.
+  // A star outline: the tips at radius r, the notches between them at radius inner.
+  function starPath(cx, cy, r, inner, points = 5) {
+    let d = '';
+    for (let i = 0; i < points * 2; i++) {
+      const a = (-90 + i * 180 / points) * Math.PI / 180, rr = i % 2 ? inner : r;
+      d += `${i ? 'L' : 'M'}${(cx + rr * Math.cos(a)).toFixed(1)} ${(cy + rr * Math.sin(a)).toFixed(1)}`;
+    }
+    return d + 'Z';
+  }
+  // A frame w by h around (0, 0) with a soft shadow, a picture wire and the nail it hangs
+  // from, a border b wide in wood or gilt (outer), and a thin inner molding (inner).
+  function pictureFrame(w, h, b, outer, inner) {
+    return `<g stroke="#5c5b56" stroke-width="0.6"><line x1="${-w / 2 + 4}" y1="${-h / 2 + 2}" x2="0" y2="${-h / 2 - 6}"/><line x1="${w / 2 - 4}" y1="${-h / 2 + 2}" x2="0" y2="${-h / 2 - 6}"/></g><circle cx="0" cy="${-h / 2 - 6}" r="1.1" fill="#5c5b56"/>
+      <rect x="${-w / 2 + 1.5}" y="${-h / 2 + 2}" width="${w}" height="${h}" fill="#000" opacity="0.15"/>
+      <rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="${outer}" stroke="#3b332c" stroke-width="0.8"/>
+      <rect x="${-w / 2 + b * 0.5}" y="${-h / 2 + b * 0.5}" width="${w - b}" height="${h - b}" fill="none" stroke="${inner}" stroke-width="${(b * 0.3).toFixed(1)}"/>`;
+  }
+  // A dried orange starfish, tacked straight to the wall. No frame.
+  function wallStarfish() {
+    const arms = starPath(0, 0, 14, 6);
+    let s = `<g transform="rotate(-10)"><path d="${arms}" transform="translate(1.4 1.8)" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round" opacity="0.14"/>`;
+    s += `<path d="${arms}" fill="#b85c2a" stroke="#b85c2a" stroke-width="5" stroke-linejoin="round"/>`;
+    s += `<path d="${arms}" fill="#e8823a" stroke="#e8823a" stroke-width="3" stroke-linejoin="round"/>`;
+    for (let i = 0; i < 5; i++) {
+      const a = (-90 + i * 72) * Math.PI / 180;
+      s += [3.5, 7, 10.5].map((d, k) => `<circle cx="${(d * Math.cos(a)).toFixed(1)}" cy="${(d * Math.sin(a)).toFixed(1)}" r="${(1 - k * 0.2).toFixed(1)}" fill="#f6b77a"/>`).join('');
+    }
+    return s + `<circle cx="0" cy="0" r="1.8" fill="#d96a2a"/></g>`;
+  }
+  // A singing bass on a wooden plaque, with the little red button that starts the song.
+  // The fish is its own group (.bass-fish) so it can wiggle when it sings.
+  function wallBass() {
+    let s = `<g stroke="#5c5b56" stroke-width="0.6"><line x1="-18" y1="-12" x2="0" y2="-20"/><line x1="18" y1="-12" x2="0" y2="-20"/></g><circle cx="0" cy="-20" r="1.1" fill="#5c5b56"/>`;
+    s += `<rect x="-24.5" y="-12" width="52" height="28" rx="7" fill="#000" opacity="0.15"/>`;
+    s += `<rect x="-26" y="-14" width="52" height="28" rx="7" fill="#8a5a3a" stroke="#4a3024" stroke-width="0.8"/>`;
+    s += `<rect x="-23" y="-11" width="46" height="22" rx="5" fill="none" stroke="#a8784a" stroke-width="1"/>`;
+    s += `<rect x="-8" y="8" width="16" height="3.6" rx="0.6" fill="#d9a441" stroke="#8a6a2a" stroke-width="0.4"/>`;
+    s += `<circle cx="18" cy="9" r="2.2" fill="#b6413a" stroke="#6e2a24" stroke-width="0.5"/><circle cx="17.4" cy="8.4" r="0.7" fill="#fff" opacity="0.6"/>`;
+    s += `<g class="bass-fish">
+      <path d="M-17 0 L-23 -7 Q-21 0 -23 7 Z" fill="#5a6a2e" stroke="#3f4a22" stroke-width="0.6"/>
+      <path d="M-8 -7 q5 -6 12 -1 z" fill="#5a6a2e" stroke="#3f4a22" stroke-width="0.5"/>
+      <path d="M-18 0 q6 -8 19 -8 q11 0 15 6 q-2 7 -15 8 q-13 1 -19 -6 z" fill="#6f7f3a" stroke="#3f4a22" stroke-width="0.7"/>
+      <path d="M-13 3 q10 5 25 -1 q-4 5 -12 5 q-9 0 -13 -4 z" fill="#d9c98a"/>
+      <path d="M-15 0 q14 -3 27 -1" stroke="#3f4a22" stroke-width="0.6" fill="none" opacity="0.5"/>
+      <g fill="none" stroke="#3f4a22" stroke-width="0.4" opacity="0.45"><path d="M-9 -3 q1.5 1.5 0 3"/><path d="M-5 -4 q1.5 1.5 0 3"/><path d="M-1 -4 q1.5 1.5 0 3"/></g>
+      <path d="M13 -3 L20 -6 L19 3 L13 1 Z" fill="#8a3a32" stroke="#3f4a22" stroke-width="0.6"/>
+      <circle cx="9.5" cy="-3.2" r="1.8" fill="#f4efe4"/><circle cx="10" cy="-3.2" r="0.9" fill="#2b2a28"/>
+    </g>`;
+    return s;
+  }
+  // Starfishy Night: the famous swirling sky over a sleeping village, a cypress flickering up
+  // one side and a crescent moon, except that every star, looked at closely, is a starfish.
+  function wallStarfishyNight() {
+    let s = pictureFrame(50, 40, 4, '#b08a3a', '#e0bf6a');
+    s += `<rect x="-21" y="-16" width="42" height="32" fill="#2b3f7a"/>`;
+    s += `<g fill="none" stroke="#7f9ad0" stroke-width="1.3" stroke-linecap="round" opacity="0.9"><path d="M-20 -2 q5 -5 10 -1 t10 -1 t10 -1 t9 1"/><path d="M-19 4 q6 -4 11 0 t11 0 t12 -1"/><path d="M-3 -8 a4 3 0 1 1 5 3 a2 1.5 0 1 1 -2 -2"/></g>`;
+    s += `<g fill="none" stroke="#b9c8e8" stroke-width="0.7" opacity="0.8"><path d="M-17 -10 q4 -3 8 0"/><path d="M4 1 q5 -3 10 0 t6 0"/><path d="M-12 -1 q3 -2 6 0"/></g>`;
+    s += `<circle cx="15" cy="-10" r="4.6" fill="#f2d45c" opacity="0.3"/><circle cx="15" cy="-10" r="3.3" fill="#f2d45c"/><circle cx="16.5" cy="-11" r="2.7" fill="#2b3f7a"/>`;
+    [[-13, -12, 1.9], [-3, -13, 1.6], [7, -6, 1.8], [-8, -5, 1.4], [5, -13, 1.3], [13, -1, 1.3]].forEach(([cx, cy, r]) => {
+      s += `<circle cx="${cx}" cy="${cy}" r="${(r * 1.8).toFixed(1)}" fill="#f2e08a" opacity="0.35"/><path d="${starPath(cx, cy, r, r * 0.45)}" fill="#f2a24a" stroke="#f2a24a" stroke-width="0.4" stroke-linejoin="round"/>`;
+    });
+    s += `<path d="M-21 9 q10 -5 20 -1 t22 -2 V16 H-21 Z" fill="#2f4a6a"/>`;
+    s += `<g fill="#3f5a80">${[[-6, 9, 5, 4], [0, 10, 4, 3], [6, 8, 5, 5], [12, 10, 4, 3]].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`).join('')}</g><polygon points="2.6,2 1.4,10 3.8,10" fill="#3f5a80"/>`;
+    s += `<g fill="#f2d45c">${[[-4.5, 10.5], [7.5, 10], [13, 11]].map(([x, y]) => `<rect x="${x}" y="${y}" width="1" height="1"/>`).join('')}</g>`;
+    s += `<path d="M-15 16 q-4 -10 -1 -20 q1 -6 2 -9 q2 6 2 12 q1 8 1 17 z" fill="#1f3a2a"/><path d="M-14 12 q-1 -8 1 -16" stroke="#3f5a3a" stroke-width="0.7" fill="none"/>`;
+    return s;
+  }
+  // A sunset over the ocean in a whitewashed driftwood frame: bands of evening sky, the sun
+  // half down, its light laid across the water, and a sailboat heading home.
+  function wallSunset() {
+    let s = pictureFrame(50, 36, 3.5, '#e9e2cf', '#b5aea0');
+    s += `<rect x="-21.5" y="-14.5" width="43" height="29" fill="#7a5f96"/>`;
+    s += [['#a86a8c', -9], ['#d9707a', -4], ['#e8955a', 0], ['#f2c46a', 3]].map(([c, y]) => `<rect x="-21.5" y="${y}" width="43" height="${4 - y}" fill="${c}"/>`).join('');
+    s += `<g fill="none" stroke="#f0b0a0" stroke-width="1" stroke-linecap="round" opacity="0.8"><path d="M-17 -9 h12"/><path d="M6 -6 h11"/></g>`;
+    s += `<circle cx="2" cy="4" r="8" fill="#f6e08a" opacity="0.35"/><path d="M-4 4 a6 6 0 0 1 12 0 z" fill="#f6e08a"/>`;
+    s += `<rect x="-21.5" y="4" width="43" height="10.5" fill="#3f5f8a"/>`;
+    s += `<g stroke="#f2c46a" stroke-width="1" stroke-linecap="round">${[[6, 6], [8, 4.5], [10, 3], [12, 1.5]].map(([y, w]) => `<line x1="${2 - w}" y1="${y}" x2="${2 + w}" y2="${y}"/>`).join('')}</g>`;
+    s += `<g fill="#2b2a3a"><path d="M-14 3.5 h6 l-1 1.2 h-4 z"/><path d="M-11 3.5 v-6 l3.5 5.5 z"/></g>`;
+    return s;
+  }
+  // Sunflowery: a crowded vase of sunflowers on a yellow ground, painted thick, the vase with
+  // its blue stripe and one or two blooms already drooping, in the manner of a certain Dutchman.
+  function wallSunflowers() {
+    let s = pictureFrame(38, 48, 4, '#8a6a3a', '#c9a86a');
+    s += `<rect x="-15" y="-20" width="30" height="40" fill="#e8c65a"/><rect x="-15" y="10" width="30" height="10" fill="#c99a3a"/><line x1="-15" y1="10" x2="15" y2="10" stroke="#a87a2a" stroke-width="0.8"/>`;
+    const heads = [[-8, -10, 4.2], [2, -14, 4.6], [9, -6, 4], [-2, -5, 3.6], [-11, -1, 3.2], [10, -15, 3]];
+    s += `<g stroke="#6f8a4f" stroke-width="1" fill="none">${heads.map(([x, y]) => `<path d="M0 0 Q${(x * 0.4).toFixed(1)} ${(y * 0.5).toFixed(1)} ${x} ${y}"/>`).join('')}</g>`;
+    s += `<path d="M-6.5 14 q-3 -9 0 -14 h13 q3 5 0 14 z" fill="#d9a441" stroke="#a87a2a" stroke-width="0.6"/><path d="M-8.3 5 h16.6" stroke="#4a6aa8" stroke-width="1.2"/>`;
+    heads.forEach(([x, y, r]) => {
+      s += `<path d="${starPath(x, y, r, r * 0.6, 12)}" fill="#f2b83a" stroke="#c98a2a" stroke-width="0.4" stroke-linejoin="round"/><circle cx="${x}" cy="${y}" r="${(r * 0.45).toFixed(1)}" fill="#7a4a22"/>`;
+    });
+    s += `<g fill="#6f8a4f"><ellipse cx="-5" cy="3" rx="3" ry="1.2" transform="rotate(30 -5 3)"/><ellipse cx="6" cy="2" rx="3" ry="1.2" transform="rotate(-30 6 2)"/></g>`;
+    return s;
+  }
+  // The family portrait: every one of the shop's pets, sitting for a formal portrait on a
+  // velvet settee in a gilt frame. Redrawn from the list of pets each time, so a new pet joins
+  // the picture the day it arrives. Front row first, up to three rows; the pets on the left
+  // face right and the ones on the right face left, toward the middle, as sitters do.
+  function wallPortrait(pets) {
+    let s = pictureFrame(58, 46, 5, '#c9a24a', '#f2d98a');
+    s += `<g fill="#e8c46a" stroke="#8a6a2a" stroke-width="0.4">${[[-26.5, -20.5], [26.5, -20.5], [-26.5, 20.5], [26.5, 20.5]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.2"/>`).join('')}</g>`;
+    s += `<rect x="-24" y="-18" width="48" height="36" fill="#4a3a3a"/><ellipse cx="0" cy="-2" rx="20" ry="14" fill="#6e5048" opacity="0.7"/>`;
+    s += `<path d="M-24 -18 h13 q-3 9 -13 13 z" fill="#8a3a3a"/><path d="M-24 -18 h13 q-3 9 -13 13" fill="none" stroke="#d9a441" stroke-width="0.6"/>`;
+    s += `<rect x="-24" y="12" width="48" height="6" fill="#7a3a3a"/><rect x="-24" y="12" width="48" height="1.2" fill="#9a4a4a"/>`;
+    s += `<rect x="-6" y="19.4" width="12" height="3" rx="0.5" fill="#e8c46a" stroke="#8a6a2a" stroke-width="0.4"/>`;
+    const sitters = (pets || []).slice(0, 12);
+    if (!sitters.length) {
+      // nobody to paint yet: just the cushion, waiting
+      return s + `<ellipse cx="0" cy="11" rx="10" ry="3.4" fill="#a5443a" stroke="#6e2a24" stroke-width="0.5"/><g fill="#d9a441"><circle cx="-10" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></g>`;
+    }
+    const n = sitters.length, rows = n <= 3 ? 1 : n <= 8 ? 2 : 3, perRow = Math.ceil(n / rows);
+    const size = Math.min(0.8, 44 / (perRow * 24), 30 / (26 + (rows - 1) * 16));
+    let drawn = '';
+    for (let r = rows - 1; r >= 0; r--) {                  // back row first, so the front sits in front
+      const row = sitters.slice(r * perRow, (r + 1) * perRow);
+      const k = size * Math.pow(0.9, r), gap = 44 / perRow, feet = 13 - r * 26 * size * 0.62;
+      row.forEach((pet, i) => {
+        const x = (i - (row.length - 1) / 2) * gap;
+        drawn += `<g transform="translate(${x.toFixed(1)} ${feet.toFixed(1)}) scale(${(x > 0.1 ? -k : k).toFixed(3)} ${k.toFixed(3)})">${petSvg(pet, 'sit')}</g>`;
+      });
+    }
+    return s + `<svg x="-24" y="-18" width="48" height="36" viewBox="-24 -18 48 36" overflow="hidden">${drawn}</svg>`;
+  }
+  const WALL_DRAWINGS = { starfish: wallStarfish, bass: wallBass, starry: wallStarfishyNight, sunset: wallSunset, sunflowers: wallSunflowers, portrait: wallPortrait };
+  // One piece of wall decor, centered on (x, y). pets: the shop's pets, for the portrait.
+  function wallItem(kind, x, y, scale, pets) {
+    return `<g class="wall-art wall-${kind}" transform="translate(${x} ${y}) scale(${scale})">${(WALL_DRAWINGS[kind] || wallStarfish)(pets)}</g>`;
+  }
+
   // The night sky: a color wash, a scatter of stars, and the moon. Outside, it sits just
   // above the sky and the sun and behind everything else, so the moon and stars stay
   // bright while houses, trees and people pass in front of them (those get their own
@@ -1170,6 +1303,11 @@ const Scenes = (function () {
   // Where decor can stand inside, left to right: four spots across the open floor between
   // the left wall's props and the counter. The same in every interior.
   const INTERIOR_DECOR_SLOTS = [147, 263, 379, 495];
+  // Where wall decor hangs: the middle of each spot and how big things are drawn there. Beside
+  // the bookcase (x 122..678), fitted around each room's own windows, doors and fireplaces.
+  // Stage three has one spot a side (WL1, WR1); stage four a top and a bottom a side (WL1
+  // over WL2, WR1 over WR2), so things hung at stage three keep their side after moving up.
+  const wallSpot = (id, x, y, scale) => ({ id, x, y, scale });
 
   // ---- Stage one: the Little Free Library box ----
   BUILDINGS.lfl = {
@@ -1188,7 +1326,7 @@ const Scenes = (function () {
     deliveryX: 660,                       // where the van sets boxes down
     decorSlots: [96, 282, 518, 704],       // far left, left, right, far right legacySignX: 308, legacyPlantX: 492,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       return `
         <ellipse cx="400" cy="${GROUND_Y}" rx="42" ry="5" fill="#000" opacity="0.12"/>
         <rect x="392" y="330" width="16" height="70" fill="#7d6b58"/>
@@ -1198,7 +1336,7 @@ const Scenes = (function () {
         <g fill="#000" opacity="0.08"><rect x="340" y="312" width="120" height="18"/><rect x="432" y="232" width="6" height="96"/></g>
         <rect x="352" y="242" width="96" height="76" fill="#5a4d42"/>
         <rect x="352" y="280" width="96" height="3" fill="#8a7460"/>
-        <polygon points="330,232 400,198 470,232" fill="#6a6a66" stroke="#4a4946" stroke-width="1.5"/>
+        <polygon points="330,232 400,198 470,232" fill="${roof || '#6a6a66'}" stroke="#4a4946" stroke-width="1.5"/>
         <polygon points="336,229 400,201 400,207 342,231" fill="#fff" opacity="0.12"/>`;
     },
     front() {
@@ -1228,7 +1366,7 @@ const Scenes = (function () {
     deliveryX: 620,
     decorSlots: [132, 265, 535, 668], legacySignX: 520, legacyPlantX: 282,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="125" ry="6" fill="#000" opacity="0.1"/>`;
       s += `<rect x="300" y="226" width="200" height="174" fill="${color}" stroke="#4f5a48" stroke-width="1.5"/>`;
       s += vLines(310, 496, 228, 398, 11, 0.09);
@@ -1238,7 +1376,7 @@ const Scenes = (function () {
       s += `<rect x="330" y="250" width="140" height="140" fill="#4a3f36"/>`;
       this.shelves.forEach(sh => { s += `<rect x="330" y="${sh.bottom}" width="140" height="2.5" fill="#8a7460"/>`; });
       // roof with shingle rows
-      s += `<polygon points="288,230 400,166 512,230" fill="#3f3a36" stroke="#2b2a28" stroke-width="1.5"/>`;
+      s += `<polygon points="288,230 400,166 512,230" fill="${roof || '#3f3a36'}" stroke="#2b2a28" stroke-width="1.5"/>`;
       s += `<g stroke="#6a6a66" stroke-width="1" opacity="0.5"><line x1="316" y1="214" x2="484" y2="214"/><line x1="340" y1="200" x2="460" y2="200"/><line x1="364" y1="186" x2="436" y2="186"/></g>`;
       // gable window with board shutters and a flower box
       s += `<rect x="388" y="194" width="24" height="22" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="2"/><line x1="400" y1="194" x2="400" y2="216" stroke="#f4f1e8"/><line x1="388" y1="205" x2="412" y2="205" stroke="#f4f1e8"/>`;
@@ -1277,13 +1415,14 @@ const Scenes = (function () {
     deliveryX: 640,
     decorSlots: [163, 262, 560, 659], legacySignX: 560, legacyPlantX: 262,
     backdropOpts: { boardwalkX: 590, signX: 150 },
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="410" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
       s += `<rect x="280" y="250" width="260" height="150" fill="${color}" stroke="#3f4f4f" stroke-width="1.5"/>`;
       s += vLines(290, 530, 252, 398, 10, 0.1);
       s += `<g fill="#5a7055"><rect x="280" y="250" width="9" height="150"/><rect x="531" y="250" width="9" height="150"/></g>`;
-      // the cut-out side panel, propped up as an awning over the opening
-      s += `<polygon points="304,270 516,270 542,232 278,232" fill="${color}" stroke="#3f4f3f" stroke-width="1.5"/>`;
+      // the cut-out side panel, propped up as an awning over the opening. With no roof of its
+      // own, the container takes the player's shingles here.
+      s += `<polygon points="304,270 516,270 542,232 278,232" fill="${roof || color}" stroke="#3f4f3f" stroke-width="1.5"/>`;
       s += `<polygon points="304,270 516,270 542,232 278,232" fill="#000" opacity="0.12"/>`;
       s += `<g stroke="#000" stroke-width="1" opacity="0.12">${[290, 320, 350, 380, 410, 440, 470, 500].map(x => `<line x1="${x + 12}" y1="270" x2="${x + 2}" y2="232"/>`).join('')}</g>`;
       s += `<g stroke="#2f3a3a" stroke-width="3"><line x1="316" y1="270" x2="330" y2="300"/><line x1="504" y1="270" x2="490" y2="300"/></g>`;
@@ -1321,12 +1460,12 @@ const Scenes = (function () {
     deliveryX: 690,
     decorSlots: [355, 428, 604, 677], legacySignX: 604, legacyPlantX: 428,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="430" cy="${GROUND_Y}" rx="170" ry="6" fill="#000" opacity="0.08"/>`;
       // house
       s += `<rect x="260" y="215" width="170" height="185" fill="#c9c0ae" stroke="#7d766c" stroke-width="1.5"/>`;
       s += hLines(260, 430, 226, 392, 9, 0.07);
-      s += `<polygon points="250,220 345,150 440,220" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="250,220 345,150 440,220" fill="${roof || '#5a5f66'}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="395" y="160" width="14" height="40" fill="#8a6248"/>`;
       s += `<g fill="#dfe8ea" stroke="#f4f1e8" stroke-width="3"><rect x="278" y="236" width="40" height="42"/><rect x="372" y="236" width="40" height="42"/><rect x="372" y="322" width="40" height="42"/></g>`;
       s += `<g stroke="#7d766c" stroke-width="1"><line x1="298" y1="236" x2="298" y2="278"/><line x1="392" y1="236" x2="392" y2="278"/><line x1="392" y1="322" x2="392" y2="364"/></g>`;
@@ -1338,7 +1477,7 @@ const Scenes = (function () {
       s += `<rect x="430" y="266" width="160" height="134" fill="${color}" stroke="#7d766c" stroke-width="1.5"/>`;
       s += hLines(430, 590, 276, 392, 9, 0.07);
       s += `<g fill="#000" opacity="0.07"><rect x="430" y="380" width="160" height="20"/></g>`;
-      s += `<polygon points="424,268 510,232 596,268" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="424,268 510,232 596,268" fill="${roof || '#5a5f66'}" stroke="#4a4946" stroke-width="1.5"/>`;
       // interior, shelves, rolled-up door
       s += `<rect x="440" y="290" width="140" height="106" fill="#3d3a36"/>`;
       this.shelves.forEach(sh => { s += `<rect x="440" y="${sh.bottom}" width="140" height="2" fill="#8a7460"/>`; });
@@ -1387,7 +1526,7 @@ const Scenes = (function () {
     blurb: 'Gambrel roof, white clapboard, a blue door, and a balcony nobody uses. A Cape classic.',
     location: 'street3dutch',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 56, 112, 1.1), wallSpot('WR1', 746, 112, 1.1)] },
     door: { x: 400, y: 350 },
     paint: '#f4f1e8',
     shelves: houseShelves(),
@@ -1397,12 +1536,12 @@ const Scenes = (function () {
     deliveryX: 640,
     decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
       s += `<rect x="230" y="250" width="340" height="150" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       s += hLines(230, 570, 260, 396, 8, 0.06);
       // gambrel roof
-      s += `<polygon points="215,255 255,185 300,150 500,150 545,185 585,255" fill="#7a6a58" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="215,255 255,185 300,150 500,150 545,185 585,255" fill="${roof || '#7a6a58'}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<g stroke="#4a4946" stroke-width="1" opacity="0.25"><line x1="238" y1="215" x2="562" y2="215"/><line x1="255" y1="185" x2="545" y2="185"/><line x1="278" y1="168" x2="522" y2="168"/></g>`;
       s += `<rect x="518" y="146" width="16" height="32" fill="#a86b5f"/>`;
       // central gable with balcony
@@ -1432,7 +1571,7 @@ const Scenes = (function () {
     blurb: 'Named for the place. Steep roof, three dormers, green shutters, two chimneys, one cat.',
     location: 'street3cape',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 61, 150, 1), wallSpot('WR1', 745, 148, 1)] },
     door: { x: 400, y: 350 },
     paint: '#f6f3ea',
     shelves: houseShelves(),
@@ -1442,18 +1581,18 @@ const Scenes = (function () {
     deliveryX: 640,
     decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
       s += `<rect x="230" y="262" width="340" height="138" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       s += hLines(230, 570, 272, 396, 6, 0.05);
       // roof and chimneys
-      s += `<polygon points="215,266 400,160 585,266" fill="#6b625a" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="215,266 400,160 585,266" fill="${roof || '#6b625a'}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<g stroke="#4a4946" stroke-width="1" opacity="0.25"><line x1="262" y1="240" x2="538" y2="240"/><line x1="296" y1="220" x2="504" y2="220"/><line x1="330" y1="200" x2="470" y2="200"/></g>`;
       s += `<g fill="#a86b5f"><rect x="246" y="208" width="16" height="44"/><rect x="536" y="198" width="16" height="52"/></g>`;
       // three dormers
       [275, 400, 525].forEach(cx => {
         s += `<rect x="${cx - 16}" y="206" width="32" height="46" fill="#f6f3ea" stroke="#b5aea0" stroke-width="1"/>`;
-        s += `<polygon points="${cx - 20},208 ${cx},190 ${cx + 20},208" fill="#6b625a" stroke="#4a4946" stroke-width="1.5"/>`;
+        s += `<polygon points="${cx - 20},208 ${cx},190 ${cx + 20},208" fill="${roof || '#6b625a'}" stroke="#4a4946" stroke-width="1.5"/>`;
         s += `<rect x="${cx - 9}" y="214" width="18" height="30" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="2"/><line x1="${cx}" y1="214" x2="${cx}" y2="244" stroke="#b5aea0"/>`;
       });
       // shop front interior and door, shutters, arched surround
@@ -1480,7 +1619,7 @@ const Scenes = (function () {
     blurb: 'Brick below, timber and plaster above, an arched door that creaks on purpose.',
     location: 'street3tudor',
     capacity: 250,
-    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: SHOP_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 55, 134, 0.9), wallSpot('WR1', 744, 134, 0.9)] },
     door: { x: 400, y: 350 },
     paint: '#8f5b4a',
     shelves: houseShelves(),
@@ -1490,12 +1629,12 @@ const Scenes = (function () {
     deliveryX: 640,
     decorSlots: [194, 252, 310, 490, 548, 606], legacySignX: 582, legacyPlantX: 216,   // three a side from stage three
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="185" ry="6" fill="#000" opacity="0.08"/>`;
       s += `<rect x="230" y="250" width="340" height="150" fill="${color}" stroke="#5b3d33" stroke-width="1.5"/>`;
       s += hLines(230, 570, 256, 396, 6, 0.1);
       // main roof and chimneys
-      s += `<polygon points="215,255 300,160 500,160 585,255" fill="#5b4a40" stroke="#3d2a22" stroke-width="1.5"/>`;
+      s += `<polygon points="215,255 300,160 500,160 585,255" fill="${roof || '#5b4a40'}" stroke="#3d2a22" stroke-width="1.5"/>`;
       s += `<g fill="#7d4f42"><rect x="468" y="130" width="16" height="40"/><rect x="556" y="150" width="16" height="50"/></g>`;
       // two half-timbered gables
       [[232, 378], [422, 568]].forEach(([x1, x2]) => {
@@ -1699,7 +1838,7 @@ const Scenes = (function () {
     // the vaulted plank ceiling with white beams
     ceiling: () => `<g fill="#e9e4d6" stroke="#cfc6b4" stroke-width="1"><rect x="0" y="104" width="800" height="10"/><polygon points="0,110 400,0 800,110 800,98 400,-12 0,98"/><rect x="394" y="0" width="12" height="110"/></g>`,
     // a big window with a woven shade, and a fiddle-leaf fig
-    left: () => `<rect x="22" y="150" width="78" height="130" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="4"/><g stroke="#f4f1e8" stroke-width="2"><line x1="61" y1="150" x2="61" y2="280"/><line x1="22" y1="215" x2="100" y2="215"/></g><rect x="20" y="148" width="82" height="46" fill="#c9a97a"/>` + hLines(20, 102, 154, 190, 5, 0.15) + `<rect x="30" y="372" width="26" height="0"/><path d="M36 372 l3 -30 h20 l3 30 z" fill="#b8734f"/><line x1="49" y1="342" x2="49" y2="290" stroke="#4f7a4a" stroke-width="2"/><g fill="#6a955f"><ellipse cx="36" cy="300" rx="12" ry="8" transform="rotate(-30 36 300)"/><ellipse cx="62" cy="296" rx="12" ry="8" transform="rotate(30 62 296)"/><ellipse cx="46" cy="318" rx="12" ry="8" transform="rotate(-20 46 318)"/><ellipse cx="58" cy="326" rx="11" ry="7" transform="rotate(25 58 326)"/></g>`,
+    left: () => `<rect x="22" y="186" width="78" height="104" fill="#dfe8ea" stroke="#f4f1e8" stroke-width="4"/><g stroke="#f4f1e8" stroke-width="2"><line x1="61" y1="186" x2="61" y2="290"/><line x1="22" y1="238" x2="100" y2="238"/></g><rect x="20" y="184" width="82" height="34" fill="#c9a97a"/>` + hLines(20, 102, 190, 214, 5, 0.15) + `<rect x="30" y="372" width="26" height="0"/><path d="M36 372 l3 -30 h20 l3 30 z" fill="#b8734f"/><line x1="49" y1="342" x2="49" y2="290" stroke="#4f7a4a" stroke-width="2"/><g fill="#6a955f"><ellipse cx="36" cy="300" rx="12" ry="8" transform="rotate(-30 36 300)"/><ellipse cx="62" cy="296" rx="12" ry="8" transform="rotate(30 62 296)"/><ellipse cx="46" cy="318" rx="12" ry="8" transform="rotate(-20 46 318)"/><ellipse cx="58" cy="326" rx="11" ry="7" transform="rotate(25 58 326)"/></g>`,
     right: () => fireplace(690, '#a86b5f', '#f4f1e8'),
     // a rattan pendant, petals of woven straw around a glass globe
     lamp: () => `<line x1="400" y1="0" x2="400" y2="44" stroke="#8a7a5a" stroke-width="2"/><g fill="#d9b98a" stroke="#b08a5a" stroke-width="1">${[0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="${400 + 30 * Math.cos(a * Math.PI / 180)}" cy="${64 + 14 * Math.sin(a * Math.PI / 180)}" rx="22" ry="9" transform="rotate(${a / 3} ${400 + 30 * Math.cos(a * Math.PI / 180)} ${64 + 14 * Math.sin(a * Math.PI / 180)})"/>`).join('')}</g><circle cx="400" cy="70" r="12" fill="#f2e6b8"/>`,
@@ -1714,7 +1853,7 @@ const Scenes = (function () {
     ceiling: () => `<g fill="#3d2a22"><rect x="0" y="0" width="800" height="14"/><rect x="0" y="46" width="800" height="10"/><rect x="0" y="96" width="800" height="10"/><rect x="104" y="0" width="12" height="366"/><rect x="684" y="0" width="12" height="366"/></g>
       <g stroke="#3d2a22" stroke-width="6"><line x1="20" y1="14" x2="104" y2="96"/><line x1="780" y1="14" x2="696" y2="96"/></g>`,
     left: () => fireplace(0, '#8f5b4a', '#3d2a22'),
-    right: () => leadedWindow(712, 130, 64, 170, '#3d2a22') + `<path d="M712 130 a32 32 0 0 1 64 0 z" fill="#dfe8ea" stroke="#3d2a22" stroke-width="2.5"/><rect x="704" y="300" width="80" height="7" fill="#3d2a22"/>`,
+    right: () => leadedWindow(712, 190, 64, 110, '#3d2a22') + `<path d="M712 190 a32 32 0 0 1 64 0 z" fill="#dfe8ea" stroke="#3d2a22" stroke-width="2.5"/><rect x="704" y="300" width="80" height="7" fill="#3d2a22"/>`,
     // a wrought-iron chandelier with candles
     lamp: () => `<line x1="400" y1="14" x2="400" y2="56" stroke="#2b2a28" stroke-width="2"/><ellipse cx="400" cy="74" rx="46" ry="12" fill="none" stroke="#2b2a28" stroke-width="4"/><g stroke="#2b2a28" stroke-width="2"><line x1="400" y1="56" x2="354" y2="74"/><line x1="400" y1="56" x2="446" y2="74"/><line x1="400" y1="56" x2="400" y2="86"/></g>${[354, 377, 400, 423, 446].map((x, i) => `<rect x="${x - 2}" y="${(i === 0 || i === 4) ? 60 : (i === 2 ? 70 : 54)}" width="4" height="12" fill="#f4efe4"/><ellipse cx="${x}" cy="${(i === 0 || i === 4) ? 56 : (i === 2 ? 66 : 50)}" rx="2.5" ry="4" fill="#f2c46a"/>`).join('')}<ellipse cx="400" cy="130" rx="90" ry="34" fill="#f2e6b8" opacity="0.12"/>`,
     props: () => `<rect x="20" y="344" width="60" height="6" fill="#3d2a22"/><rect x="24" y="320" width="10" height="24" fill="#e9e2cf"/><ellipse cx="29" cy="316" rx="4" ry="6" fill="#d9a441"/>`
@@ -1730,8 +1869,8 @@ const Scenes = (function () {
     floor: stoneFloor,
     // ribbed vaulting
     ceiling: () => `<g fill="none" stroke="#b5a88e" stroke-width="9"><path d="M0 130 Q400 -70 800 130"/><path d="M-60 260 Q200 -20 460 260" opacity="0.8"/><path d="M340 260 Q600 -20 860 260" opacity="0.8"/></g><g fill="none" stroke="#c9bea4" stroke-width="3"><path d="M0 130 Q400 -70 800 130"/><path d="M-60 260 Q200 -20 460 260"/><path d="M340 260 Q600 -20 860 260"/></g>`,
-    left: () => stainedArch(28, 60, 60, 240),
-    right: () => stainedArch(712, 60, 60, 240),
+    left: () => stainedArch(8, 60, 40, 240),
+    right: () => stainedArch(752, 60, 40, 240),
     // ring lights hung on thin cables
     lamp: () => [250, 550].map(x => `<g stroke="#3a3f44" stroke-width="1"><line x1="${x - 30}" y1="0" x2="${x - 30}" y2="96"/><line x1="${x + 30}" y1="0" x2="${x + 30}" y2="96"/></g><ellipse cx="${x}" cy="100" rx="46" ry="10" fill="none" stroke="#f6efd6" stroke-width="5"/><ellipse cx="${x}" cy="100" rx="46" ry="10" fill="none" stroke="#f2e6b8" stroke-width="10" opacity="0.25"/>`).join(''),
     // rose window, red runner, and a pew
@@ -1747,11 +1886,11 @@ const Scenes = (function () {
     rugColor: '#2b3f5c', rugStripe: '#b6413a', counterWood: '#f4f1e8', counterTop: '#9a6b52',
     texture: () => `<rect width="800" height="366" fill="url(#roundWall)"/>` + hLines(0, 800, 40, 360, 26, 0.05),
     floor: () => floorPlanks('#c9a97a', '#a8865c'),
-    left: () => porthole(66, 170) + porthole(66, 262),
-    // the spiral stair, climbing the right-hand wall
-    right: () => `<rect x="746" y="0" width="8" height="366" fill="#7d6b58"/>
-      ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="${700 + (i % 2) * 22}" y="${60 + i * 38}" width="${56 - (i % 2) * 22}" height="8" fill="${i % 2 ? '#9a6b52' : '#8a5a42'}"/>`).join('')}
-      <path d="M700 68 L722 106 L700 144 L722 182 L700 220 L722 258 L700 296 L722 334" stroke="#b6413a" stroke-width="3" fill="none"/>`,
+    left: () => porthole(60, 88),
+    // the spiral stair, climbing the far right-hand wall
+    right: () => `<rect x="790" y="0" width="8" height="366" fill="#7d6b58"/>
+      ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="${744 + (i % 2) * 22}" y="${60 + i * 38}" width="${56 - (i % 2) * 22}" height="8" fill="${i % 2 ? '#9a6b52' : '#8a5a42'}"/>`).join('')}
+      <path d="M744 68 L766 106 L744 144 L766 182 L744 220 L766 258 L744 296 L766 334" stroke="#b6413a" stroke-width="3" fill="none"/>`,
     lamp: () => `<line x1="400" y1="0" x2="400" y2="40" stroke="#2b2a28" stroke-width="2"/><rect x="386" y="40" width="28" height="30" rx="3" fill="#2b2a28"/><rect x="391" y="45" width="18" height="20" fill="#f2e6b8"/><rect x="392" y="34" width="16" height="6" fill="#d9a441"/>`,
     // a coil of rope and a brass telescope on a stand
     props: () => `<circle cx="60" cy="392" r="12" fill="none" stroke="#c9b28a" stroke-width="5"/><g fill="#d9a441"><rect x="640" y="300" width="60" height="6" transform="rotate(-25 670 303)"/><rect x="694" y="284" width="14" height="8" transform="rotate(-25 701 288)"/></g>`
@@ -1767,9 +1906,9 @@ const Scenes = (function () {
     ceiling: () => `<g fill="#c9a97a" stroke="#8a6a48" stroke-width="1"><rect x="0" y="0" width="800" height="16"/><rect x="0" y="40" width="800" height="10"/></g>
       <g stroke="#b08a5a" stroke-width="12" fill="none" stroke-linecap="round"><path d="M110 366 Q92 180 118 0"/><path d="M690 366 Q708 180 682 0"/></g>
       <g fill="#c9a97a" stroke="#8a6a48" stroke-width="1"><rect x="176" y="16" width="9" height="356"/><rect x="615" y="16" width="9" height="356"/></g>`,
-    left: () => porthole(66, 190) + porthole(66, 280) + `<rect x="30" y="330" width="46" height="42" rx="6" fill="#7a5a3e" stroke="#4a3024"/><g stroke="#4a3024" stroke-width="2"><line x1="30" y1="342" x2="76" y2="342"/><line x1="30" y1="360" x2="76" y2="360"/></g><g fill="#b7736b"><rect x="38" y="318" width="8" height="12"/><rect x="48" y="316" width="8" height="14"/></g>`,
+    left: () => porthole(60, 136) + `<rect x="30" y="330" width="46" height="42" rx="6" fill="#7a5a3e" stroke="#4a3024"/><g stroke="#4a3024" stroke-width="2"><line x1="30" y1="342" x2="76" y2="342"/><line x1="30" y1="360" x2="76" y2="360"/></g><g fill="#b7736b"><rect x="38" y="318" width="8" height="12"/><rect x="48" y="316" width="8" height="14"/></g>`,
     // a hammock slung between the ribs
-    right: () => `<path d="M700 150 Q740 260 790 150" stroke="#e9e2cf" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M712 168 Q740 240 780 166" stroke="#b6413a" stroke-width="6" fill="none"/><g stroke="#c9b28a" stroke-width="2"><line x1="700" y1="150" x2="696" y2="60"/><line x1="790" y1="150" x2="794" y2="60"/></g>`,
+    right: () => `<path d="M700 100 Q740 210 790 100" stroke="#e9e2cf" stroke-width="14" fill="none" stroke-linecap="round"/><path d="M712 118 Q740 190 780 116" stroke="#b6413a" stroke-width="6" fill="none"/><g stroke="#c9b28a" stroke-width="2"><line x1="700" y1="100" x2="696" y2="20"/><line x1="790" y1="100" x2="794" y2="20"/></g>`,
     // brass lanterns hung from the beams
     lamp: () => [250, 550].map(x => `<line x1="${x}" y1="16" x2="${x}" y2="46" stroke="#3a3f44" stroke-width="2"/><rect x="${x - 7}" y="44" width="14" height="5" fill="#d9a441"/><rect x="${x - 10}" y="49" width="20" height="26" rx="3" fill="#f2e6b8" stroke="#8a6a3a" stroke-width="2"/><rect x="${x - 6}" y="75" width="12" height="4" fill="#d9a441"/><ellipse cx="${x}" cy="120" rx="60" ry="26" fill="#f2e6b8" opacity="0.12"/>`).join(''),
     // a ship's wheel on the wall
@@ -1789,7 +1928,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 86, 140, 0.95), wallSpot('WL2', 86, 202, 0.95), wallSpot('WR1', 714, 140, 0.95), wallSpot('WR2', 714, 202, 0.95)] },
     door: { x: 400, y: 350 },
     bell: { x: 400, y: 110 },             // the bell's pivot in the belfry: where music notes rise from
     sign: { size: 11, small: 9 },
@@ -1798,12 +1937,12 @@ const Scenes = (function () {
     deliveryX: 650,
     decorSlots: [209, 267, 325, 475, 533, 591], legacySignX: 566, legacyPlantX: 236,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="400" cy="${GROUND_Y}" rx="160" ry="6" fill="#000" opacity="0.08"/>`;
       s += `<rect x="250" y="205" width="300" height="195" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       s += hLines(250, 550, 214, 396, 8, 0.05);
       // the roof, notched where the tower stands, so its sketched outline doesn't cross the belfry
-      s += `<polygon points="235,210 372,129 372,182 428,182 428,129 565,210" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="235,210 372,129 372,182 428,182 428,129 565,210" fill="${roof || '#5a5f66'}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="372" y="70" width="56" height="112" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
       // the belfry: one tall open arch with the bell hung in it. game.js swings
       // .church-bell about its pivot (the yoke) to ring it.
@@ -1812,7 +1951,7 @@ const Scenes = (function () {
       s += `<g fill="#4a3024"><rect x="378" y="106" width="5" height="8"/><rect x="417" y="106" width="5" height="8"/></g>`;
       s += `<g clip-path="url(#belfry)"><g transform="translate(400 110)"><g class="church-bell">${churchBell()}</g></g></g>`;
       s += `<rect x="375" y="150" width="50" height="4" fill="#b5aea0"/>`;
-      s += `<polygon points="366,72 400,6 434,72" fill="#5a5f66" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="366,72 400,6 434,72" fill="${roof || '#5a5f66'}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="372" y="172" width="56" height="6" fill="#b5aea0"/>`;
       s += `<circle cx="400" cy="175" r="16" fill="#dfe8ea" stroke="#5a5f66" stroke-width="3"/><circle cx="400" cy="175" r="10" fill="#d9a441" opacity="0.8"/>`;
       s += stainedArch(280, 240, 36, 120) + stainedArch(484, 240, 36, 120);
@@ -1851,7 +1990,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#f4f1e8',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 60, 170, 0.95), wallSpot('WL2', 60, 232, 0.95), wallSpot('WR1', 712, 170, 0.95), wallSpot('WR2', 712, 232, 0.95)] },
     door: { x: 455, y: 365 },
     sign: { size: 10, small: 8.5 },
     stops: { left: 250, right: 590 },
@@ -1862,7 +2001,7 @@ const Scenes = (function () {
     deliveryX: 110,
     decorSlots: [264, 322, 380, 500, 558, 616], legacySignX: 560, legacyPlantX: 376,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = `<ellipse cx="420" cy="${GROUND_Y}" rx="150" ry="6" fill="#000" opacity="0.1"/>`;
       // tower
       s += `<polygon points="292,400 368,400 352,120 308,120" fill="${color}" stroke="#b5aea0" stroke-width="1.5"/>`;
@@ -1874,11 +2013,12 @@ const Scenes = (function () {
       s += `<rect x="318" y="220" width="14" height="22" rx="7" fill="#3a3f44"/><rect x="322" y="300" width="14" height="22" rx="7" fill="#3a3f44"/>`;
       // keeper's house with the shop door open. Weathered tan until the player paints; then it
       // takes the same coat as the tower, with a slate roof if the paint matches the red one.
+      // The player's shingles, if any, go on its roof.
       const house = color === BUILDINGS.lighthouse.paint ? '#b9b0a0' : color;
-      const roof = house === '#a5443a' ? '#5a5f66' : '#a5443a';
+      const houseRoof = roof || (house === '#a5443a' ? '#5a5f66' : '#a5443a');
       s += `<rect x="368" y="285" width="176" height="115" fill="${house}" stroke="#7d766c" stroke-width="1.5"/>`;
       s += hLines(368, 544, 294, 396, 7, 0.08);
-      s += `<polygon points="360,290 456,222 552,290" fill="${roof}" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="360,290 456,222 552,290" fill="${houseRoof}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="500" y="232" width="14" height="36" fill="#a86b5f"/>`;
       s += `<g fill="#dfe8ea" stroke="#f4f1e8" stroke-width="3"><rect x="384" y="306" width="34" height="38"/><rect x="494" y="306" width="34" height="38"/></g>`;
       s += `<rect x="440" y="326" width="32" height="74" fill="#3a3f44"/><rect x="444" y="330" width="24" height="70" fill="#f2e6b8"/>`;
@@ -1899,7 +2039,7 @@ const Scenes = (function () {
     capacity: 500,
     paint: '#4a3024',
     shelves: [],
-    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS },
+    interior: { shelves: BIG_INTERIOR_SHELVES, stops: INTERIOR_STOPS, personScale: INTERIOR_PERSON_SCALE, decorSlots: INTERIOR_DECOR_SLOTS, wallSlots: [wallSpot('WL1', 54, 206, 0.95), wallSpot('WL2', 54, 268, 0.95), wallSpot('WR1', 746, 206, 0.95), wallSpot('WR2', 746, 268, 0.95)] },
     // Customers board by the gangplank: along the dock to its foot, up it to the gap in the
     // rail, along the deck to the cabin door. Each point is [x, y, size]: they're drawn a
     // little smaller up on deck, a step further from us. The cabin door is tall enough.
@@ -1916,7 +2056,7 @@ const Scenes = (function () {
     // the dock to its left and one to its right.
     decorSlots: [70, 210, 350, 490, 630, 760], leftSlots: 5, entrance: 'gangplank', legacySignX: 610, legacyPlantX: 160,
     backdropOpts: {},
-    draw(color) {
+    draw(color, roof) {
       let s = '';
       // masts, yards, furled sails and rigging
       [300, 480].forEach(mx => {
@@ -1938,7 +2078,8 @@ const Scenes = (function () {
       // deck rail, open at the gangway (x 470..510)
       s += `<g stroke="#e9e2cf" stroke-width="2">${[170, 210, 250, 290, 330, 466, 514, 550, 590, 630].map(x => `<line x1="${x}" y1="236" x2="${x}" y2="252"/>`).join('')}<line x1="160" y1="236" x2="466" y2="236"/><line x1="514" y1="236" x2="640" y2="236"/></g>`;
       // the cabin, its door tall enough for a customer, a window each side
-      s += `<rect x="336" y="186" width="128" height="66" fill="#7a5a3e" stroke="#4a3024" stroke-width="1.5"/><rect x="332" y="182" width="136" height="6" fill="#e9e2cf"/>`;
+      s += `<rect x="336" y="186" width="128" height="66" fill="#7a5a3e" stroke="#4a3024" stroke-width="1.5"/>`;
+      s += roof ? `<polygon points="326,190 346,170 454,170 474,190" fill="${roof}" stroke="#4a3024" stroke-width="1.5"/>` : `<rect x="332" y="182" width="136" height="6" fill="#e9e2cf"/>`;
       s += `<rect x="385" y="196" width="30" height="56" fill="#3a3f44"/><rect x="388" y="199" width="24" height="53" fill="#f2e6b8"/>`;
       s += `<g fill="#b7736b" opacity="0.8">${[391, 397, 403].map((x, i) => `<rect x="${x}" y="${214 + (i % 2) * 2}" width="4" height="${12 - (i % 2) * 2}"/>`).join('')}</g><rect x="388" y="226" width="24" height="2" fill="#7a5a3e"/>`;
       s += `<g fill="#dfe8ea" stroke="#e9e2cf" stroke-width="2"><rect x="346" y="202" width="26" height="20"/><rect x="428" y="202" width="26" height="20"/></g>`;
@@ -1985,8 +2126,8 @@ const Scenes = (function () {
   // view is 'outside' (default) or 'inside'. Inside is only available for
   // buildings that define an interior.
   // paintColor, if given, is the player's own coat of paint on the walls; wallColor is
-  // the same for the walls inside.
-  function render(locationId, buildingId, view, paintColor, wallColor) {
+  // the same for the walls inside, and roofColor the player's shingles on the roof.
+  function render(locationId, buildingId, view, paintColor, wallColor, roofColor) {
     const building = BUILDINGS[buildingId] || BUILDINGS.lfl;
     if (view === 'inside' && building.interior) return renderInterior(building, wallColor);
     const locId = BACKDROPS[locationId] ? locationId : 'park';
@@ -2004,7 +2145,7 @@ const Scenes = (function () {
     const near = typeof drawn === 'string' ? '' : drawn.near;
     const skyRect = `<rect width="800" height="450" fill="url(#sky)"/>`;
     const backdrop = far.replace(skyRect, '');
-    const bldg = building.draw(color);
+    const bldg = building.draw(color, roofColor);
     const front = building.front();
     // The two .washed groups hold everything in front of the sky; at night game.js gives
     // them the night-wash filter. The paper grain sits between them, unwashed, as it blends
@@ -2138,7 +2279,12 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return (b.interior && b.interior.decorSlots) || [];
   }
+  // Where wall decor hangs inside, as [{ id, x, y, scale }]. Empty for buildings with no interior.
+  function wallSlotsFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return (b.interior && b.interior.wallSlots) || [];
+  }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, petRangeFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();

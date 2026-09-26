@@ -588,6 +588,10 @@ svg .decor-item { cursor: grab; touch-action: none; }
 svg .decor-item.dragging { cursor: grabbing; opacity: 0.85; }
 svg .slot-marker { fill: var(--mustard); opacity: 0.3; stroke: #fff8e6; stroke-width: 1; pointer-events: none; }
 svg .slot-marker.near { opacity: 0.85; }
+/* The Wall Bass sings when clicked: the fish swings out from its plaque, tail first, and back. */
+svg .wall-bass .bass-fish { transform-box: fill-box; transform-origin: 8% 55%; }
+svg .wall-bass.singing .bass-fish { animation: bass-sing 0.3s ease-in-out 5 alternate; }
+@keyframes bass-sing { from { transform: rotate(0deg); } to { transform: rotate(-14deg); } }
 .rename {
   font: inherit;
   font-family: Georgia, serif;
