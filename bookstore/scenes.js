@@ -1952,12 +1952,12 @@ const Scenes = (function () {
       <path d="M140 346 Q240 342 340 346 T540 346 T745 346" stroke="#5a7888" stroke-width="2.5" fill="none"/>
       <g class="waves" stroke="#9fb8c4" stroke-width="1.6" fill="none" stroke-linecap="round"><path d="M200 358 q12 -3 24 0"/><path d="M380 362 q12 -3 24 0"/><path d="M560 356 q12 -3 24 0"/><path d="M660 364 q12 -3 24 0"/></g>`;
   }
-  // A wide gangplank: a band of boards (seen a little from above, so wide enough to walk
-  // up) with cleats across it, a darker edge, and a rope handrail on posts along the far
+  // A wide gangplank: a band of boards (seen a little from above, so wide enough for a
+  // person and a dog on a lead to walk up) with cleats across it, a darker edge, and a rope handrail on posts along the far
   // side. Its middle runs from the dock at (700, 400) to the deck at (490, 252), the
   // line customers walk.
   function gangplank() {
-    const x0 = 700, y0 = 400, x1 = 490, y1 = 252, half = 10;
+    const x0 = 700, y0 = 400, x1 = 490, y1 = 252, half = 15;   // wide enough for a person and a dog
     const at = (t) => [x0 + (x1 - x0) * t, y0 + (y1 - y0) * t];
     let s = `<polygon points="${x0 + 8},${y0 + half} ${x1 - 6},${y1 + half} ${x1 - 6},${y1 + half + 4} ${x0 + 8},${y0 + half + 4}" fill="#7d6b58"/>`;
     s += `<polygon points="${x0 + 8},${y0 - half} ${x1 - 6},${y1 - half} ${x1 - 6},${y1 + half} ${x0 + 8},${y0 + half}" fill="#c4ab7c" stroke="#7d6b58" stroke-width="1"/>`;

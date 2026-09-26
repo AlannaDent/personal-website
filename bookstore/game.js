@@ -1282,8 +1282,11 @@
     }
     const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
-    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
-      <g class="companion" transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
+    // On a slope (a gangplank) the animal walking behind is further up or down it than its
+    // person, so it's drawn lower or higher to keep its paws on the boards.
+    const drop = -32 * c.dir * (c.slope || 0);
+    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${(-11 * s + drop).toFixed(1)}" stroke="#7d6b58" stroke-width="0.9"/>
+      <g class="companion" transform="translate(-32 ${drop.toFixed(1)}) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
   function redrawCustomer(c) {
@@ -2199,7 +2202,11 @@
         const [tx, ty, tk] = route[c.leg];
         const dx = tx - c.x, dy = ty - c.y, dist = Math.hypot(dx, dy);
         const move = speed * c.k * dt;
+        const slope = Math.abs(dx) > 0.5 ? dy / dx : 0;
+        const turned = Math.abs(dx) > 0.5 && c.dir !== (dx > 0 ? 1 : -1);
         if (Math.abs(dx) > 0.5) c.dir = dx > 0 ? 1 : -1;
+        if (c.companion && (turned || Math.abs(slope - (c.slope || 0)) > 0.01)) { c.slope = slope; redrawCustomer(c); }
+        c.slope = slope;
         if (dist > move) {
           const f = move / dist;
           c.x += dx * f; c.y += dy * f; c.k += (tk - c.k) * f;
@@ -2214,6 +2221,7 @@
             fadeIntoDoor(c);
           } else if (c.leg < 0) {                        // back on the dock: head off
             c.state = 'leaving';
+            c.slope = 0;
             c.dir = c.side === 'left' ? -1 : 1;
             maybeSit(c);
             if (c.companion) redrawCustomer(c);
