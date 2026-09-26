@@ -1206,12 +1206,12 @@
     const h = c.state === 'seated' ? seatHeight(c) : 0;        // sitting: the basket is on a lap
     if (k.carried) {
       // peeking out of the basket the girl carries
-      return `<g transform="translate(${h ? (c.bought ? 19 : 0) : 20} ${h ? (c.bought ? -9 : -h - 8) : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
+      return `<g class="companion" transform="translate(${h ? (c.bought ? 19 : 0) : 20} ${h ? (c.bought ? -9 : -h - 8) : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
     const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
     return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
-      <g transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
+      <g class="companion" transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
   function redrawCustomer(c) {
@@ -1468,11 +1468,55 @@
         b.turn = !b.turn;
         b.nextFx = now + 1100 + Math.random() * 500;
       }
-      if (b.kind === 'petVisitor') {
-        const high = b.owner.companion.carried ? 38 * customerScale(b.owner) : 30 * petScale();
-        floatText(companionX(b.owner), Scenes.GROUND_Y - high, '♥', '#d98c9c');
-      }
+      if (b.kind === 'petVisitor') floatText(companionX(b.owner), companionHeartY(b.owner), '♥', '#d98c9c');
     }
+  }
+  // Just over a customer's animal: the crab in its bucket rides higher than a dog on a lead.
+  const companionHeartY = (o) => Scenes.GROUND_Y - (o.companion.carried ? 38 * customerScale(o) : 30 * petScale());
+
+  // ---- The player saying hello ----
+  // Clicking a pet (the shop's own, or a customer's dog or crab) gets a little love back;
+  // clicking a customer gets one of the speech bubbles they use with each other; clicking a
+  // plant (without dragging it) waters it. Just for fun: nothing here is saved.
+  function loveBack(x, y) {
+    floatText(x, y, '♥', '#d98c9c');
+    setTimeout(() => floatText(x + 7 * (Math.random() < 0.5 ? -1 : 1), y - 6, '♥', '#d98c9c'), 250);
+  }
+  function lovePet(id) {
+    const a = petActors.find(p => p.pet.id === id);
+    if (a) loveBack(a.x, Scenes.GROUND_Y - 30 * petScale());
+  }
+  function loveCompanion(c) {
+    if (c.companion) loveBack(companionX(c), companionHeartY(c));
+  }
+  function greetCustomer(c, now) {
+    if (now < (c.greetedUntil || 0)) return;          // one bubble at a time, even for fast clickers
+    c.greetedUntil = now + 700;
+    chatBubble(c);
+  }
+
+  // A watering can tips over the plant and pours a few drops. Drawn in the plant's own units:
+  // plants stand about thirty tall, so the can hovers just above and to one side.
+  const WATERING_MS = 1700;
+  const watering = new Set();                          // spots being watered right now
+  function waterPlant(spot, key) {
+    const i = zoneIds().indexOf(spot);
+    const group = $('scene').querySelector('svg .effects');
+    if (i < 0 || !group || watering.has(spot)) return;
+    watering.add(spot);
+    const x = zoneXs()[i], s = decorScale(key);
+    const drops = [-2, 1.5, -0.5, 2.5, -1.5].map((dx, n) =>
+      `<path class="water-drop" style="animation-delay:${(0.4 + n * 0.16).toFixed(2)}s" d="M${dx} -47 q-1.2 1.8 0 2.6 q1.2 -0.8 0 -2.6 z" fill="#8bb4c9"/>`).join('');
+    group.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${Scenes.GROUND_Y}) scale(${s.toFixed(2)})">
+      <g transform="translate(13 -50)"><g class="watering-can">
+        <path d="M-5 1 L-13 -4" stroke="#5f7785" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="-13.4" cy="-4.3" rx="0.9" ry="1.5" transform="rotate(-30 -13.4 -4.3)" fill="#5f7785"/>
+        <path d="M2 -5 q6 -4 6 3" stroke="#5f7785" stroke-width="1.2" fill="none"/>
+        <rect x="-5" y="-5" width="11" height="10" rx="1.6" fill="#6f8a99" stroke="#5f7785" stroke-width="0.6"/>
+        <rect x="-5" y="-1" width="11" height="1.2" fill="#8fa6b3"/>
+      </g></g>${drops}</g>`);
+    const el = group.lastElementChild;
+    setTimeout(() => { el.remove(); watering.delete(spot); }, WATERING_MS);
   }
 
   // ---- Pets out and about ----
@@ -2417,6 +2461,8 @@
       sp[target] = drag.key;
       sp[from] = other || null;
       save();
+    } else if (Math.abs(drag.dx) <= 3 && drag.key.startsWith('plant:')) {
+      waterPlant(from, drag.key);       // a click, not a drag: water it
     }
     drag = null;
     drawDecor();        // redraws everything in place and clears the markers
@@ -2543,7 +2589,7 @@
       const x = xs[i], y = Scenes.GROUND_Y, scale = decorScale(key);
       const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : key === 'chair' ? Scenes.adirondack(x, y, scale) : key === 'lamp' ? Scenes.lamppost(x, y, scale)
         : isIndoorOnly(key) ? Scenes.indoorItem(key.slice(7), x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
-      out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move)</title>${art}</g>`;
+      out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move${key.startsWith('plant:') ? ', click to water' : ''})</title>${art}</g>`;
     });
     group.innerHTML = out;
     if (out.includes('lamp-glow')) applyDaylight(true);   // light the lamppost for the time of day
@@ -2895,6 +2941,12 @@
     $('scene').addEventListener('click', (e) => {
       const box = e.target.closest('.delivery-box');
       if (box) { openDelivery(box.dataset.id); return; }
+      // Clicking a pet, or a customer (or the animal they brought), says hello.
+      const pet = e.target.closest('.pet');
+      if (pet) { lovePet(pet.id); return; }
+      const person = e.target.closest('.customer');
+      const c = person && customers.find(o => o.id === person.id);
+      if (c) { if (e.target.closest('.companion')) loveCompanion(c); else greetCustomer(c, performance.now()); }
     });
     // Dragging decor between spots.
     $('scene').addEventListener('pointerdown', startDecorDrag);
