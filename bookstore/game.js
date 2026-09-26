@@ -1203,6 +1203,7 @@
   // when it runs out they face the way they were going and carry on. Nothing is saved.
   const PET_STOP_CHANCE = 0.25;  // passing a pet within reach: how often they stop for it
   const walking = (c) => c.state === 'arriving' || c.state === 'leaving';
+  const onStage = (x) => x > 40 && x < Scenes.VIEW.width - 40;   // well inside the picture, not at its edge
 
   function startBusy(c, kind, until, extra) {
     c.busy = Object.assign({ kind, until, dir: c.dir, nextFx: 0 }, extra);
@@ -1222,12 +1223,63 @@
   // Walking past a pet: if one is just ahead and within arm's reach, maybe stop and pet it.
   function maybePetShopPet(c, now) {
     const reach = 22 * customerScale(c);
+    if (!onStage(c.x)) return false;
     const a = petActors.find(p => !c.met.has(p.pet.id) && (p.x - c.x) * c.dir > 0 && Math.abs(p.x - c.x) < reach && pettable(p));
     if (!a) return false;
     c.met.add(a.pet.id);
     if (Math.random() >= PET_STOP_CHANCE) return false;
     petCustomerPet(c, a, now + 2500 + Math.random() * 2000);
     if (Math.random() < 0.5) petJournal(`${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
+    return true;
+  }
+
+  // One note a day about the people themselves (not the pets), so the journal stays mostly about books.
+  let lastPeopleLogDay = -1;
+  function peopleJournal(line) {
+    if (lastPeopleLogDay === dayIndex() || Math.random() < 0.5) return;
+    lastPeopleLogDay = dayIndex();
+    addLog(line);
+    drawLog();
+    save();
+  }
+
+  // ---- Customers meeting each other ----
+  // Someone standing where another customer could walk up to them: out in the open and not
+  // already stopped for something else.
+  const approachable = (o) => (o.state === 'arriving' || o.state === 'browsing' || o.state === 'leaving') && !o.busy;
+  function maybeMeet(c, now) {
+    for (const o of customers) {
+      if (o === c || c.met.has(o.id) || !approachable(o)) continue;
+      if (o.companion && maybePetVisitorPet(c, o, now)) return true;
+    }
+    return false;
+  }
+
+  // Where another customer's animal is: the dog trotting behind on its lead, or the crab's
+  // bucket out in front.
+  function companionX(o) {
+    return o.x + o.dir * (o.companion.carried ? 20 : -32) * customerScale(o);
+  }
+  const VISITOR_PET_CHANCE = 0.5;
+  const VISITOR_PET_LINES = ['{a} stopped to scratch the ears of a visiting dog. The dog has recommended us to friends.', '{a} asked whether they could pet the dog. The dog answered first.', '{a} and a stranger’s dog became best friends for about four seconds. Nobody regrets it.'];
+  const VISITOR_CRAB_LINES = ['{a} leaned over a bucket to say hello to a crab. The crab clicked back, politely.', '{a} was introduced to a crab in a bucket. They shook hands. Well, claws. Well, one of them.'];
+
+  // Walking up on someone else's dog (or crab): if it is just ahead, maybe stop and pet it.
+  // The owner waits, the way owners do.
+  function maybePetVisitorPet(c, o, now) {
+    const s = customerScale(c);
+    const px = companionX(o);
+    const ahead = (px - c.x) * c.dir;
+    if (ahead <= 0 || ahead > 22 * s) return false;                          // not there yet
+    // Only from the animal's far side, so it reads owner, lead, animal, then the one petting it.
+    if (Math.abs(c.x - o.x) < Math.abs(px - o.x) || !onStage(c.x) || !onStage(px)) return false;
+    c.met.add(o.id); o.met.add(c.id);
+    if (Math.random() >= VISITOR_PET_CHANCE) return false;
+    const until = now + 3000 + Math.random() * 2000;
+    startBusy(c, 'petVisitor', until, { owner: o, reach: true });
+    startBusy(o, 'wait', until, { other: c });
+    const lines = o.companion.kind === 'crab' ? VISITOR_CRAB_LINES : VISITOR_PET_LINES;
+    peopleJournal(randomFrom(lines).replace('{a}', c.look.desc));
     return true;
   }
 
@@ -1243,11 +1295,17 @@
   function runBusy(c, now) {
     const b = c.busy;
     const a = b.pet;
-    const gone = a && (!petActors.includes(a) || (a.state !== 'greet' && a.state !== 'nap'));
+    const o = b.owner || b.other;                    // the other customer, if there is one
+    const gone = (a && (!petActors.includes(a) || (a.state !== 'greet' && a.state !== 'nap')))
+      || (o && (!customers.includes(o) || !o.busy));
     if (now >= b.until || gone) { endBusy(c); return; }
     if (now >= b.nextFx) {
       b.nextFx = now + 900 + Math.random() * 500;
       if (a) floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '♥', '#d98c9c');
+      if (b.kind === 'petVisitor') {
+        const high = b.owner.companion.carried ? 38 * customerScale(b.owner) : 30 * petScale();
+        floatText(companionX(b.owner), Scenes.GROUND_Y - high, '♥', '#d98c9c');
+      }
     }
   }
 
@@ -1800,7 +1858,7 @@
       const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
       const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
       if (c.busy) { runBusy(c, now); return; }
-      if (walking(c) && !state.clock.night && maybePetShopPet(c, now)) return;
+      if (walking(c) && !state.clock.night && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
       if (c.state === 'arriving') {
         c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
