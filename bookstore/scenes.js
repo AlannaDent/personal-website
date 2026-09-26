@@ -545,7 +545,9 @@ const Scenes = (function () {
 
   // Seasonal touches on the ground and in the sky. Each group is shown by the page
   // stylesheet only in its season. grassy: whether wildflowers make sense here.
-  function seasonalLayer(grassy) {
+  // edgeX: where the ground ends, for a scene that drops away (the cliff). Drifts centered
+  // past it are left out; render also clips the whole layer to the ground.
+  function seasonalLayer(grassy, edgeX = 800) {
     let seed = 41;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     let leaves = '';
@@ -555,7 +557,7 @@ const Scenes = (function () {
       leaves += `<ellipse cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" rx="5" ry="2.6" fill="${leafColors[i % 4]}" transform="rotate(${r.toFixed(0)} ${x.toFixed(0)} ${y.toFixed(0)})"/>`;
     }
     let drifts = '';
-    [[60, 404, 90, 9], [230, 412, 70, 7], [400, 420, 110, 10], [600, 406, 80, 8], [760, 416, 90, 9], [130, 434, 120, 8], [520, 438, 130, 9]].forEach(([cx, cy, rx, ry]) => {
+    [[60, 404, 90, 9], [230, 412, 70, 7], [400, 420, 110, 10], [600, 406, 80, 8], [760, 416, 90, 9], [130, 434, 120, 8], [520, 438, 130, 9]].filter(([cx]) => cx < edgeX).forEach(([cx, cy, rx, ry]) => {
       drifts += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#f6f4ee" opacity="0.92"/>`;
     });
     let flowers = '';
@@ -587,6 +589,12 @@ const Scenes = (function () {
     return `<g class="moon" transform="translate(640 80)" opacity="0"><circle r="30" fill="#f4f1e8" opacity="0.16"/><circle r="18" fill="#f4f1e8"/><g fill="#dcd6c6" opacity="0.8"><circle cx="-6" cy="-4" r="3.2"/><circle cx="6" cy="6" r="2.2"/><circle cx="5" cy="-8" r="1.6"/><circle cx="-3" cy="8" r="1.3"/></g></g>`;
   }
   const GRASSY = ['park', 'green', 'street2', 'cliff'];
+  // Scenes where the ground doesn't reach both edges of the picture: the outline of the
+  // ground (so snow, leaves and flowers stay on it) and roughly where it ends. The cliff's
+  // grass runs out along a line from (660, 338) down to (690, 450).
+  const GROUND = {
+    cliff: { outline: '0,330 660,330 690,450 0,450', edgeX: 670 }
+  };
   // A plain sign board with an empty text element the game fills with the shop name.
   function signBoard(x, y, w, h, fontSize) {
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e9e2cf" stroke="#7d6b58" stroke-width="1.5"/>
@@ -1850,7 +1858,9 @@ const Scenes = (function () {
         <g class="background-life"></g>
         ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
         ${near ? painted('backdrop-near', near) : ''}
-        ${painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
+        ${GROUND[locId]
+          ? `<clipPath id="ground-only"><polygon points="${GROUND[locId].outline}"/></clipPath><g clip-path="url(#ground-only)">${painted('seasonal', seasonalLayer(GRASSY.includes(locId), GROUND[locId].edgeX))}</g>`
+          : painted('seasonal', seasonalLayer(GRASSY.includes(locId)))}
         ${painted('building', bldg)}
         <g class="books"></g>
         ${painted('front', front)}
