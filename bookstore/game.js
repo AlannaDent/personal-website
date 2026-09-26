@@ -1150,11 +1150,33 @@
     return b;
   }
 
+  // Someone sitting on a seat h units up (a bench, a chair): feet at (0,0) under the hips,
+  // facing right, knees out front and shins down to the ground. A reader holds their new book open.
+  function sitterBody(L, h, reading) {
+    const top = -h - 14;                                   // shoulders
+    let b = `<ellipse cx="4" cy="0" rx="13" ry="2.6" fill="#000" opacity="0.12"/>`;
+    if (L.prop === 'tote') b += `<rect x="-24" y="-13" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M-22 -13 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    b += `<rect x="16.5" y="${-h - 2}" width="5.5" height="${h + 2}" fill="#4a4a55"/><rect x="-2" y="${-h - 5}" width="24" height="6" rx="1.5" fill="#4a4a55"/>`;
+    b += `<path d="M-12 ${top} L11 ${top} L13 ${-h + 1} L-14 ${-h + 1} Z" fill="${L.coat}"/>`;
+    if (L.stripes) b += `<g fill="#f4efe4"><rect x="-12.5" y="${top + 4}" width="24" height="3"/><rect x="-13.2" y="${top + 10}" width="25.4" height="3"/></g>`;
+    const head = top - 10;
+    b += `<circle cx="0" cy="${head}" r="9" fill="#f0cfb5"/><circle cx="3" cy="${head}" r="1" fill="#3b332c"/><circle cx="4" cy="${head + 3}" r="1.8" fill="#e59a8c" opacity="0.6"/>`;
+    if (L.hat) b += `<path d="M-10 ${head - 4} Q0 ${head - 16} 10 ${head - 4} Z" fill="${L.hat}"/>`;
+    else b += `<path d="M-9 ${head - 4} Q0 ${head - 12} 9 ${head - 4} Q0 ${head - 6} -9 ${head - 4} Z" fill="#5a3e2c"/>`;
+    if (L.scarf) b += `<rect x="-10" y="${top - 3}" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="${top - 1}" width="5" height="11" fill="${L.scarf}"/>`;
+    if (L.prop === 'basket') b += `<path d="M5 ${-h - 12} h12 l-2 8 h-8 z" fill="${L.propColor}"/><path d="M7 ${-h - 12} q4 -7 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    if (reading) {
+      b += `<path d="M12 ${top + 8} l5.5 -1.8 l5.5 1.8 v-8 l-5.5 1.8 l-5.5 -1.8 z" fill="#f4efe4" stroke="#8a6248" stroke-width="0.6"/><line x1="17.5" y1="${top + 6.2}" x2="17.5" y2="${top + 1.8}" stroke="#8a6248" stroke-width="0.5"/>`;
+      b += `<path d="M4 ${top + 3} Q9 ${top + 9} 13 ${top + 6}" stroke="${L.coat}" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="13.5" cy="${top + 5.5}" r="2.3" fill="#f0cfb5"/>`;
+    }
+    return b;
+  }
+
   // Draws a simple person: round head, coat, legs, optional hat and prop.
   function customerSvg(c) {
     const L = c.look;
     const scale = customerScale(c);
-    let body = personBody(L, c.busy && c.busy.reach);
+    let body = c.state === 'seated' ? sitterBody(L, seatHeight(c), c.bought) : personBody(L, c.busy && c.busy.reach);
     body += companionSvg(c);
     return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
   }
@@ -1168,13 +1190,14 @@
     // The person's group is already scaled by personScale (and 0.8 for a child), so the
     // animal's own factor here brings it to the same size as the shop's pets (0.9 x person).
     const personFactor = c.look.small ? 0.8 : 1;
+    const h = c.state === 'seated' ? seatHeight(c) : 0;        // sitting: the basket is on a lap
     if (k.carried) {
       // peeking out of the basket the girl carries
-      return `<g transform="translate(20 -22) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
+      return `<g transform="translate(${h ? 11 : 20} ${h ? -h - 10 : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
-    const pose = c.state === 'browsing' || c.busy ? 'sit' : 'stand';
+    const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
-    return `<line x1="-13" y1="-20" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
+    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 8 : -20}" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
       <g transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
@@ -1321,6 +1344,60 @@
     const el = group.lastElementChild;
     setTimeout(() => el.remove(), 1700);
   }
+
+  // ---- Sitting down ----
+  // After their visit, someone may sit a while before heading off, reading if they bought
+  // a book. Only things people really sit on count: the park bench, the Adirondack chair,
+  // and the squishy armchair. Never the plants. One sitter each: people are drawn larger
+  // than the decor, so two on a bench would sit in each other's laps.
+  // Each seat's height is in the item's own drawing units.
+  const SEATS = { bench: 16, chair: 12, 'indoor:armchair': 17 };
+  const SIT_CHANCE = 0.35;
+  const SIT_LINES = ['{a} sat {seat} for a while and watched the world go by.', '{a} took a load off {seat}. Declared it the best seat in town. It might be.', '{a} sat {seat}, sighed a happy sigh, and stayed longer than planned.'];
+  const READ_LINES = ['{a} sat down {seat} and read the first chapter right there. Then the second.', '{a} couldn’t wait to get home. Started reading {seat}.'];
+  const decorScale = () => personScale() * 0.75;             // how big decor is drawn, next to people
+
+  // The free seats in the view on screen, each as { spot, key, x, y, face }: y is the
+  // seat's height in picture units, face which way a sitter looks (toward the middle).
+  function freeSeats() {
+    const xs = zoneXs(), out = [];
+    zoneIds().forEach((id, i) => {
+      const key = zoneSpots()[id];
+      if (!SEATS[key] || customers.some(c => c.seat && c.seat.spot === id)) return;
+      out.push({ spot: id, key, x: xs[i], y: SEATS[key] * decorScale(), face: xs[i] < Scenes.VIEW.width / 2 ? 1 : -1 });
+    });
+    return out.filter(s => onStage(s.x));
+  }
+  const seatHeight = (c) => c.seat.y / customerScale(c);    // in the sitter's own drawing units
+  const seatStillThere = (c) => zoneSpots()[c.seat.spot] === c.seat.key;   // not dragged away meanwhile
+  const seatPhrase = (key) => (key === 'bench' ? 'on ' : 'in ') + itemName(key);
+
+  // Just leaving: maybe head for the nearest free seat first.
+  function maybeSit(c) {
+    if (state.clock.night || Math.random() >= SIT_CHANCE) return;
+    const seat = freeSeats().sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0];
+    if (!seat) return;
+    c.seat = seat;
+    c.leaveDir = c.dir;
+    c.state = 'toSeat';
+    c.dir = seat.x >= c.x ? 1 : -1;
+  }
+  function sitDown(c, now) {
+    c.x = c.seat.x;
+    c.state = 'seated';
+    c.dir = c.seat.face;
+    c.seatUntil = now + 7000 + Math.random() * 8000;
+    redrawCustomer(c);
+    const line = randomFrom(c.bought ? READ_LINES : SIT_LINES);
+    peopleJournal(line.replace('{a}', c.look.desc).replace('{seat}', seatPhrase(c.seat.key)));
+  }
+  function standUp(c) {
+    c.state = 'leaving';
+    c.dir = c.leaveDir;
+    c.seat = null;
+    redrawCustomer(c);
+  }
+
 
   // Where another customer's animal is: the dog trotting behind on its lead, or the crab's
   // bucket out in front.
@@ -1960,8 +2037,18 @@
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
           if (c.door) setCustomerVisible(c, true);
+          maybeSit(c);
           if (c.companion) redrawCustomer(c);
         }
+      } else if (c.state === 'toSeat') {
+        if (!seatStillThere(c)) { standUp(c); return; }
+        const dx = c.seat.x - c.x;
+        if (Math.abs(dx) <= speed * dt) { sitDown(c, now); return; }
+        c.dir = dx > 0 ? 1 : -1;
+        c.x += c.dir * speed * dt;
+        moveCustomerElement(c, bob());
+      } else if (c.state === 'seated') {
+        if (now >= c.seatUntil || !seatStillThere(c)) standUp(c);
       } else if (c.state === 'leaving') {
         c.x += c.dir * speed * dt;
         moveCustomerElement(c, bob());
@@ -1988,6 +2075,7 @@
       floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
       state.books[randomFrom(stocked)] = null;
+      c.bought = true;                               // something to read, if they sit down
       state.coins += SELL_PRICE;
       state.sold += 1;
       bumpLifetime(life => {
