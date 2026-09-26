@@ -439,19 +439,36 @@
   // ---- Decor spots out front ----
   // Four spots, left to right. Each holds one item key: 'sign', 'bench', 'plant:<kind>'.
   // Spot ids for a building, left to right: L2 L1 R1 R2 for two a side, L3..R3 for three.
+  // Most buildings have as many on each side of the way in; the ship has five left of its
+  // gangplank and one right of it (L5..L1 R1).
   function slotIds(buildingId = state.building) {
-    const n = Scenes.decorSlotsFor(buildingId).length / 2;
+    const all = Scenes.decorSlotsFor(buildingId).length, nLeft = Scenes.leftSlotsFor(buildingId);
     const left = [], right = [];
-    for (let i = n; i >= 1; i--) left.push('L' + i);
-    for (let i = 1; i <= n; i++) right.push('R' + i);
+    for (let i = nLeft; i >= 1; i--) left.push('L' + i);
+    for (let i = 1; i <= all - nLeft; i++) right.push('R' + i);
     return left.concat(right);
   }
   function slotLabel(id) {
     if (id[0] === 'I') return 'inside, ' + INSIDE_LABELS[id];
-    const n = slotIds().length / 2, side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
-    if (k === 1) return `${side} of the door`;
+    const side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
+    const n = slotIds().filter(s => s[0] === id[0]).length;
+    if (k === 1) return `${side} of the ${Scenes.entranceFor(state.building)}`;
     if (k === n) return `far ${side}`;
     return side;
+  }
+  // Items standing in spots a building doesn't have (the ship's spots were rearranged, so
+  // R2 and R3 went) move to the free spots nearest the way in, or back inside if none.
+  function fitSpots(sp, buildingId) {
+    const ids = slotIds(buildingId);
+    const order = ids.slice().sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+    Object.keys(sp).filter(id => !ids.includes(id)).forEach(id => {
+      const key = sp[id];
+      delete sp[id];
+      const free = order.find(o => !sp[o]);
+      if (key && free) sp[free] = key;
+    });
+    ids.forEach(id => { if (!(id in sp)) sp[id] = null; });
+    return sp;
   }
   const putOutOrder = () => slotIds().slice().sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));   // nearest the door first
   function freshSpots(buildingId = state && state.building) {
@@ -461,11 +478,7 @@
   }
   // The building's spots. After an upgrade the new building may have more spots than the
   // save knows about; they are added here as empty.
-  const spots = () => {
-    const sp = state.decor.spots || (state.decor.spots = freshSpots());
-    slotIds().forEach(id => { if (!(id in sp)) sp[id] = null; });
-    return sp;
-  };
+  const spots = () => fitSpots(state.decor.spots || (state.decor.spots = freshSpots()), state.building);
   const slotOf = (key) => slotIds().find(id => spots()[id] === key) || null;
   const isOut = (key) => slotOf(key) !== null;
   const outKeys = () => slotIds().map(id => spots()[id]).filter(Boolean);
@@ -866,7 +879,74 @@
     // Lamps come on with the shop's windows: a glow, and warm glass. Inside too.
     svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
     svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
+    beamStrength = 0.22 + 0.63 * Math.min(1, glowOpacity / 0.8);   // the lighthouse: faint by day, bright at night
     moveSkyBodies(svg, t);
+  }
+
+  // ---- The lighthouse's light ----
+  // The lens makes one full turn every BEAM_TURN_MS. Seen from the side, cos is how far the
+  // beam reaches out (negative is to the left) and sin is how much it faces us: the lamp
+  // flashes as it sweeps past, and the beam is a little fainter while it points out to sea.
+  const BEAM_TURN_MS = 9000;
+  let beamStrength = 0.22;
+  function turnBeam(now) {
+    const beam = $('scene').querySelector('svg .lighthouse-beam');
+    if (!beam) return;
+    const angle = (now / BEAM_TURN_MS) * Math.PI * 2;
+    const reach = Math.cos(angle), facing = Math.sin(angle);
+    const sweep = beam.querySelector('.beam-sweep');
+    sweep.setAttribute('transform', `scale(${reach.toFixed(3)} 1)`);
+    sweep.setAttribute('opacity', (0.65 + 0.35 * facing).toFixed(2));
+    beam.querySelector('.beam-flash').setAttribute('opacity', Math.pow(Math.max(0, facing), 6).toFixed(2));
+    beam.setAttribute('opacity', beamStrength.toFixed(2));
+  }
+
+  // ---- A ship riding the harbor ----
+  // A building that floats rises and falls a couple of units and rocks a touch, on two
+  // slow waves out of step with each other. The water and the gangplank in front stay put;
+  // people aboard ride along (see feetY).
+  let shipBobY = 0;
+  function bobShip(now) {
+    const g = $('scene').querySelector('svg .building');
+    if (!building().floats || state.view === 'inside' || !g) { shipBobY = 0; return; }
+    shipBobY = 1.8 * Math.sin(now / 1500);
+    const tilt = 0.45 * Math.sin(now / 2300 + 1);
+    g.setAttribute('transform', `translate(0 ${shipBobY.toFixed(2)}) rotate(${tilt.toFixed(2)} 440 330)`);
+  }
+
+  // ---- The church bell ----
+  // Rung at the start and the end of each day (Begin Day, and closing time). The bell
+  // swings side to side, slowing for the last second, and music notes drift up out of the
+  // belfry. No sound yet. Only the church has a bell; elsewhere this does nothing.
+  const BELL_RING_MS = 5200, BELL_SWING_MS = 1100, BELL_SWING_DEG = 22;
+  let bellRingUntil = 0, nextBellNoteAt = 0, bellAngle = 0;
+  function ringBell() { bellRingUntil = performance.now() + BELL_RING_MS; }
+  function swingBell(now) {
+    const bells = $('scene').querySelectorAll('svg .church-bell');
+    const left = bellRingUntil - now;
+    const angle = left > 0 && bells.length
+      ? BELL_SWING_DEG * Math.min(1, left / 1000) * Math.sin(((BELL_RING_MS - left) / BELL_SWING_MS) * Math.PI * 2) : 0;
+    if (angle !== bellAngle) bells.forEach(b => b.setAttribute('transform', `rotate(${angle.toFixed(1)})`));
+    bellAngle = angle;
+    if (left > 600 && bells.length && now >= nextBellNoteAt) {
+      bellNote();
+      nextBellNoteAt = now + 380 + Math.random() * 320;
+    }
+  }
+  // One note (a quaver, or two joined by a beam) floating up and away from the belfry.
+  function bellNote() {
+    const group = $('scene').querySelector('svg .effects');
+    const bell = (Scenes.BUILDINGS[state.building] || {}).bell;
+    if (!group || !bell) return;
+    const x = bell.x + (Math.random() - 0.5) * 30, y = bell.y + 10;
+    const drift = (Math.random() < 0.5 ? -1 : 1) * (18 + Math.random() * 30);
+    const color = randomFrom(['#2b3f5c', '#a5443a', '#4f7a4a', '#8a6a2a']);
+    const note = Math.random() < 0.6
+      ? `<ellipse cx="0" cy="0" rx="3.4" ry="2.5" transform="rotate(-20)" fill="${color}"/><line x1="3" y1="-1" x2="3" y2="-13" stroke="${color}" stroke-width="1.3"/><path d="M3 -13 q5 2 5 7 q-1 -3 -5 -4" fill="${color}"/>`
+      : `<ellipse cx="0" cy="0" rx="3.4" ry="2.5" transform="rotate(-20)" fill="${color}"/><ellipse cx="10" cy="-2" rx="3.4" ry="2.5" transform="rotate(-20 10 -2)" fill="${color}"/><line x1="3" y1="-1" x2="3" y2="-13" stroke="${color}" stroke-width="1.3"/><line x1="13" y1="-3" x2="13" y2="-15" stroke="${color}" stroke-width="1.3"/><polygon points="3,-13 13,-15 13,-12 3,-10" fill="${color}"/>`;
+    group.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${y})"><g class="bell-note" style="--drift: ${drift.toFixed(0)}px">${note}</g></g>`);
+    const el = group.lastElementChild;
+    setTimeout(() => el.remove(), 2400);
   }
 
   // The sun climbs from the left horizon at sunrise, arcs over the shop and drops behind
@@ -954,6 +1034,7 @@
   // Closing time: the shop empties and the clock stops.
   function nightfall(now) {
     state.clock.night = true;
+    ringBell();
     customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
     customers = [];
     addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(NIGHT_LINES[seasonName()])}`);
@@ -983,6 +1064,7 @@
     c.night = false;
     c.ms = 0;
     c.day += 1;
+    ringBell();
     bumpLifetime(life => { life.daysPlayed += 1; });
     if (c.day > DAYS_PER_SEASON) {
       c.day = 1;
@@ -1105,8 +1187,10 @@
       // With a door out front, everyone walks all the way up to it and goes inside.
       // Without one (the outdoor shelves of stages one and two), they stop and browse
       // on the sidewalk, queued a little further out per person already standing there.
-      stopX: door ? door.x : (side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap)),
+      stopX: door ? (door.route ? door.route[0][0] : door.x) : (side === 'left' ? Math.max(60, stops.left - onSameSide * gap) : Math.min(Scenes.VIEW.width - 60, stops.right + onSameSide * gap)),
       door,
+      y: Scenes.GROUND_Y,                            // where their feet are: higher up on a gangplank or deck
+      k: 1,                                          // drawn a little smaller when further away (up on deck)
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
       browseUntil: 0,
@@ -1191,7 +1275,8 @@
     const scale = customerScale(c);
     let body = c.state === 'seated' ? sitterBody(L, seatHeight(c), c.bought) : personBody(L, c.busy && c.busy.reach);
     body += companionSvg(c);
-    return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
+    const k = scale * (c.k || 1);
+    return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${feetY(c)}) scale(${c.dir * k} ${k})">${body}</g>`;
   }
 
   // A visiting animal beside its person: a dog on a lead trotting behind (sitting while
@@ -1210,8 +1295,11 @@
     }
     const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
-    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
-      <g class="companion" transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
+    // On a slope (a gangplank) the animal walking behind is further up or down it than its
+    // person, so it's drawn lower or higher to keep its paws on the boards.
+    const drop = -32 * c.dir * (c.slope || 0);
+    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${(-11 * s + drop).toFixed(1)}" stroke="#7d6b58" stroke-width="0.9"/>
+      <g class="companion" transform="translate(-32 ${drop.toFixed(1)}) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
   function redrawCustomer(c) {
@@ -1222,15 +1310,37 @@
   function moveCustomerElement(c, bob) {
     const el = document.getElementById(c.id);
     if (!el) return;
-    const scale = customerScale(c);
-    el.setAttribute('transform', `translate(${c.x} ${Scenes.GROUND_Y - bob}) scale(${c.dir * scale} ${scale})`);
+    const scale = customerScale(c) * (c.k || 1);
+    el.setAttribute('transform', `translate(${c.x} ${feetY(c) - bob}) scale(${c.dir * scale} ${scale})`);
   }
+  // Where a customer's feet are drawn: the ground, or up a gangplank or on deck, where
+  // they ride the ship's bob along with it (fully once on deck, partly on the way up).
+  function feetY(c) { return rideY(c.y == null ? Scenes.GROUND_Y : c.y); }
+  // Anyone above the dock on a ship (on the gangplank or the deck) rides its bob: fully
+  // up on deck, partly on the way up.
+  const shipDeck = () => (state.view === 'inside' ? null : building().deck || null);
+  function rideY(y) {
+    const deck = shipDeck();
+    if (!deck || y >= Scenes.GROUND_Y) return y;
+    return y + shipBobY * Math.min(1, (Scenes.GROUND_Y - y) / (Scenes.GROUND_Y - deck.y));
+  }
+  // Just above a customer's head, for the coins and dots after a visit.
+  const aboveHead = (c) => feetY(c) - 60 * customerScale(c) * (c.k || 1) - 8;
 
   // Hides a customer while they're inside browsing out of sight, and brings them back
   // when they come back out to leave.
   function setCustomerVisible(c, visible) {
     const el = document.getElementById(c.id);
-    if (el) el.style.display = visible ? '' : 'none';
+    if (!el) return;
+    el.style.display = visible ? '' : 'none';
+    el.style.opacity = '';
+  }
+  // Stepping through the door: fade out over the beat spent on the threshold.
+  function fadeIntoDoor(c) {
+    const el = document.getElementById(c.id);
+    if (!el) return;
+    el.style.transition = 'opacity 0.5s ease-in';
+    el.style.opacity = '0';
   }
 
   // ---- Customers stopping for a moment ----
@@ -1253,7 +1363,7 @@
   }
 
   // A shop pet someone could stop for: settled, or strolling, and not already being petted.
-  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting
+  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting && !a.onDeck && !climbing(a)
     && !customers.some(o => o.busy && o.busy.pet === a);
 
   // Walking past a pet: if one is just ahead and within arm's reach, maybe stop and pet it.
@@ -1283,9 +1393,15 @@
   // Someone standing where another customer could walk up to them: out in the open and not
   // already stopped for something else.
   const approachable = (o) => (o.state === 'arriving' || o.state === 'browsing' || o.state === 'leaving') && !o.busy;
+  // A shop with only one way in (the lighthouse, with the cliff on the other side) has
+  // everyone coming and going along the same strip of path. There, people on their way in
+  // walk straight to the door and save the chats and the pets for the way out; otherwise
+  // the arrivals and the leavers stop each other and pile up by the fence.
+  const oneWayIn = () => Scenes.sidesFor(state.building, state.view).length === 1 && !!Scenes.doorFor(state.building, state.view);
+  const headingStraightIn = (c) => c.state === 'arriving' && oneWayIn();
   function maybeMeet(c, now) {
     for (const o of customers) {
-      if (o === c || c.met.has(o.id) || !approachable(o)) continue;
+      if (o === c || c.met.has(o.id) || !approachable(o) || headingStraightIn(o)) continue;
       if (o.companion && maybePetVisitorPet(c, o, now)) return true;
       if (maybeChat(c, o, now)) return true;
     }
@@ -1472,7 +1588,7 @@
     }
   }
   // Just over a customer's animal: the crab in its bucket rides higher than a dog on a lead.
-  const companionHeartY = (o) => Scenes.GROUND_Y - (o.companion.carried ? 38 * customerScale(o) : 30 * petScale());
+  const companionHeartY = (o) => feetY(o) - (o.companion.carried ? 38 * customerScale(o) : 30 * petScale());
 
   // ---- The player saying hello ----
   // Clicking a pet (the shop's own, or a customer's dog or crab) gets a little love back;
@@ -1484,7 +1600,7 @@
   }
   function lovePet(id) {
     const a = petActors.find(p => p.pet.id === id);
-    if (a) loveBack(a.x, Scenes.GROUND_Y - 30 * petScale());
+    if (a) loveBack(a.x, rideY(petY(a)) - 30 * petScale() * (a.k || 1));
   }
   function loveCompanion(c) {
     if (c.companion) loveBack(companionX(c), companionHeartY(c));
@@ -1525,7 +1641,16 @@
   // 'play' (with another pet). Nothing here is saved; pets pick up where they like.
   let petActors = [];
   const petScale = () => personScale() * 0.9;
-  function petBounds() { return state.view === 'inside' ? [150, 650] : [70, 730]; }
+  // How far left and right a pet may go: inside, out front, or (on a ship) along the deck.
+  function petBounds(a) {
+    if (state.view === 'inside') return [150, 650];
+    const deck = shipDeck();
+    if (a && a.onDeck && deck) return [deck.from, deck.to];
+    return Scenes.petRangeFor(state.building);
+  }
+  const petY = (a) => (a.y == null ? Scenes.GROUND_Y : a.y);
+  const climbing = (a) => !!(a.route && a.route.length);     // on the way up or down a gangplank
+  const sameLevel = (a, b) => !!a.onDeck === !!b.onDeck;
   // A crowd of pets: past four, everyone is drawn a little smaller (three-quarters at twelve)
   // and some stand a row further back, so they overlap like a crowd rather than pile up.
   const CROWD_FROM = 4;
@@ -1534,11 +1659,11 @@
 
   // Somewhere to go: try a few spots and take the one furthest from the other pets.
   function openSpot(a) {
-    const [lo, hi] = petBounds();
+    const [lo, hi] = petBounds(a);
     let best = null, bestGap = -1;
     for (let i = 0; i < 6; i++) {
       const x = lo + Math.random() * (hi - lo);
-      const gap = Math.min(Infinity, ...petActors.filter(o => o !== a).map(o => Math.abs((o.targetX === null ? o.x : o.targetX) - x)));
+      const gap = Math.min(Infinity, ...petActors.filter(o => o !== a && sameLevel(o, a)).map(o => Math.abs((o.targetX === null ? o.x : o.targetX) - x)));
       if (gap > bestGap) { best = x; bestGap = gap; }
     }
     return best;
@@ -1550,6 +1675,8 @@
     if (!svg) return;
     const out = (state.decor.pets || []).filter(p => (state.decor.petsOut || []).includes(p.id));
     petActors = petActors.filter(a => out.some(p => p.id === a.pet.id));
+    // Pets aboard a ship come back down to the ground when the scene has no deck (inside).
+    if (!shipDeck()) petActors.forEach(a => { if (a.onDeck || climbing(a)) { a.onDeck = false; a.route = null; a.y = Scenes.GROUND_Y; a.k = 1; a.targetX = null; a.x = openSpot(a); } });
     out.forEach(p => {
       if (!petActors.some(a => a.pet.id === p.id)) {
         const a = { pet: p, x: 0, dir: 1, state: 'sit', until: performance.now() + 1500, targetX: null, pose: null, partner: null, row: Math.random() < 0.5 ? 1 : 0 };
@@ -1568,12 +1695,12 @@
     if (!el) return;
     const pose = a.state === 'nap' ? 'nap' : (a.state === 'sit' || a.state === 'greet') ? 'sit' : 'stand';
     if (pose !== a.pose) { el.innerHTML = Scenes.petSvg(a.pet, pose); a.pose = pose; }
-    const back = crowded() ? a.row : 0;
-    const s = petScale() * crowdScale() * (1 - 0.1 * back);
+    const back = crowded() && petY(a) >= Scenes.GROUND_Y ? a.row : 0;   // one row on a narrow deck or plank
+    const s = petScale() * crowdScale() * (1 - 0.1 * back) * (a.k || 1);
     const flip = a.pet.kind === 'crab' ? 1 : a.dir;      // crabs face the viewer and scuttle sideways
     const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s
       : a.state === 'chase' ? Math.abs(Math.sin(a.x / 5)) * (a.pet.kind === 'crab' ? 1.2 : 3) * s : 0;
-    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
+    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(rideY(petY(a)) - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
   }
 
   // "Biscuit", "Biscuit and Mabel", "Biscuit, Mabel, and Otis" (with the Oxford comma).
@@ -1648,27 +1775,66 @@
   // Pick a chaser and a runner from the pets who are free, weighted by CHASE_ODDS.
   function maybeStartChase(now, night) {
     if (night) return;
-    const idle = petActors.filter(a => (a.state === 'wander' || a.state === 'sit') && !a.partner && !a.greeting);
+    const idle = petActors.filter(a => (a.state === 'wander' || a.state === 'sit') && !a.partner && !a.greeting && !climbing(a));
     const running = petActors.filter(a => a.state === 'chase').length / 2;
     if (idle.length < 2 || running >= 1 + Math.floor(petActors.length / 5)) return;
     if (Math.random() >= 0.00025 * (idle.length - 1)) return;   // per frame: more pets, more chases
     const pairs = [];
-    idle.forEach(c => idle.forEach(r => { if (c !== r) pairs.push([c, r, CHASE_ODDS[c.pet.kind][r.pet.kind]]); }));
+    idle.forEach(c => idle.forEach(r => { if (c !== r && sameLevel(c, r)) pairs.push([c, r, CHASE_ODDS[c.pet.kind][r.pet.kind]]); }));
+    if (!pairs.length) return;
     let pick = Math.random() * pairs.reduce((sum, p) => sum + p[2], 0);
     const pair = pairs.find(p => (pick -= p[2]) < 0) || pairs[0];
     startChase(pair[0], pair[1], now);
   }
 
+  // ---- Going aboard ----
+  // On a ship, a pet setting off for a wander now and then goes up the gangplank to stroll
+  // the deck, or back down to the dock. Often a free pet on the same level comes too, and
+  // they go side by side. Otherwise it just picks a spot where it is.
+  const ABOARD_LINES = ['{pet} went aboard to inspect the rigging. Found it adequate.', '{pet} trotted up the gangplank like they owned the ship. Nobody corrected them.'];
+  const ABOARD_PAIR_LINES = ['{a} and {b} went aboard together, like a pair of old salts.', '{a} and {b} walked the deck side by side, keeping a lookout for gulls.'];
+  function planWander(a) {
+    const deck = shipDeck();
+    if (deck && !a.partner && !a.greeting && Math.random() < (a.onDeck ? 0.4 : 0.3)) {
+      const up = !a.onDeck;
+      const [[fx, fy], [tx, ty]] = deck.plank;
+      const route = up ? [[fx, fy, 1], [tx, ty, deck.k]] : [[tx, ty, deck.k], [fx, fy, 1]];
+      const buddy = Math.random() < 0.55 && petActors.find(o => o !== a && sameLevel(o, a) && (o.state === 'sit' || o.state === 'wander')
+        && !o.partner && !o.greeting && !climbing(o));
+      [a, buddy].forEach(p => { if (p) { p.route = route.map(pt => pt.slice()); p.onDeck = up; p.state = 'wander'; } });
+      a.targetX = openSpot(a);
+      if (buddy) {
+        const [lo, hi] = petBounds(a);
+        buddy.targetX = Math.max(lo, Math.min(hi, a.targetX + (a.targetX > (lo + hi) / 2 ? -20 : 20)));
+        if (up) petJournal(randomFrom(ABOARD_PAIR_LINES).split('{a}').join(a.pet.name).split('{b}').join(buddy.pet.name));
+      } else if (up && Math.random() < 0.5) petJournal(randomFrom(ABOARD_LINES).split('{pet}').join(a.pet.name));
+      return;
+    }
+    a.targetX = openSpot(a);
+  }
+  // A step along the gangplank route: straight to the next point, changing size on the way.
+  function climb(a, step) {
+    if (a.y == null) a.y = Scenes.GROUND_Y;
+    if (a.k == null) a.k = 1;
+    const [tx, ty, tk] = a.route[0];
+    const dx = tx - a.x, dy = ty - a.y, dist = Math.hypot(dx, dy);
+    if (Math.abs(dx) > 0.5) a.dir = dx > 0 ? 1 : -1;
+    if (dist <= step) { a.x = tx; a.y = ty; a.k = tk; a.route.shift(); }
+    else { const f = step / dist; a.x += dx * f; a.y += dy * f; a.k += (tk - a.k) * f; }
+  }
+
   function updatePets(dt, now) {
     if (!petActors.length) return;
-    const [lo, hi] = petBounds();
     const night = state.clock.night;
     petActors.forEach(a => {
       const info = PET_KINDS[a.pet.kind];
+      const [lo, hi] = petBounds(a);
       if (a.state === 'chase') { runChase(a, dt, now, lo, hi); return; }
       if (a.state === 'wander') {
-        const speed = info.speed * (0.7 + 0.3 * personScale());
-        if (a.targetX === null) a.targetX = openSpot(a);
+        const speed = info.speed * (0.7 + 0.3 * personScale()) * (a.k || 1);
+        if (climbing(a)) { climb(a, speed * dt); return; }
+        if (a.targetX === null) planWander(a);
+        if (climbing(a)) return;
         const dx = a.targetX - a.x;
         a.dir = dx >= 0 ? 1 : -1;
         if (Math.abs(dx) < speed * dt) {
@@ -1693,7 +1859,7 @@
         a.state = 'wander';
         a.targetX = null;
         // Sometimes wander toward a browsing customer to be petted.
-        const browsing = customers.filter(c => c.state === 'browsing');
+        const browsing = a.onDeck ? [] : customers.filter(c => c.state === 'browsing');
         const withAnimals = browsing.filter(c => c.companion && !c.companion.carried);
         if (!night && browsing.length && Math.random() < (withAnimals.length ? 0.7 : 0.35)) {
           const c = withAnimals.length ? randomFrom(withAnimals) : randomFrom(browsing);
@@ -1707,9 +1873,10 @@
       }
     });
     // Two pets who are both wandering may decide to play.
-    const free = petActors.filter(a => a.state === 'wander' && !a.partner && !a.greeting);
-    if (free.length >= 2 && !night && Math.random() < 0.0004) {   // per frame: a game every minute or so
-      const [a, b] = free.sort(() => Math.random() - 0.5);
+    const free = petActors.filter(a => a.state === 'wander' && !a.partner && !a.greeting && !climbing(a));
+    const [a, b] = free.sort(() => Math.random() - 0.5).filter((p, i, all) => sameLevel(p, all[0]));
+    if (b && !night && Math.random() < 0.0004) {   // per frame: a game every minute or so
+      const [lo, hi] = petBounds(a);
       const meet = Math.max(lo, Math.min(hi, (a.x + b.x) / 2));
       a.partner = b; b.partner = a;
       a.targetX = meet - 10 * petScale(); b.targetX = meet + 10 * petScale();
@@ -2054,6 +2221,9 @@
     updateWeather(dt, now);
     updateExtras(dt, now);
     updateWildlife(dt, now);
+    turnBeam(now);
+    swingBell(now);
+    bobShip(now);
 
     const shopOpen = !state.clock.night && dayFraction() < LAST_CUSTOMER_AT;
     // A building with only one side to stand on (the lighthouse) fits fewer at once.
@@ -2068,14 +2238,18 @@
       const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
       const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
       if (c.busy) { runBusy(c, now); return; }
-      if (walking(c) && !state.clock.night && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
+      if (walking(c) && !state.clock.night && !headingStraightIn(c) && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
       if (c.state === 'arriving') {
         c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
         moveCustomerElement(c, bob());
         if (arrived) {
           c.x = c.stopX;
-          if (c.door) {
+          if (c.door && c.door.route) {
+            // A door up a gangplank: climb it, one waypoint at a time (see below).
+            c.state = 'boarding';
+            c.leg = 1;
+          } else if (c.door) {
             // A shop with a door: stand a beat at the threshold, then go inside out of sight.
             c.state = 'entering';
             c.browseUntil = now + 500;
@@ -2085,6 +2259,40 @@
           }
           if (c.companion) redrawCustomer(c);
           moveCustomerElement(c, 0);
+          if (c.state === 'entering') fadeIntoDoor(c);
+        }
+      } else if (c.state === 'boarding' || c.state === 'disembarking') {
+        // Following the door's route: up the gangplank and along the deck to the door, or
+        // back down. Straight lines between waypoints, shrinking a little on the way up.
+        const route = c.door.route, step = c.state === 'boarding' ? 1 : -1;
+        const [tx, ty, tk] = route[c.leg];
+        const dx = tx - c.x, dy = ty - c.y, dist = Math.hypot(dx, dy);
+        const move = speed * c.k * dt;
+        const slope = Math.abs(dx) > 0.5 ? dy / dx : 0;
+        const turned = Math.abs(dx) > 0.5 && c.dir !== (dx > 0 ? 1 : -1);
+        if (Math.abs(dx) > 0.5) c.dir = dx > 0 ? 1 : -1;
+        if (c.companion && (turned || Math.abs(slope - (c.slope || 0)) > 0.01)) { c.slope = slope; redrawCustomer(c); }
+        c.slope = slope;
+        if (dist > move) {
+          const f = move / dist;
+          c.x += dx * f; c.y += dy * f; c.k += (tk - c.k) * f;
+          moveCustomerElement(c, bob());
+        } else {
+          c.x = tx; c.y = ty; c.k = tk;
+          c.leg += step;
+          if (c.leg >= route.length) {                   // at the door: step inside
+            c.state = 'entering';
+            c.browseUntil = now + 500;
+            moveCustomerElement(c, 0);
+            fadeIntoDoor(c);
+          } else if (c.leg < 0) {                        // back on the dock: head off
+            c.state = 'leaving';
+            c.slope = 0;
+            c.dir = c.side === 'left' ? -1 : 1;
+            maybeSit(c);
+            if (c.companion) redrawCustomer(c);
+            moveCustomerElement(c, 0);
+          } else moveCustomerElement(c, bob());
         }
       } else if (c.state === 'entering') {
         if (now >= c.browseUntil) {
@@ -2095,6 +2303,14 @@
       } else if (c.state === 'browsing' || c.state === 'inside') {
         if (now >= c.browseUntil) {
           completeVisit(c);
+          if (c.door && c.door.route) {
+            // back out the door and down the way they came
+            c.state = 'disembarking';
+            c.leg = c.door.route.length - 2;
+            setCustomerVisible(c, true);
+            if (c.companion) redrawCustomer(c);
+            return;
+          }
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
           if (c.door) setCustomerVisible(c, true);
@@ -2133,7 +2349,7 @@
     const buyChance = BUY_CHANCE * (BUY_FLOOR + (1 - BUY_FLOOR) * shelfFill());
     if (stocked.length > 0 && Math.random() > buyChance) {
       addLog(`${c.look.desc}. ${shelfFill() < 0.5 && Math.random() < 0.6 ? randomFrom(THIN_SHELF_LINES) : randomFrom(BROWSED_LINES)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
+      floatText(c.x, aboveHead(c), '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
       const shelf = randomFrom(stocked);
       c.bought = state.books[shelf];                 // its cover color: something to read, if they sit down
@@ -2147,10 +2363,10 @@
       });
       const book = randomFrom(ALL_BOOKS);
       addLog(`${c.look.desc}. Bought <em>${book.title}</em> by ${book.author}. Paid ${SELL_PRICE} coins. ${randomFrom(OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, `+${SELL_PRICE}`, '#a5443a');
+      floatText(c.x, aboveHead(c), `+${SELL_PRICE}`, '#a5443a');
     } else {
       addLog(`${c.look.desc}. ${randomFrom(EMPTY_OBSERVATIONS)}`);
-      floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '…', '#5d5a54');
+      floatText(c.x, aboveHead(c), '…', '#5d5a54');
     }
     refresh();
   }
@@ -2847,7 +3063,7 @@
         d.spots = sp;
         delete d.signOut; delete d.plantOut; delete d.benchOut;
       }
-      slotIds(data.building).forEach(id => { if (!(id in data.decor.spots)) data.decor.spots[id] = null; });
+      fitSpots(data.decor.spots, data.building);
       if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
       // Saves from before indoor decor: nothing owned for inside, every inside spot empty.
       if (!Array.isArray(data.decor.indoor)) data.decor.indoor = [];
