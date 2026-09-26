@@ -1150,24 +1150,37 @@
     return b;
   }
 
-  // Someone sitting on a seat h units up (a bench, a chair): feet at (0,0) under the hips,
-  // facing right, knees out front and shins down to the ground. A reader holds their new book open.
-  function sitterBody(L, h, reading) {
+  // Someone sitting on a seat h units up (a bench, a chair), facing out of the picture the way
+  // the seats do: feet at (0,0), shins hanging from the seat's front edge, hands in the lap. A
+  // reader holds up the book they just bought (bookColor is its cover, straight off the shelf).
+  function sitterBody(L, h, bookColor) {
     const top = -h - 11;                                   // shoulders
-    let b = `<ellipse cx="4" cy="0" rx="13" ry="2.6" fill="#000" opacity="0.12"/>`;
-    if (L.prop === 'tote') b += `<rect x="-24" y="-13" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M-22 -13 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
-    b += `<rect x="16.5" y="${-h - 2}" width="5.5" height="${h + 2}" fill="#4a4a55"/><rect x="-2" y="${-h - 5}" width="24" height="6" rx="1.5" fill="#4a4a55"/>`;
-    b += `<path d="M-12 ${top} L11 ${top} L15 ${-h + 1} L-14 ${-h + 1} Z" fill="${L.coat}"/>`;
-    if (L.stripes) b += `<g fill="#f4efe4"><rect x="-12.5" y="${top + 3}" width="24.5" height="2.6"/><rect x="-13.3" y="${top + 7.5}" width="27" height="2.6"/></g>`;
     const head = top - 10;
-    b += `<circle cx="0" cy="${head}" r="9" fill="#f0cfb5"/><circle cx="3" cy="${head}" r="1" fill="#3b332c"/><circle cx="4" cy="${head + 3}" r="1.8" fill="#e59a8c" opacity="0.6"/>`;
+    let b = `<ellipse cx="0" cy="0" rx="13" ry="2.6" fill="#000" opacity="0.12"/>`;
+    if (L.prop === 'tote') b += `<rect x="13" y="-13" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -13 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    b += `<g fill="#4a4a55"><rect x="-7.5" y="${-h - 1}" width="6" height="${h + 1}"/><rect x="1.5" y="${-h - 1}" width="6" height="${h + 1}"/><rect x="-8.5" y="${-h - 4}" width="17" height="5" rx="1.5"/></g>`;
+    b += `<path d="M-11 ${top} L11 ${top} L12.5 ${-h - 2} L-12.5 ${-h - 2} Z" fill="${L.coat}"/>`;
+    if (L.stripes) b += `<g fill="#f4efe4"><rect x="-11.3" y="${top + 3}" width="22.6" height="2.6"/><rect x="-11.9" y="${top + 7}" width="23.8" height="2.6"/></g>`;
+    b += `<circle cx="0" cy="${head}" r="9" fill="#f0cfb5"/><g fill="#3b332c"><circle cx="-3" cy="${head}" r="1"/><circle cx="3" cy="${head}" r="1"/></g>`;
+    b += `<g fill="#e59a8c" opacity="0.6"><circle cx="-5" cy="${head + 3}" r="1.8"/><circle cx="5" cy="${head + 3}" r="1.8"/></g>`;
     if (L.hat) b += `<path d="M-10 ${head - 4} Q0 ${head - 16} 10 ${head - 4} Z" fill="${L.hat}"/>`;
     else b += `<path d="M-9 ${head - 4} Q0 ${head - 12} 9 ${head - 4} Q0 ${head - 6} -9 ${head - 4} Z" fill="#5a3e2c"/>`;
-    if (L.scarf) b += `<rect x="-10" y="${top - 3}" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="${top - 1}" width="5" height="9" fill="${L.scarf}"/>`;
-    if (L.prop === 'basket') b += `<path d="M6 ${-h - 9} h12 l-2 8 h-8 z" fill="${L.propColor}"/><path d="M8 ${-h - 9} q4 -7 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
-    if (reading) {
-      b += `<path d="M12 ${top + 8} l5.5 -1.8 l5.5 1.8 v-8 l-5.5 1.8 l-5.5 -1.8 z" fill="#f4efe4" stroke="#8a6248" stroke-width="0.6"/><line x1="17.5" y1="${top + 6.2}" x2="17.5" y2="${top + 1.8}" stroke="#8a6248" stroke-width="0.5"/>`;
-      b += `<path d="M4 ${top + 3} Q9 ${top + 9} 13 ${top + 6}" stroke="${L.coat}" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="13.5" cy="${top + 5.5}" r="2.3" fill="#f0cfb5"/>`;
+    if (L.scarf) b += `<rect x="-10" y="${top - 3}" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="3" y="${top - 1}" width="5" height="9" fill="${L.scarf}"/>`;
+    if (bookColor) {
+      // Both arms up, holding the open book in front of the chest, its cover toward us.
+      b += `<g stroke="${L.coat}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-9 ${top + 2} Q-11 ${top + 8} -7 ${top + 7}"/><path d="M9 ${top + 2} Q11 ${top + 8} 7 ${top + 7}"/></g>`;
+      b += `<path d="M-9 ${top + 9} L0 ${top + 7.5} L9 ${top + 9} L9 ${top + 1} L0 ${top - 0.5} L-9 ${top + 1} Z" fill="${bookColor}" stroke="#3b332c" stroke-width="0.5" stroke-linejoin="round"/>`;
+      b += `<line x1="0" y1="${top - 0.5}" x2="0" y2="${top + 7.5}" stroke="#3b332c" stroke-width="0.6" opacity="0.6"/>`;
+      b += `<g fill="#f0cfb5"><circle cx="-7.5" cy="${top + 6.5}" r="2.2"/><circle cx="7.5" cy="${top + 6.5}" r="2.2"/></g>`;
+    } else if (L.prop === 'basket') {
+      b += `<path d="M-6 ${-h - 10} h12 l-2 8 h-8 z" fill="${L.propColor}"/><path d="M-4 ${-h - 10} q4 -7 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    }
+    if (L.prop === 'basket' && bookColor) {                // hands full: the basket waits on the ground
+      b += `<path d="M13 -10 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -10 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    } else if (!bookColor && L.prop !== 'basket') {
+      // Hands resting in the lap.
+      b += `<g stroke="${L.coat}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-10 ${top + 2} L-9 ${-h - 5}"/><path d="M10 ${top + 2} L9 ${-h - 5}"/></g>`;
+      b += `<g fill="#f0cfb5"><circle cx="-6.5" cy="${-h - 4}" r="2.2"/><circle cx="6.5" cy="${-h - 4}" r="2.2"/></g>`;
     }
     return b;
   }
@@ -1193,7 +1206,7 @@
     const h = c.state === 'seated' ? seatHeight(c) : 0;        // sitting: the basket is on a lap
     if (k.carried) {
       // peeking out of the basket the girl carries
-      return `<g transform="translate(${h ? 12 : 20} ${h ? -h - 7 : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
+      return `<g transform="translate(${h ? (c.bought ? 19 : 0) : 20} ${h ? (c.bought ? -9 : -h - 8) : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
     const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
@@ -2078,8 +2091,9 @@
       addLog(`${c.look.desc}. ${shelfFill() < 0.5 && Math.random() < 0.6 ? randomFrom(THIN_SHELF_LINES) : randomFrom(BROWSED_LINES)}`);
       floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
-      state.books[randomFrom(stocked)] = null;
-      c.bought = true;                               // something to read, if they sit down
+      const shelf = randomFrom(stocked);
+      c.bought = state.books[shelf];                 // its cover color: something to read, if they sit down
+      state.books[shelf] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
       bumpLifetime(life => {
