@@ -1911,8 +1911,10 @@ const Scenes = (function () {
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
     personScale: 1.15,
-    deliveryX: 752,
-    decorSlots: [136, 203, 270, 530, 597, 664], legacySignX: 610, legacyPlantX: 160,
+    deliveryX: 527,                       // between the two spots nearest the gangplank
+    // The gangplank is the way in, and its foot is near the right (x 700): five spots along
+    // the dock to its left and one to its right.
+    decorSlots: [70, 210, 350, 490, 630, 760], leftSlots: 5, entrance: 'gangplank', legacySignX: 610, legacyPlantX: 160,
     backdropOpts: {},
     draw(color) {
       let s = '';
@@ -2121,6 +2123,16 @@ const Scenes = (function () {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
     return b.petRange || [70, 730];
   }
+  // How many of the outside spots are left of the way in (the rest are to its right), and
+  // what the way in is called. Half and half, and a door, unless the building says otherwise.
+  function leftSlotsFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return b.leftSlots != null ? b.leftSlots : decorSlotsFor(buildingId).length / 2;
+  }
+  function entranceFor(buildingId) {
+    const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
+    return b.entrance || 'door';
+  }
   // Where decor can stand inside, left to right. Empty for buildings with no interior.
   function interiorDecorSlotsFor(buildingId) {
     const b = BUILDINGS[buildingId] || BUILDINGS.lfl;
@@ -2128,5 +2140,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, interiorDecorSlotsFor, petRangeFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, petRangeFor, chalkboard, plant, indoorItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
 })();

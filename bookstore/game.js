@@ -439,19 +439,36 @@
   // ---- Decor spots out front ----
   // Four spots, left to right. Each holds one item key: 'sign', 'bench', 'plant:<kind>'.
   // Spot ids for a building, left to right: L2 L1 R1 R2 for two a side, L3..R3 for three.
+  // Most buildings have as many on each side of the way in; the ship has five left of its
+  // gangplank and one right of it (L5..L1 R1).
   function slotIds(buildingId = state.building) {
-    const n = Scenes.decorSlotsFor(buildingId).length / 2;
+    const all = Scenes.decorSlotsFor(buildingId).length, nLeft = Scenes.leftSlotsFor(buildingId);
     const left = [], right = [];
-    for (let i = n; i >= 1; i--) left.push('L' + i);
-    for (let i = 1; i <= n; i++) right.push('R' + i);
+    for (let i = nLeft; i >= 1; i--) left.push('L' + i);
+    for (let i = 1; i <= all - nLeft; i++) right.push('R' + i);
     return left.concat(right);
   }
   function slotLabel(id) {
     if (id[0] === 'I') return 'inside, ' + INSIDE_LABELS[id];
-    const n = slotIds().length / 2, side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
-    if (k === 1) return `${side} of the door`;
+    const side = id[0] === 'L' ? 'left' : 'right', k = Number(id.slice(1));
+    const n = slotIds().filter(s => s[0] === id[0]).length;
+    if (k === 1) return `${side} of the ${Scenes.entranceFor(state.building)}`;
     if (k === n) return `far ${side}`;
     return side;
+  }
+  // Items standing in spots a building doesn't have (the ship's spots were rearranged, so
+  // R2 and R3 went) move to the free spots nearest the way in, or back inside if none.
+  function fitSpots(sp, buildingId) {
+    const ids = slotIds(buildingId);
+    const order = ids.slice().sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
+    Object.keys(sp).filter(id => !ids.includes(id)).forEach(id => {
+      const key = sp[id];
+      delete sp[id];
+      const free = order.find(o => !sp[o]);
+      if (key && free) sp[free] = key;
+    });
+    ids.forEach(id => { if (!(id in sp)) sp[id] = null; });
+    return sp;
   }
   const putOutOrder = () => slotIds().slice().sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));   // nearest the door first
   function freshSpots(buildingId = state && state.building) {
@@ -461,11 +478,7 @@
   }
   // The building's spots. After an upgrade the new building may have more spots than the
   // save knows about; they are added here as empty.
-  const spots = () => {
-    const sp = state.decor.spots || (state.decor.spots = freshSpots());
-    slotIds().forEach(id => { if (!(id in sp)) sp[id] = null; });
-    return sp;
-  };
+  const spots = () => fitSpots(state.decor.spots || (state.decor.spots = freshSpots()), state.building);
   const slotOf = (key) => slotIds().find(id => spots()[id] === key) || null;
   const isOut = (key) => slotOf(key) !== null;
   const outKeys = () => slotIds().map(id => spots()[id]).filter(Boolean);
@@ -3050,7 +3063,7 @@
         d.spots = sp;
         delete d.signOut; delete d.plantOut; delete d.benchOut;
       }
-      slotIds(data.building).forEach(id => { if (!(id in data.decor.spots)) data.decor.spots[id] = null; });
+      fitSpots(data.decor.spots, data.building);
       if (!Array.isArray(data.decor.petsOut)) data.decor.petsOut = [];
       // Saves from before indoor decor: nothing owned for inside, every inside spot empty.
       if (!Array.isArray(data.decor.indoor)) data.decor.indoor = [];
