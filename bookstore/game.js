@@ -1302,12 +1302,14 @@
   }
   // Where a customer's feet are drawn: the ground, or up a gangplank or on deck, where
   // they ride the ship's bob along with it (fully once on deck, partly on the way up).
-  function feetY(c) {
-    const y = c.y == null ? Scenes.GROUND_Y : c.y;
-    const route = c.door && c.door.route;
-    if (!route || y >= Scenes.GROUND_Y) return y;
-    const deck = route[route.length - 1][1];
-    return y + shipBobY * Math.min(1, (Scenes.GROUND_Y - y) / (Scenes.GROUND_Y - deck));
+  function feetY(c) { return rideY(c.y == null ? Scenes.GROUND_Y : c.y); }
+  // Anyone above the dock on a ship (on the gangplank or the deck) rides its bob: fully
+  // up on deck, partly on the way up.
+  const shipDeck = () => (state.view === 'inside' ? null : building().deck || null);
+  function rideY(y) {
+    const deck = shipDeck();
+    if (!deck || y >= Scenes.GROUND_Y) return y;
+    return y + shipBobY * Math.min(1, (Scenes.GROUND_Y - y) / (Scenes.GROUND_Y - deck.y));
   }
   // Just above a customer's head, for the coins and dots after a visit.
   const aboveHead = (c) => feetY(c) - 60 * customerScale(c) * (c.k || 1) - 8;
@@ -1348,7 +1350,7 @@
   }
 
   // A shop pet someone could stop for: settled, or strolling, and not already being petted.
-  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting
+  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting && !a.onDeck && !climbing(a)
     && !customers.some(o => o.busy && o.busy.pet === a);
 
   // Walking past a pet: if one is just ahead and within arm's reach, maybe stop and pet it.
@@ -1573,7 +1575,7 @@
     }
   }
   // Just over a customer's animal: the crab in its bucket rides higher than a dog on a lead.
-  const companionHeartY = (o) => Scenes.GROUND_Y - (o.companion.carried ? 38 * customerScale(o) : 30 * petScale());
+  const companionHeartY = (o) => feetY(o) - (o.companion.carried ? 38 * customerScale(o) : 30 * petScale());
 
   // ---- The player saying hello ----
   // Clicking a pet (the shop's own, or a customer's dog or crab) gets a little love back;
@@ -1585,7 +1587,7 @@
   }
   function lovePet(id) {
     const a = petActors.find(p => p.pet.id === id);
-    if (a) loveBack(a.x, Scenes.GROUND_Y - 30 * petScale());
+    if (a) loveBack(a.x, rideY(petY(a)) - 30 * petScale() * (a.k || 1));
   }
   function loveCompanion(c) {
     if (c.companion) loveBack(companionX(c), companionHeartY(c));
@@ -1626,7 +1628,16 @@
   // 'play' (with another pet). Nothing here is saved; pets pick up where they like.
   let petActors = [];
   const petScale = () => personScale() * 0.9;
-  function petBounds() { return state.view === 'inside' ? [150, 650] : Scenes.petRangeFor(state.building); }
+  // How far left and right a pet may go: inside, out front, or (on a ship) along the deck.
+  function petBounds(a) {
+    if (state.view === 'inside') return [150, 650];
+    const deck = shipDeck();
+    if (a && a.onDeck && deck) return [deck.from, deck.to];
+    return Scenes.petRangeFor(state.building);
+  }
+  const petY = (a) => (a.y == null ? Scenes.GROUND_Y : a.y);
+  const climbing = (a) => !!(a.route && a.route.length);     // on the way up or down a gangplank
+  const sameLevel = (a, b) => !!a.onDeck === !!b.onDeck;
   // A crowd of pets: past four, everyone is drawn a little smaller (three-quarters at twelve)
   // and some stand a row further back, so they overlap like a crowd rather than pile up.
   const CROWD_FROM = 4;
@@ -1635,11 +1646,11 @@
 
   // Somewhere to go: try a few spots and take the one furthest from the other pets.
   function openSpot(a) {
-    const [lo, hi] = petBounds();
+    const [lo, hi] = petBounds(a);
     let best = null, bestGap = -1;
     for (let i = 0; i < 6; i++) {
       const x = lo + Math.random() * (hi - lo);
-      const gap = Math.min(Infinity, ...petActors.filter(o => o !== a).map(o => Math.abs((o.targetX === null ? o.x : o.targetX) - x)));
+      const gap = Math.min(Infinity, ...petActors.filter(o => o !== a && sameLevel(o, a)).map(o => Math.abs((o.targetX === null ? o.x : o.targetX) - x)));
       if (gap > bestGap) { best = x; bestGap = gap; }
     }
     return best;
@@ -1651,6 +1662,8 @@
     if (!svg) return;
     const out = (state.decor.pets || []).filter(p => (state.decor.petsOut || []).includes(p.id));
     petActors = petActors.filter(a => out.some(p => p.id === a.pet.id));
+    // Pets aboard a ship come back down to the ground when the scene has no deck (inside).
+    if (!shipDeck()) petActors.forEach(a => { if (a.onDeck || climbing(a)) { a.onDeck = false; a.route = null; a.y = Scenes.GROUND_Y; a.k = 1; a.targetX = null; a.x = openSpot(a); } });
     out.forEach(p => {
       if (!petActors.some(a => a.pet.id === p.id)) {
         const a = { pet: p, x: 0, dir: 1, state: 'sit', until: performance.now() + 1500, targetX: null, pose: null, partner: null, row: Math.random() < 0.5 ? 1 : 0 };
@@ -1669,12 +1682,12 @@
     if (!el) return;
     const pose = a.state === 'nap' ? 'nap' : (a.state === 'sit' || a.state === 'greet') ? 'sit' : 'stand';
     if (pose !== a.pose) { el.innerHTML = Scenes.petSvg(a.pet, pose); a.pose = pose; }
-    const back = crowded() ? a.row : 0;
-    const s = petScale() * crowdScale() * (1 - 0.1 * back);
+    const back = crowded() && petY(a) >= Scenes.GROUND_Y ? a.row : 0;   // one row on a narrow deck or plank
+    const s = petScale() * crowdScale() * (1 - 0.1 * back) * (a.k || 1);
     const flip = a.pet.kind === 'crab' ? 1 : a.dir;      // crabs face the viewer and scuttle sideways
     const bob = a.state === 'wander' ? Math.abs(Math.sin(a.x / 6)) * 1.2 * s : a.state === 'play' ? Math.abs(Math.sin(performance.now() / 90)) * 4 * s
       : a.state === 'chase' ? Math.abs(Math.sin(a.x / 5)) * (a.pet.kind === 'crab' ? 1.2 : 3) * s : 0;
-    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(Scenes.GROUND_Y - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
+    el.setAttribute('transform', `translate(${a.x.toFixed(1)} ${(rideY(petY(a)) - 10 * back - bob).toFixed(1)}) scale(${flip * s} ${s})`);
   }
 
   // "Biscuit", "Biscuit and Mabel", "Biscuit, Mabel, and Otis" (with the Oxford comma).
@@ -1749,27 +1762,66 @@
   // Pick a chaser and a runner from the pets who are free, weighted by CHASE_ODDS.
   function maybeStartChase(now, night) {
     if (night) return;
-    const idle = petActors.filter(a => (a.state === 'wander' || a.state === 'sit') && !a.partner && !a.greeting);
+    const idle = petActors.filter(a => (a.state === 'wander' || a.state === 'sit') && !a.partner && !a.greeting && !climbing(a));
     const running = petActors.filter(a => a.state === 'chase').length / 2;
     if (idle.length < 2 || running >= 1 + Math.floor(petActors.length / 5)) return;
     if (Math.random() >= 0.00025 * (idle.length - 1)) return;   // per frame: more pets, more chases
     const pairs = [];
-    idle.forEach(c => idle.forEach(r => { if (c !== r) pairs.push([c, r, CHASE_ODDS[c.pet.kind][r.pet.kind]]); }));
+    idle.forEach(c => idle.forEach(r => { if (c !== r && sameLevel(c, r)) pairs.push([c, r, CHASE_ODDS[c.pet.kind][r.pet.kind]]); }));
+    if (!pairs.length) return;
     let pick = Math.random() * pairs.reduce((sum, p) => sum + p[2], 0);
     const pair = pairs.find(p => (pick -= p[2]) < 0) || pairs[0];
     startChase(pair[0], pair[1], now);
   }
 
+  // ---- Going aboard ----
+  // On a ship, a pet setting off for a wander now and then goes up the gangplank to stroll
+  // the deck, or back down to the dock. Often a free pet on the same level comes too, and
+  // they go side by side. Otherwise it just picks a spot where it is.
+  const ABOARD_LINES = ['{pet} went aboard to inspect the rigging. Found it adequate.', '{pet} trotted up the gangplank like they owned the ship. Nobody corrected them.'];
+  const ABOARD_PAIR_LINES = ['{a} and {b} went aboard together, like a pair of old salts.', '{a} and {b} walked the deck side by side, keeping a lookout for gulls.'];
+  function planWander(a) {
+    const deck = shipDeck();
+    if (deck && !a.partner && !a.greeting && Math.random() < (a.onDeck ? 0.4 : 0.3)) {
+      const up = !a.onDeck;
+      const [[fx, fy], [tx, ty]] = deck.plank;
+      const route = up ? [[fx, fy, 1], [tx, ty, deck.k]] : [[tx, ty, deck.k], [fx, fy, 1]];
+      const buddy = Math.random() < 0.55 && petActors.find(o => o !== a && sameLevel(o, a) && (o.state === 'sit' || o.state === 'wander')
+        && !o.partner && !o.greeting && !climbing(o));
+      [a, buddy].forEach(p => { if (p) { p.route = route.map(pt => pt.slice()); p.onDeck = up; p.state = 'wander'; } });
+      a.targetX = openSpot(a);
+      if (buddy) {
+        const [lo, hi] = petBounds(a);
+        buddy.targetX = Math.max(lo, Math.min(hi, a.targetX + (a.targetX > (lo + hi) / 2 ? -20 : 20)));
+        if (up) petJournal(randomFrom(ABOARD_PAIR_LINES).split('{a}').join(a.pet.name).split('{b}').join(buddy.pet.name));
+      } else if (up && Math.random() < 0.5) petJournal(randomFrom(ABOARD_LINES).split('{pet}').join(a.pet.name));
+      return;
+    }
+    a.targetX = openSpot(a);
+  }
+  // A step along the gangplank route: straight to the next point, changing size on the way.
+  function climb(a, step) {
+    if (a.y == null) a.y = Scenes.GROUND_Y;
+    if (a.k == null) a.k = 1;
+    const [tx, ty, tk] = a.route[0];
+    const dx = tx - a.x, dy = ty - a.y, dist = Math.hypot(dx, dy);
+    if (Math.abs(dx) > 0.5) a.dir = dx > 0 ? 1 : -1;
+    if (dist <= step) { a.x = tx; a.y = ty; a.k = tk; a.route.shift(); }
+    else { const f = step / dist; a.x += dx * f; a.y += dy * f; a.k += (tk - a.k) * f; }
+  }
+
   function updatePets(dt, now) {
     if (!petActors.length) return;
-    const [lo, hi] = petBounds();
     const night = state.clock.night;
     petActors.forEach(a => {
       const info = PET_KINDS[a.pet.kind];
+      const [lo, hi] = petBounds(a);
       if (a.state === 'chase') { runChase(a, dt, now, lo, hi); return; }
       if (a.state === 'wander') {
-        const speed = info.speed * (0.7 + 0.3 * personScale());
-        if (a.targetX === null) a.targetX = openSpot(a);
+        const speed = info.speed * (0.7 + 0.3 * personScale()) * (a.k || 1);
+        if (climbing(a)) { climb(a, speed * dt); return; }
+        if (a.targetX === null) planWander(a);
+        if (climbing(a)) return;
         const dx = a.targetX - a.x;
         a.dir = dx >= 0 ? 1 : -1;
         if (Math.abs(dx) < speed * dt) {
@@ -1794,7 +1846,7 @@
         a.state = 'wander';
         a.targetX = null;
         // Sometimes wander toward a browsing customer to be petted.
-        const browsing = customers.filter(c => c.state === 'browsing');
+        const browsing = a.onDeck ? [] : customers.filter(c => c.state === 'browsing');
         const withAnimals = browsing.filter(c => c.companion && !c.companion.carried);
         if (!night && browsing.length && Math.random() < (withAnimals.length ? 0.7 : 0.35)) {
           const c = withAnimals.length ? randomFrom(withAnimals) : randomFrom(browsing);
@@ -1808,9 +1860,10 @@
       }
     });
     // Two pets who are both wandering may decide to play.
-    const free = petActors.filter(a => a.state === 'wander' && !a.partner && !a.greeting);
-    if (free.length >= 2 && !night && Math.random() < 0.0004) {   // per frame: a game every minute or so
-      const [a, b] = free.sort(() => Math.random() - 0.5);
+    const free = petActors.filter(a => a.state === 'wander' && !a.partner && !a.greeting && !climbing(a));
+    const [a, b] = free.sort(() => Math.random() - 0.5).filter((p, i, all) => sameLevel(p, all[0]));
+    if (b && !night && Math.random() < 0.0004) {   // per frame: a game every minute or so
+      const [lo, hi] = petBounds(a);
       const meet = Math.max(lo, Math.min(hi, (a.x + b.x) / 2));
       a.partner = b; b.partner = a;
       a.targetX = meet - 10 * petScale(); b.targetX = meet + 10 * petScale();

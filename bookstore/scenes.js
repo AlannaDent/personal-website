@@ -1905,6 +1905,9 @@ const Scenes = (function () {
     // little smaller up on deck, a step further from us. The cabin door is tall enough.
     door: { x: 400, y: 252, route: [[700, 400, 1], [490, 252, 0.85], [400, 252, 0.85]] },
     floats: true,                         // it rides the harbor: game.js bobs .building gently
+    // The deck, for the shop's pets: its height, how far along it they may stroll, how
+    // small they're drawn up there, and the gangplank's foot and top.
+    deck: { y: 252, from: 190, to: 630, k: 0.85, plank: [[700, 400], [490, 252]] },
     sign: { size: 10, small: 8 },
     stops: { left: 250, right: 560 },
     personScale: 1.15,
