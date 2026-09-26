@@ -1251,8 +1251,75 @@
     for (const o of customers) {
       if (o === c || c.met.has(o.id) || !approachable(o)) continue;
       if (o.companion && maybePetVisitorPet(c, o, now)) return true;
+      if (maybeChat(c, o, now)) return true;
     }
     return false;
+  }
+
+  // ---- Chats ----
+  // Two customers who meet may stop and talk: they face each other (unless one has a dog on
+  // a lead, who would end up on the wrong side) and speech bubbles go back and forth.
+  const CHAT_CHANCE = 0.3;
+  const CHAT_LINES = ['{a} and {b} stopped to talk about the weather. The weather was discussed thoroughly.', '{a} bumped into {b}. They talked books, then tides, then somebody’s cousin.',
+    '{a} and {b} had a long chat. Nobody bought anything during it. Everybody left happy.', '{a} and {b} found out they had read the same book. The conversation may still be going.'];
+  const lowerFirst = (s) => s[0].toLowerCase() + s.slice(1);
+  const onLead = (c) => c.companion && !c.companion.carried;
+
+  function maybeChat(c, o, now) {
+    const s = customerScale(c);
+    const ahead = (o.x - c.x) * c.dir;
+    if (ahead <= 0 || ahead > 40 * s || !onStage(c.x) || !onStage(o.x)) return false;
+    c.met.add(o.id); o.met.add(c.id);
+    if (ahead < 28 * s || Math.random() >= CHAT_CHANCE) return false;   // too close to stand and talk
+    const mid = (c.x + o.x) / 2;                     // and nobody standing in between them
+    if (customers.some(p => p !== c && p !== o && p.state !== 'inside' && Math.abs(p.x - mid) < ahead / 2 + 12 * s)) return false;
+    startChat(c, o, now);
+    if (c.look.desc !== o.look.desc) peopleJournal(randomFrom(CHAT_LINES).replace('{a}', c.look.desc).replace('{b}', lowerFirst(o.look.desc)));
+    return true;
+  }
+
+  function startChat(c, o, now) {
+    const until = now + 3500 + Math.random() * 3000;
+    const facing = o.x >= c.x ? 1 : -1;
+    startBusy(c, 'chat', until, { other: o, lead: true, turn: Math.random() < 0.5 });
+    startBusy(o, 'chat', until, { other: c });
+    c.dir = facing;
+    if (!onLead(o)) o.dir = -facing;
+    redrawCustomer(c); redrawCustomer(o);
+  }
+
+  // What goes in a speech bubble: dots, a heart, a book, a tune, a fish, "!" or "?", and a
+  // bit of weather to suit the season. Drawn about 16 units across, centered on (0,0).
+  const CHAT_ICONS = [
+    '<g fill="#5d5a54"><circle cx="-3.6" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="3.6" cy="0" r="1.2"/></g>',
+    '<path d="M0 3.4 C-5.5 -0.4 -3.6 -5 0 -2.2 C3.6 -5 5.5 -0.4 0 3.4 Z" fill="#d98c9c"/>',
+    '<path d="M-5 -3 L0 -2 L5 -3 V3 L0 4 L-5 3 Z" fill="#a5443a"/><line x1="0" y1="-2" x2="0" y2="4" stroke="#f4efe4" stroke-width="0.7"/>',
+    '<g fill="#2b3f5c"><circle cx="-2.4" cy="2.8" r="1.5"/><circle cx="2.6" cy="1.8" r="1.5"/></g><path d="M-1 2.8 V-3.6 L4 -4.6 V1.8" stroke="#2b3f5c" stroke-width="0.9" fill="none"/>',
+    '<path d="M-4.5 0 Q-1 -3.4 3 0 Q-1 3.4 -4.5 0 Z M3 0 L5.5 -2.4 L5.5 2.4 Z" fill="#6f8a99"/><circle cx="-2.4" cy="-0.4" r="0.6" fill="#f4efe4"/>',
+    '<text x="0" y="3.6" text-anchor="middle" font-size="10" font-family="Georgia, serif" font-weight="bold" fill="#a5443a">!</text>',
+    '<text x="0" y="3.6" text-anchor="middle" font-size="10" font-family="Georgia, serif" font-weight="bold" fill="#2f6f6a">?</text>'
+  ];
+  const WEATHER_ICONS = {
+    Spring: '<g fill="#d98c9c"><circle cx="0" cy="-2.4" r="1.8"/><circle cx="2.3" cy="-0.7" r="1.8"/><circle cx="1.4" cy="2" r="1.8"/><circle cx="-1.4" cy="2" r="1.8"/><circle cx="-2.3" cy="-0.7" r="1.8"/></g><circle r="1.2" fill="#d9a441"/>',
+    Summer: '<circle r="2.4" fill="#d9a441"/><g stroke="#d9a441" stroke-width="1" stroke-linecap="round"><line x1="0" y1="-4.8" x2="0" y2="-3.6"/><line x1="0" y1="3.6" x2="0" y2="4.8"/><line x1="-4.8" y1="0" x2="-3.6" y2="0"/><line x1="3.6" y1="0" x2="4.8" y2="0"/><line x1="-3.4" y1="-3.4" x2="-2.6" y2="-2.6"/><line x1="2.6" y1="2.6" x2="3.4" y2="3.4"/><line x1="-3.4" y1="3.4" x2="-2.6" y2="2.6"/><line x1="2.6" y1="-2.6" x2="3.4" y2="-3.4"/></g>',
+    Autumn: '<path d="M-4 3.5 Q-4.5 -4 4 -4 Q4 3.5 -4 3.5 Z" fill="#c9782e"/><path d="M-4 3.5 L2 -2" stroke="#8a4a1e" stroke-width="0.6"/>',
+    Winter: '<g stroke="#6f8a99" stroke-width="0.9" stroke-linecap="round"><line x1="0" y1="-4.5" x2="0" y2="4.5"/><line x1="-3.9" y1="-2.25" x2="3.9" y2="2.25"/><line x1="-3.9" y1="2.25" x2="3.9" y2="-2.25"/></g>'
+  };
+
+  // A bubble over the speaker's head, a little in front of their face, its tail pointing back to them.
+  function chatBubble(c) {
+    const group = $('scene').querySelector('svg .effects');
+    if (!group) return;
+    const s = customerScale(c);
+    const x = c.x + c.dir * 10 * s, y = Scenes.GROUND_Y - 62 * s;
+    const d = c.dir;
+    const icon = Math.random() < 0.2 ? (WEATHER_ICONS[seasonName()] || CHAT_ICONS[0]) : randomFrom(CHAT_ICONS);
+    group.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s * 0.9).toFixed(2)})"><g class="chat-bubble">
+      <path d="M${-2 * d} 5 L${-7 * d} 10 L${3 * d} 5 Z" fill="#fffaf0" stroke="#5d5a54" stroke-width="0.6" stroke-linejoin="round"/>
+      <rect x="-8.5" y="-6.5" width="17" height="13" rx="4.5" fill="#fffaf0" stroke="#5d5a54" stroke-width="0.6"/>
+      <path d="M${-1.6 * d} 6.2 L${2.6 * d} 6.2 L${2.6 * d} 5.4 L${-1.6 * d} 5.4 Z" fill="#fffaf0"/>${icon}</g></g>`);
+    const el = group.lastElementChild;
+    setTimeout(() => el.remove(), 1700);
   }
 
   // Where another customer's animal is: the dog trotting behind on its lead, or the crab's
@@ -1302,6 +1369,11 @@
     if (now >= b.nextFx) {
       b.nextFx = now + 900 + Math.random() * 500;
       if (a) floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '♥', '#d98c9c');
+      if (b.kind === 'chat' && b.lead) {             // the one who stopped first keeps the turns
+        chatBubble(b.turn ? c : o);
+        b.turn = !b.turn;
+        b.nextFx = now + 1100 + Math.random() * 500;
+      }
       if (b.kind === 'petVisitor') {
         const high = b.owner.companion.carried ? 38 * customerScale(b.owner) : 30 * petScale();
         floatText(companionX(b.owner), Scenes.GROUND_Y - high, '♥', '#d98c9c');
