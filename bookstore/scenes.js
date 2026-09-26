@@ -1748,10 +1748,13 @@ const Scenes = (function () {
       s += `<path d="M308 66 Q330 40 352 66 z" fill="#2b2a28"/><circle cx="330" cy="40" r="4" fill="#2b2a28"/>`;
       s += `<circle cx="330" cy="88" r="9" fill="#fff" opacity="0.9"/>`;
       s += `<rect x="318" y="220" width="14" height="22" rx="7" fill="#3a3f44"/><rect x="322" y="300" width="14" height="22" rx="7" fill="#3a3f44"/>`;
-      // keeper's house with the shop door open
-      s += `<rect x="368" y="285" width="176" height="115" fill="#b9b0a0" stroke="#7d766c" stroke-width="1.5"/>`;
+      // keeper's house with the shop door open. Weathered tan until the player paints; then it
+      // takes the same coat as the tower, with a slate roof if the paint matches the red one.
+      const house = color === BUILDINGS.lighthouse.paint ? '#b9b0a0' : color;
+      const roof = house === '#a5443a' ? '#5a5f66' : '#a5443a';
+      s += `<rect x="368" y="285" width="176" height="115" fill="${house}" stroke="#7d766c" stroke-width="1.5"/>`;
       s += hLines(368, 544, 294, 396, 7, 0.08);
-      s += `<polygon points="360,290 456,222 552,290" fill="#a5443a" stroke="#4a4946" stroke-width="1.5"/>`;
+      s += `<polygon points="360,290 456,222 552,290" fill="${roof}" stroke="#4a4946" stroke-width="1.5"/>`;
       s += `<rect x="500" y="232" width="14" height="36" fill="#a86b5f"/>`;
       s += `<g fill="#dfe8ea" stroke="#f4f1e8" stroke-width="3"><rect x="384" y="306" width="34" height="38"/><rect x="494" y="306" width="34" height="38"/></g>`;
       s += `<rect x="440" y="326" width="32" height="74" fill="#3a3f44"/><rect x="444" y="330" width="24" height="70" fill="#f2e6b8"/>`;
