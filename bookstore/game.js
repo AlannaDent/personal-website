@@ -1109,14 +1109,17 @@
       door,
       dir: side === 'left' ? 1 : -1,                 // 1 = walking right, -1 = walking left
       state: 'arriving',
-      browseUntil: 0
+      browseUntil: 0,
+      busy: null,                                    // stopped for a moment (see "Customers stopping")
+      met: new Set()                                 // pets and people already passed, so each is a single chance
     };
     customers.push(c);
     $('scene').querySelector('svg .customers').insertAdjacentHTML('beforeend', customerSvg(c));
   }
 
   // The person itself, feet at (0,0), facing right. Shared by customers and background people.
-  function personBody(L) {
+  // With reach set, one arm stretches down in front, to pet something.
+  function personBody(L, reach) {
     let body = `<ellipse cx="0" cy="0" rx="14" ry="3" fill="#000" opacity="0.12"/>`;
     body += `<rect x="-7" y="-26" width="6" height="26" fill="#4a4a55"/><rect x="1" y="-26" width="6" height="26" fill="#4a4a55"/>`;
     body += `<path d="M-12 -30 L12 -30 L15 -6 L-15 -6 Z" fill="${L.coat}"/>`;
@@ -1131,6 +1134,7 @@
     if (L.scarf) body += `<rect x="-10" y="-33" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="4" y="-31" width="5" height="12" fill="${L.scarf}"/>`;
     if (L.prop === 'tote') body += `<rect x="13" y="-22" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -22 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
     if (L.prop === 'basket') body += `<path d="M13 -20 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -20 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    if (reach) body += `<path d="M5 -27 Q13 -22 19 -14" stroke="${L.coat}" stroke-width="4.5" stroke-linecap="round" fill="none"/><circle cx="19.5" cy="-13" r="2.4" fill="#f0cfb5"/>`;
     return body;
   }
 
@@ -1146,11 +1150,46 @@
     return b;
   }
 
+  // Someone sitting on a seat h units up (a bench, a chair), facing out of the picture the way
+  // the seats do: feet at (0,0), shins hanging from the seat's front edge, hands in the lap. A
+  // reader holds up the book they just bought (bookColor is its cover, straight off the shelf).
+  function sitterBody(L, h, bookColor) {
+    const top = -h - 11;                                   // shoulders
+    const head = top - 10;
+    let b = `<ellipse cx="0" cy="0" rx="13" ry="2.6" fill="#000" opacity="0.12"/>`;
+    if (L.prop === 'tote') b += `<rect x="13" y="-13" width="10" height="13" fill="${L.propColor}" rx="1"/><path d="M15 -13 q3 -6 6 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    b += `<g fill="#4a4a55"><rect x="-7.5" y="${-h - 1}" width="6" height="${h + 1}"/><rect x="1.5" y="${-h - 1}" width="6" height="${h + 1}"/><rect x="-8.5" y="${-h - 4}" width="17" height="5" rx="1.5"/></g>`;
+    b += `<path d="M-11 ${top} L11 ${top} L12.5 ${-h - 2} L-12.5 ${-h - 2} Z" fill="${L.coat}"/>`;
+    if (L.stripes) b += `<g fill="#f4efe4"><rect x="-11.3" y="${top + 3}" width="22.6" height="2.6"/><rect x="-11.9" y="${top + 7}" width="23.8" height="2.6"/></g>`;
+    b += `<circle cx="0" cy="${head}" r="9" fill="#f0cfb5"/><g fill="#3b332c"><circle cx="-3" cy="${head}" r="1"/><circle cx="3" cy="${head}" r="1"/></g>`;
+    b += `<g fill="#e59a8c" opacity="0.6"><circle cx="-5" cy="${head + 3}" r="1.8"/><circle cx="5" cy="${head + 3}" r="1.8"/></g>`;
+    if (L.hat) b += `<path d="M-10 ${head - 4} Q0 ${head - 16} 10 ${head - 4} Z" fill="${L.hat}"/>`;
+    else b += `<path d="M-9 ${head - 4} Q0 ${head - 12} 9 ${head - 4} Q0 ${head - 6} -9 ${head - 4} Z" fill="#5a3e2c"/>`;
+    if (L.scarf) b += `<rect x="-10" y="${top - 3}" width="20" height="5" fill="${L.scarf}" rx="1"/><rect x="3" y="${top - 1}" width="5" height="9" fill="${L.scarf}"/>`;
+    if (bookColor) {
+      // Both arms up, holding the open book in front of the chest, its cover toward us.
+      b += `<g stroke="${L.coat}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-9 ${top + 2} Q-11 ${top + 8} -7 ${top + 7}"/><path d="M9 ${top + 2} Q11 ${top + 8} 7 ${top + 7}"/></g>`;
+      b += `<path d="M-9 ${top + 9} L0 ${top + 7.5} L9 ${top + 9} L9 ${top + 1} L0 ${top - 0.5} L-9 ${top + 1} Z" fill="${bookColor}" stroke="#3b332c" stroke-width="0.5" stroke-linejoin="round"/>`;
+      b += `<line x1="0" y1="${top - 0.5}" x2="0" y2="${top + 7.5}" stroke="#3b332c" stroke-width="0.6" opacity="0.6"/>`;
+      b += `<g fill="#f0cfb5"><circle cx="-7.5" cy="${top + 6.5}" r="2.2"/><circle cx="7.5" cy="${top + 6.5}" r="2.2"/></g>`;
+    } else if (L.prop === 'basket') {
+      b += `<path d="M-6 ${-h - 10} h12 l-2 8 h-8 z" fill="${L.propColor}"/><path d="M-4 ${-h - 10} q4 -7 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    }
+    if (L.prop === 'basket' && bookColor) {                // hands full: the basket waits on the ground
+      b += `<path d="M13 -10 h12 l-2 10 h-8 z" fill="${L.propColor}"/><path d="M15 -10 q4 -8 8 0" stroke="${L.propColor}" stroke-width="1.5" fill="none"/>`;
+    } else if (!bookColor && L.prop !== 'basket') {
+      // Hands resting in the lap.
+      b += `<g stroke="${L.coat}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M-10 ${top + 2} L-9 ${-h - 5}"/><path d="M10 ${top + 2} L9 ${-h - 5}"/></g>`;
+      b += `<g fill="#f0cfb5"><circle cx="-6.5" cy="${-h - 4}" r="2.2"/><circle cx="6.5" cy="${-h - 4}" r="2.2"/></g>`;
+    }
+    return b;
+  }
+
   // Draws a simple person: round head, coat, legs, optional hat and prop.
   function customerSvg(c) {
     const L = c.look;
     const scale = customerScale(c);
-    let body = personBody(L);
+    let body = c.state === 'seated' ? sitterBody(L, seatHeight(c), c.bought) : personBody(L, c.busy && c.busy.reach);
     body += companionSvg(c);
     return `<g id="${c.id}" class="customer" transform="translate(${c.x} ${Scenes.GROUND_Y}) scale(${c.dir * scale} ${scale})">${body}</g>`;
   }
@@ -1164,13 +1203,14 @@
     // The person's group is already scaled by personScale (and 0.8 for a child), so the
     // animal's own factor here brings it to the same size as the shop's pets (0.9 x person).
     const personFactor = c.look.small ? 0.8 : 1;
+    const h = c.state === 'seated' ? seatHeight(c) : 0;        // sitting: the basket is on a lap
     if (k.carried) {
       // peeking out of the basket the girl carries
-      return `<g transform="translate(20 -22) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
+      return `<g transform="translate(${h ? (c.bought ? 19 : 0) : 20} ${h ? (c.bought ? -9 : -h - 8) : -22}) scale(${(0.45 / personFactor).toFixed(2)})">${Scenes.petSvg(pet, 'sit')}</g>`;
     }
-    const pose = c.state === 'browsing' ? 'sit' : 'stand';
+    const pose = c.state === 'browsing' || c.state === 'seated' || c.busy ? 'sit' : 'stand';
     const s = (k.small ? 0.72 : 0.9) / personFactor;
-    return `<line x1="-13" y1="-20" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
+    return `<line x1="${h ? -8 : -13}" y1="${h ? -h - 5 : -20}" x2="${-30 + 2 * s}" y2="${-11 * s}" stroke="#7d6b58" stroke-width="0.9"/>
       <g transform="translate(-32 0) scale(${s.toFixed(2)})">${Scenes.petSvg(pet, pose)}</g>`;
   }
   // Redraw a customer in place (used when its companion changes pose).
@@ -1191,6 +1231,248 @@
   function setCustomerVisible(c, visible) {
     const el = document.getElementById(c.id);
     if (el) el.style.display = visible ? '' : 'none';
+  }
+
+  // ---- Customers stopping for a moment ----
+  // Now and then someone on their way in or out stops to pet one of the shop's pets.
+  // While c.busy is set they stand still (a browser keeps browsing a little longer);
+  // when it runs out they face the way they were going and carry on. Nothing is saved.
+  const PET_STOP_CHANCE = 0.25;  // passing a pet within reach: how often they stop for it
+  const walking = (c) => c.state === 'arriving' || c.state === 'leaving';
+  const onStage = (x) => x > 40 && x < Scenes.VIEW.width - 40;   // well inside the picture, not at its edge
+
+  function startBusy(c, kind, until, extra) {
+    c.busy = Object.assign({ kind, until, dir: c.dir, nextFx: 0 }, extra);
+    if (c.state === 'browsing') c.browseUntil = Math.max(c.browseUntil, until + 400);
+    redrawCustomer(c);
+  }
+  function endBusy(c) {
+    c.dir = c.busy.dir;
+    c.busy = null;
+    redrawCustomer(c);
+  }
+
+  // A shop pet someone could stop for: settled, or strolling, and not already being petted.
+  const pettable = (a) => (a.state === 'sit' || a.state === 'nap' || a.state === 'wander') && !a.partner && !a.greeting
+    && !customers.some(o => o.busy && o.busy.pet === a);
+
+  // Walking past a pet: if one is just ahead and within arm's reach, maybe stop and pet it.
+  function maybePetShopPet(c, now) {
+    const reach = 22 * customerScale(c);
+    if (!onStage(c.x)) return false;
+    const a = petActors.find(p => !c.met.has(p.pet.id) && (p.x - c.x) * c.dir > 0 && Math.abs(p.x - c.x) < reach && pettable(p));
+    if (!a) return false;
+    c.met.add(a.pet.id);
+    if (Math.random() >= PET_STOP_CHANCE) return false;
+    petCustomerPet(c, a, now + 2500 + Math.random() * 2000);
+    if (Math.random() < 0.5) petJournal(`${c.look.desc} ${randomFrom(PET_GREET_LINES).replace('{pet}', a.pet.name)}`);
+    return true;
+  }
+
+  // One note a day about the people themselves (not the pets), so the journal stays mostly about books.
+  let lastPeopleLogDay = -1;
+  function peopleJournal(line) {
+    if (lastPeopleLogDay === dayIndex() || Math.random() < 0.5) return;
+    lastPeopleLogDay = dayIndex();
+    addLog(line);
+    drawLog();
+    save();
+  }
+
+  // ---- Customers meeting each other ----
+  // Someone standing where another customer could walk up to them: out in the open and not
+  // already stopped for something else.
+  const approachable = (o) => (o.state === 'arriving' || o.state === 'browsing' || o.state === 'leaving') && !o.busy;
+  function maybeMeet(c, now) {
+    for (const o of customers) {
+      if (o === c || c.met.has(o.id) || !approachable(o)) continue;
+      if (o.companion && maybePetVisitorPet(c, o, now)) return true;
+      if (maybeChat(c, o, now)) return true;
+    }
+    return false;
+  }
+
+  // ---- Chats ----
+  // Two customers who meet may stop and talk: they face each other (unless one has a dog on
+  // a lead, who would end up on the wrong side) and speech bubbles go back and forth.
+  const CHAT_CHANCE = 0.3;
+  const CHAT_LINES = ['{a} and {b} stopped to talk about the weather. The weather was discussed thoroughly.', '{a} bumped into {b}. They talked books, then tides, then somebody’s cousin.',
+    '{a} and {b} had a long chat. Nobody bought anything during it. Everybody left happy.', '{a} and {b} found out they had read the same book. The conversation may still be going.'];
+  const lowerFirst = (s) => s[0].toLowerCase() + s.slice(1);
+  const onLead = (c) => c.companion && !c.companion.carried;
+
+  function maybeChat(c, o, now) {
+    const s = customerScale(c);
+    const ahead = (o.x - c.x) * c.dir;
+    if (ahead <= 0 || ahead > 40 * s || !onStage(c.x) || !onStage(o.x)) return false;
+    c.met.add(o.id); o.met.add(c.id);
+    if (ahead < 28 * s || Math.random() >= CHAT_CHANCE) return false;   // too close to stand and talk
+    const mid = (c.x + o.x) / 2;                     // and nobody standing in between them
+    if (customers.some(p => p !== c && p !== o && p.state !== 'inside' && Math.abs(p.x - mid) < ahead / 2 + 12 * s)) return false;
+    startChat(c, o, now);
+    if (c.look.desc !== o.look.desc) peopleJournal(randomFrom(CHAT_LINES).replace('{a}', c.look.desc).replace('{b}', lowerFirst(o.look.desc)));
+    return true;
+  }
+
+  function startChat(c, o, now) {
+    const until = now + 3500 + Math.random() * 3000;
+    const facing = o.x >= c.x ? 1 : -1;
+    startBusy(c, 'chat', until, { other: o, lead: true, turn: Math.random() < 0.5 });
+    startBusy(o, 'chat', until, { other: c });
+    c.dir = facing;
+    if (!onLead(o)) o.dir = -facing;
+    redrawCustomer(c); redrawCustomer(o);
+  }
+
+  // What goes in a speech bubble: dots, a heart, a book, a tune, a fish, "!" or "?", and a
+  // bit of weather to suit the season. Drawn about 16 units across, centered on (0,0).
+  const CHAT_ICONS = [
+    '<g fill="#5d5a54"><circle cx="-3.6" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="3.6" cy="0" r="1.2"/></g>',
+    '<path d="M0 3.4 C-5.5 -0.4 -3.6 -5 0 -2.2 C3.6 -5 5.5 -0.4 0 3.4 Z" fill="#d98c9c"/>',
+    '<path d="M-5 -3 L0 -2 L5 -3 V3 L0 4 L-5 3 Z" fill="#a5443a"/><line x1="0" y1="-2" x2="0" y2="4" stroke="#f4efe4" stroke-width="0.7"/>',
+    '<g fill="#2b3f5c"><circle cx="-2.4" cy="2.8" r="1.5"/><circle cx="2.6" cy="1.8" r="1.5"/></g><path d="M-1 2.8 V-3.6 L4 -4.6 V1.8" stroke="#2b3f5c" stroke-width="0.9" fill="none"/>',
+    '<path d="M-4.5 0 Q-1 -3.4 3 0 Q-1 3.4 -4.5 0 Z M3 0 L5.5 -2.4 L5.5 2.4 Z" fill="#6f8a99"/><circle cx="-2.4" cy="-0.4" r="0.6" fill="#f4efe4"/>',
+    '<text x="0" y="3.6" text-anchor="middle" font-size="10" font-family="Georgia, serif" font-weight="bold" fill="#a5443a">!</text>',
+    '<text x="0" y="3.6" text-anchor="middle" font-size="10" font-family="Georgia, serif" font-weight="bold" fill="#2f6f6a">?</text>'
+  ];
+  const WEATHER_ICONS = {
+    Spring: '<g fill="#d98c9c"><circle cx="0" cy="-2.4" r="1.8"/><circle cx="2.3" cy="-0.7" r="1.8"/><circle cx="1.4" cy="2" r="1.8"/><circle cx="-1.4" cy="2" r="1.8"/><circle cx="-2.3" cy="-0.7" r="1.8"/></g><circle r="1.2" fill="#d9a441"/>',
+    Summer: '<circle r="2.4" fill="#d9a441"/><g stroke="#d9a441" stroke-width="1" stroke-linecap="round"><line x1="0" y1="-4.8" x2="0" y2="-3.6"/><line x1="0" y1="3.6" x2="0" y2="4.8"/><line x1="-4.8" y1="0" x2="-3.6" y2="0"/><line x1="3.6" y1="0" x2="4.8" y2="0"/><line x1="-3.4" y1="-3.4" x2="-2.6" y2="-2.6"/><line x1="2.6" y1="2.6" x2="3.4" y2="3.4"/><line x1="-3.4" y1="3.4" x2="-2.6" y2="2.6"/><line x1="2.6" y1="-2.6" x2="3.4" y2="-3.4"/></g>',
+    Autumn: '<path d="M-4 3.5 Q-4.5 -4 4 -4 Q4 3.5 -4 3.5 Z" fill="#c9782e"/><path d="M-4 3.5 L2 -2" stroke="#8a4a1e" stroke-width="0.6"/>',
+    Winter: '<g stroke="#6f8a99" stroke-width="0.9" stroke-linecap="round"><line x1="0" y1="-4.5" x2="0" y2="4.5"/><line x1="-3.9" y1="-2.25" x2="3.9" y2="2.25"/><line x1="-3.9" y1="2.25" x2="3.9" y2="-2.25"/></g>'
+  };
+
+  // A bubble over the speaker's head, a little in front of their face, its tail pointing back to them.
+  function chatBubble(c) {
+    const group = $('scene').querySelector('svg .effects');
+    if (!group) return;
+    const s = customerScale(c);
+    const x = c.x + c.dir * 10 * s, y = Scenes.GROUND_Y - 62 * s;
+    const d = c.dir;
+    const icon = Math.random() < 0.2 ? (WEATHER_ICONS[seasonName()] || CHAT_ICONS[0]) : randomFrom(CHAT_ICONS);
+    group.insertAdjacentHTML('beforeend', `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s * 0.9).toFixed(2)})"><g class="chat-bubble">
+      <path d="M${-2 * d} 5 L${-7 * d} 10 L${3 * d} 5 Z" fill="#fffaf0" stroke="#5d5a54" stroke-width="0.6" stroke-linejoin="round"/>
+      <rect x="-8.5" y="-6.5" width="17" height="13" rx="4.5" fill="#fffaf0" stroke="#5d5a54" stroke-width="0.6"/>
+      <path d="M${-1.6 * d} 6.2 L${2.6 * d} 6.2 L${2.6 * d} 5.4 L${-1.6 * d} 5.4 Z" fill="#fffaf0"/>${icon}</g></g>`);
+    const el = group.lastElementChild;
+    setTimeout(() => el.remove(), 1700);
+  }
+
+  // ---- Sitting down ----
+  // After their visit, someone may sit a while before heading off, reading if they bought
+  // a book. Only things people really sit on count: the park bench, the Adirondack chair,
+  // and the squishy armchair. Never the plants. One sitter each: people are drawn larger
+  // than the decor, so two on a bench would sit in each other's laps.
+  // Each seat's height is in the item's own drawing units.
+  const SEATS = { bench: 16, chair: 12, 'indoor:armchair': 17 };
+  const SIT_CHANCE = 0.35;
+  const SIT_LINES = ['{a} sat {seat} for a while and watched the world go by.', '{a} took a load off {seat}. Declared it the best seat in town. It might be.', '{a} sat {seat}, sighed a happy sigh, and stayed longer than planned.'];
+  const READ_LINES = ['{a} sat down {seat} and read the first chapter right there. Then the second.', '{a} couldn’t wait to get home. Started reading {seat}.'];
+  // How big decor is drawn next to people. Most things are drawn true to life beside a person
+  // (a lamppost half again as tall, the chalkboard to the hip). Seats are drawn a third bigger:
+  // the people are cartoons with short legs, and a true-size seat would sit below their knees.
+  const DECOR_SIZE = 0.75, SEAT_SIZE = 1.0;
+  const decorScale = (key) => personScale() * (SEATS[key] ? SEAT_SIZE : DECOR_SIZE);
+
+  // The free seats in the view on screen, each as { spot, key, x, y, face }: y is the
+  // seat's height in picture units, face which way a sitter looks (toward the middle).
+  function freeSeats() {
+    const xs = zoneXs(), out = [];
+    zoneIds().forEach((id, i) => {
+      const key = zoneSpots()[id];
+      if (!SEATS[key] || customers.some(c => c.seat && c.seat.spot === id)) return;
+      out.push({ spot: id, key, x: xs[i], y: SEATS[key] * decorScale(key), face: xs[i] < Scenes.VIEW.width / 2 ? 1 : -1 });
+    });
+    return out.filter(s => onStage(s.x));
+  }
+  const seatHeight = (c) => c.seat.y / customerScale(c);    // in the sitter's own drawing units
+  const seatStillThere = (c) => zoneSpots()[c.seat.spot] === c.seat.key;   // not dragged away meanwhile
+  const seatPhrase = (key) => (key === 'bench' ? 'on ' : 'in ') + itemName(key);
+
+  // Just leaving: maybe head for the nearest free seat first.
+  function maybeSit(c) {
+    if (state.clock.night || Math.random() >= SIT_CHANCE) return;
+    const seat = freeSeats().sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0];
+    if (!seat) return;
+    c.seat = seat;
+    c.leaveDir = c.dir;
+    c.state = 'toSeat';
+    c.dir = seat.x >= c.x ? 1 : -1;
+  }
+  function sitDown(c, now) {
+    c.x = c.seat.x;
+    c.state = 'seated';
+    c.dir = c.seat.face;
+    c.seatUntil = now + 7000 + Math.random() * 8000;
+    redrawCustomer(c);
+    const line = randomFrom(c.bought ? READ_LINES : SIT_LINES);
+    peopleJournal(line.replace('{a}', c.look.desc).replace('{seat}', seatPhrase(c.seat.key)));
+  }
+  function standUp(c) {
+    c.state = 'leaving';
+    c.dir = c.leaveDir;
+    c.seat = null;
+    redrawCustomer(c);
+  }
+
+
+  // Where another customer's animal is: the dog trotting behind on its lead, or the crab's
+  // bucket out in front.
+  function companionX(o) {
+    return o.x + o.dir * (o.companion.carried ? 20 : -32) * customerScale(o);
+  }
+  const VISITOR_PET_CHANCE = 0.5;
+  const VISITOR_PET_LINES = ['{a} stopped to scratch the ears of a visiting dog. The dog has recommended us to friends.', '{a} asked whether they could pet the dog. The dog answered first.', '{a} and a stranger’s dog became best friends for about four seconds. Nobody regrets it.'];
+  const VISITOR_CRAB_LINES = ['{a} leaned over a bucket to say hello to a crab. The crab clicked back, politely.', '{a} was introduced to a crab in a bucket. They shook hands. Well, claws. Well, one of them.'];
+
+  // Walking up on someone else's dog (or crab): if it is just ahead, maybe stop and pet it.
+  // The owner waits, the way owners do.
+  function maybePetVisitorPet(c, o, now) {
+    const s = customerScale(c);
+    const px = companionX(o);
+    const ahead = (px - c.x) * c.dir;
+    if (ahead <= 0 || ahead > 22 * s) return false;                          // not there yet
+    // Only from the animal's far side, so it reads owner, lead, animal, then the one petting it.
+    if (Math.abs(c.x - o.x) < Math.abs(px - o.x) || !onStage(c.x) || !onStage(px)) return false;
+    c.met.add(o.id); o.met.add(c.id);
+    if (Math.random() >= VISITOR_PET_CHANCE) return false;
+    const until = now + 3000 + Math.random() * 2000;
+    startBusy(c, 'petVisitor', until, { owner: o, reach: true });
+    startBusy(o, 'wait', until, { other: c });
+    const lines = o.companion.kind === 'crab' ? VISITOR_CRAB_LINES : VISITOR_PET_LINES;
+    peopleJournal(randomFrom(lines).replace('{a}', c.look.desc));
+    return true;
+  }
+
+  // The customer reaches down; the pet stops where it is (a napping pet naps on) and enjoys it.
+  function petCustomerPet(c, a, until) {
+    if (a.state !== 'nap') { a.state = 'greet'; a.targetX = null; a.dir = a.x < c.x ? 1 : -1; }
+    a.until = Math.max(a.until, until);
+    c.dir = a.x >= c.x ? 1 : -1;
+    startBusy(c, 'pet', until, { pet: a, reach: true });
+  }
+
+  // Each frame while stopped: hearts over whatever is being petted, until time is up.
+  function runBusy(c, now) {
+    const b = c.busy;
+    const a = b.pet;
+    const o = b.owner || b.other;                    // the other customer, if there is one
+    const gone = (a && (!petActors.includes(a) || (a.state !== 'greet' && a.state !== 'nap')))
+      || (o && (!customers.includes(o) || !o.busy));
+    if (now >= b.until || gone) { endBusy(c); return; }
+    if (now >= b.nextFx) {
+      b.nextFx = now + 900 + Math.random() * 500;
+      if (a) floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '♥', '#d98c9c');
+      if (b.kind === 'chat' && b.lead) {             // the one who stopped first keeps the turns
+        chatBubble(b.turn ? c : o);
+        b.turn = !b.turn;
+        b.nextFx = now + 1100 + Math.random() * 500;
+      }
+      if (b.kind === 'petVisitor') {
+        const high = b.owner.companion.carried ? 38 * customerScale(b.owner) : 30 * petScale();
+        floatText(companionX(b.owner), Scenes.GROUND_Y - high, '♥', '#d98c9c');
+      }
+    }
   }
 
   // ---- Pets out and about ----
@@ -1353,6 +1635,8 @@
             floatText(a.x, Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
             const t = a.greetTarget;
             if (t && t.companion && !t.companion.carried && t.state === 'browsing') floatText(t.x - t.dir * 24 * personScale(), Scenes.GROUND_Y - 30 * petScale(), '\u2665', '#d98c9c');
+            // A browser the pet came to see (rather than their dog) reaches down to pet it.
+            else if (t && t.state === 'browsing' && !t.busy && customers.includes(t)) petCustomerPet(t, a, a.until);
             a.greetTarget = null;
           }
           else if (Math.random() < (night ? 0.7 : 0.3)) { a.state = 'nap'; a.until = now + 8000 + Math.random() * 8000; if (!night && Math.random() < 0.5) petJournal(randomFrom(PET_NAP_LINES).replace('{pet}', a.pet.name)); }
@@ -1739,6 +2023,8 @@
     customers.forEach(c => {
       const speed = WALK_SPEED * (0.6 + 0.4 * personScale());
       const bob = () => Math.abs(Math.sin(c.x / (9 * personScale()))) * 2 * personScale();
+      if (c.busy) { runBusy(c, now); return; }
+      if (walking(c) && !state.clock.night && (maybePetShopPet(c, now) || maybeMeet(c, now))) return;
       if (c.state === 'arriving') {
         c.x += c.dir * speed * dt;
         const arrived = c.dir === 1 ? c.x >= c.stopX : c.x <= c.stopX;
@@ -1768,8 +2054,18 @@
           c.state = 'leaving';
           c.dir = -c.dir;                                  // turn around
           if (c.door) setCustomerVisible(c, true);
+          maybeSit(c);
           if (c.companion) redrawCustomer(c);
         }
+      } else if (c.state === 'toSeat') {
+        if (!seatStillThere(c)) { standUp(c); return; }
+        const dx = c.seat.x - c.x;
+        if (Math.abs(dx) <= speed * dt) { sitDown(c, now); return; }
+        c.dir = dx > 0 ? 1 : -1;
+        c.x += c.dir * speed * dt;
+        moveCustomerElement(c, bob());
+      } else if (c.state === 'seated') {
+        if (now >= c.seatUntil || !seatStillThere(c)) standUp(c);
       } else if (c.state === 'leaving') {
         c.x += c.dir * speed * dt;
         moveCustomerElement(c, bob());
@@ -1795,7 +2091,9 @@
       addLog(`${c.look.desc}. ${shelfFill() < 0.5 && Math.random() < 0.6 ? randomFrom(THIN_SHELF_LINES) : randomFrom(BROWSED_LINES)}`);
       floatText(c.x, Scenes.GROUND_Y - 60 * customerScale(c) - 8, '\u2026', '#5d5a54');
     } else if (stocked.length > 0) {
-      state.books[randomFrom(stocked)] = null;
+      const shelf = randomFrom(stocked);
+      c.bought = state.books[shelf];                 // its cover color: something to read, if they sit down
+      state.books[shelf] = null;
       state.coins += SELL_PRICE;
       state.sold += 1;
       bumpLifetime(life => {
@@ -2088,7 +2386,7 @@
     item.classList.add('dragging');
     const group = $('scene').querySelector('svg .decor');
     const xs = zoneXs();
-    const r = personScale() * 0.75 * 16;
+    const r = decorScale(drag.key) * 16;
     group.insertAdjacentHTML('beforeend', `<g class="slot-markers">${zoneIds().map((id, i) => `<ellipse class="slot-marker" data-slot="${id}" cx="${xs[i]}" cy="${Scenes.GROUND_Y}" rx="${r.toFixed(0)}" ry="${(r * 0.22).toFixed(1)}"/>`).join('')}</g>`);
     updateDragMarker();
   }
@@ -2237,13 +2535,12 @@
     const group = $('scene').querySelector('svg .decor');
     if (!group) return;
     const xs = zoneXs();
-    const scale = personScale() * 0.75;
     let out = '';
     // Each occupied spot draws its item. Items can be dragged to another spot.
     zoneIds().forEach((id, i) => {
       const key = zoneSpots()[id];
       if (!key) return;
-      const x = xs[i], y = Scenes.GROUND_Y;
+      const x = xs[i], y = Scenes.GROUND_Y, scale = decorScale(key);
       const art = key === 'sign' ? Scenes.chalkboard(x, y, scale) : key === 'bench' ? Scenes.bench(x, y, scale) : key === 'chair' ? Scenes.adirondack(x, y, scale) : key === 'lamp' ? Scenes.lamppost(x, y, scale)
         : isIndoorOnly(key) ? Scenes.indoorItem(key.slice(7), x, y, scale) : Scenes.plant(key.slice(6), x, y, scale);
       out += `<g class="decor-item" data-decor="${key}"><title>${itemName(key)} (drag to move)</title>${art}</g>`;

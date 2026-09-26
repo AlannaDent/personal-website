@@ -680,6 +680,17 @@ body.sketch svg .paper { display: inline; opacity: 0.4; mix-blend-mode: multiply
   from { transform: translateY(0); opacity: 1; }
   to   { transform: translateY(-34px); opacity: 0; }
 }
+/* A chatting customer's speech bubble: pops in, drifts up a little, fades. */
+.chat-bubble {
+  animation: chatUp 1.6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes chatUp {
+  0%   { transform: translateY(2px) scale(0.6); opacity: 0; }
+  15%  { transform: translateY(0) scale(1); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translateY(-8px) scale(1); opacity: 0; }
+}
 
 /* ---- Typewriter lettering ----
    The title, the date line, the pills over the picture and the whole order / inventory
