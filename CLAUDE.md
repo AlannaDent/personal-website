@@ -54,9 +54,19 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
   bookshop: start with twenty books in a Little Free Library, sell them for coins, order
   more from a daily catalog, and move up through a shed, a real shop on the high street,
   and finally a church, lighthouse or ship. It has seasons and a day-night cycle
-  (three-minute days, twelve days a season: four weeks of three), decor the player buys and drags into spots out
-  front, pets, a hand-written journal, a living background (clouds, waves, gulls, a fox, a
-  rare dolphin, neighbors, weather), and a Stats card.
+  (three-minute days, twelve days a season: four weeks of three), decor the player buys
+  and drags into spots out front, pets, a hand-written journal, a living background
+  (clouds, waves, gulls, a fox, a rare dolphin, neighbors, weather), festive weeks
+  (Halloween in autumn's last week: pumpkins, churchyard ghosts, bats, and a witch), and a
+  Stats card.
+- Holidays: `festival()` in `game.js` says which festive week it is and puts a `fest-`
+  class on the page; `HALLOWEEN` in `scenes.js` lists where each scene's decorations go.
+  Decorations only go where things already stand (doorsteps, sills, posts, trees), never
+  on the path customers walk. Planned next: Christmas (winter's last week; Santa on the
+  nights of days 10 and 11), New Year's fireworks (the night of winter day 12 on its own),
+  and Easter (spring's third week).
+- Testing note: the game reports to the live Stats counters even from localhost, so a
+  planted test shop counts as a real player. Keep planted shops' "sold" low.
 
 ### Where things live
 - `index.html`, `style.css`: the home page and the shared look (colors, fonts, cards, tabs).
