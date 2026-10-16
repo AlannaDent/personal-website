@@ -30,7 +30,8 @@
 
   // The calendar. Short for now; both numbers can grow later.
   const DAY_MS = 3 * 60 * 1000;          // a day lasts three minutes of play
-  const DAYS_PER_SEASON = 10;
+  const DAYS_PER_WEEK = 3;
+  const DAYS_PER_SEASON = 4 * DAYS_PER_WEEK;   // four weeks of three days
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
   // A gentle wash of color over the scene for each season (color, opacity outside, opacity inside).
   const SEASON_TINT = {
@@ -588,7 +589,8 @@
     : 'the ' + ((PLANTS.find(p => p.kind === key.slice(6)) || { name: 'plant' }).name.toLowerCase());
   // Days counted from the start of the game, so "tomorrow" is simply +1.
   const dayIndex = () => ((state.clock.year - 1) * SEASONS.length + state.clock.season) * DAYS_PER_SEASON + state.clock.day;
-  function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false }; }
+  // seasonDays: the season length the save's day counts were made with (see load).
+  function freshClock() { return { year: 1, season: 0, day: 1, ms: 0, night: false, seasonDays: DAYS_PER_SEASON }; }
   const dayFraction = () => Math.min(1, state.clock.ms / DAY_MS);
   // About one winter day in three is a snow day. Fixed per day so it survives a reload.
   const isSnowDay = () => seasonName() === 'Winter' && ((dayIndex() * 7919) % 3 === 0);
@@ -3192,6 +3194,17 @@
       if (!Array.isArray(data.orders)) data.orders = [];
       if (!Array.isArray(data.deliveries)) data.deliveries = [];
       if (!data.catalogue) data.catalogue = null;
+      // Saves from when a season was ten days. Today's order form and the orders on their
+      // way are stamped with a count of days since the start (dayIndex), and a longer
+      // season changes what today's count is. The stamps are today or tomorrow, so move
+      // them by the same amount: an order due tomorrow night still comes tomorrow night.
+      if (data.clock.seasonDays !== DAYS_PER_SEASON) {
+        const c = data.clock, seasonsSoFar = (c.year - 1) * SEASONS.length + c.season;
+        const shift = seasonsSoFar * (DAYS_PER_SEASON - (c.seasonDays || 10));
+        if (data.catalogue && typeof data.catalogue.dayIndex === 'number') data.catalogue.dayIndex += shift;
+        data.orders.forEach(o => { if (typeof o.arrives === 'number') o.arrives += shift; });
+        c.seasonDays = DAYS_PER_SEASON;
+      }
       if (!data.decor) data.decor = freshDecor();
       if (typeof data.reserve !== 'number') data.reserve = 0;
       // Earlier saves counted plants and buckets; now they are lists of kinds and colors.

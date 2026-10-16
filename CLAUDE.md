@@ -54,7 +54,7 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
   bookshop: start with twenty books in a Little Free Library, sell them for coins, order
   more from a daily catalog, and move up through a shed, a real shop on the high street,
   and finally a church, lighthouse or ship. It has seasons and a day-night cycle
-  (three-minute days, ten days a season), decor the player buys and drags into spots out
+  (three-minute days, twelve days a season: four weeks of three), decor the player buys and drags into spots out
   front, pets, a hand-written journal, a living background (clouds, waves, gulls, a fox, a
   rare dolphin, neighbors, weather), and a Stats card.
 
