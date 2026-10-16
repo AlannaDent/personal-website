@@ -33,6 +33,9 @@
   const DAYS_PER_WEEK = 3;
   const DAYS_PER_SEASON = 4 * DAYS_PER_WEEK;   // four weeks of three days
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
+  // The festive weeks, by season and week of the season: Halloween is autumn's last week.
+  // While one is on, the page carries a fest- class and scenes.js's decorations show.
+  const FESTIVALS = { Autumn: { name: 'halloween', week: 4 } };
   // A gentle wash of color over the scene for each season (color, opacity outside, opacity inside).
   const SEASON_TINT = {
     Spring: ['#ffffff', 0, 0],
@@ -215,6 +218,17 @@
     Autumn: 'Autumn arrived. The tourists left. The books stayed. So did we.',
     Winter: 'Winter arrived. Fog rolled in and settled on the shelves like it had a library card.'
   };
+  // The journal on the first morning of a festive week, and at closing time during one
+  // (in place of the season's night lines). Plain first row, quippy second.
+  const FESTIVAL_LINES = {
+    halloween: 'Pumpkins on every doorstep in town. Somebody carved one to look like a book. Good likeness.'
+  };
+  const FESTIVE_NIGHT_LINES = {
+    halloween: ['Jack-o’-lanterns lit all over town.', 'Trick-or-treaters came by. Handed out bookmarks.', 'Something rustling in the leaves.',
+      'Jack-o’-lanterns lit all over town. One of them is winking. Nobody carved it that way.', 'Trick-or-treaters came by. Handed out bookmarks. Reviews were mixed.', 'Something rustling in the leaves. Probably the wind. Probably.']
+  };
+  const WITCH_LINES = ['Something crossed the moon on a broomstick. The cat riding behind her looked unimpressed.',
+    'A witch flew over, low and in no hurry. Nobody mentioned it. Everybody saw it.', 'A shape on a broom, right across the moon. A very determined gull, surely. Surely.'];
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
@@ -596,6 +610,11 @@
   const isSnowDay = () => seasonName() === 'Winter' && ((dayIndex() * 7919) % 3 === 0);
   const phaseName = () => state.clock.night ? 'Night' : PHASES.find(p => dayFraction() < p.until).name;
   const seasonName = () => SEASONS[state.clock.season];
+  // The holiday whose decorations are up today ('halloween'), or null.
+  const festival = () => {
+    const f = FESTIVALS[seasonName()];
+    return f && Math.ceil(state.clock.day / DAYS_PER_WEEK) === f.week ? f.name : null;
+  };
   const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
 
   // ---- Lifetime counters: every shop ever opened on this device ----
@@ -939,6 +958,10 @@
     // Lamps come on with the shop's windows: a glow, and warm glass. Inside too.
     svg.querySelectorAll('.lamp-glow').forEach(el => el.setAttribute('opacity', Math.min(0.95, glowOpacity * 1.2).toFixed(2)));
     svg.querySelectorAll('.lamp-glass').forEach(el => el.setAttribute('fill', glowOpacity > 0.2 ? '#f6e7b8' : '#dfe8ea'));
+    // Holiday lights (jack-o'-lantern faces) and the ghosts come out with them: faint at
+    // sunset, full from dusk, gone by sunrise.
+    const festiveGlow = Math.min(1, glowOpacity / 0.8).toFixed(2);
+    svg.querySelectorAll('.festive-glow, .after-dark').forEach(el => el.setAttribute('opacity', festiveGlow));
     beamStrength = 0.22 + 0.63 * Math.min(1, glowOpacity / 0.8);   // the lighthouse: faint by day, bright at night
     moveSkyBodies(svg, t);
   }
@@ -1069,6 +1092,8 @@
   function applySeasonTint() {
     SEASONS.forEach(s => document.body.classList.remove('season-' + s.toLowerCase()));
     document.body.classList.add('season-' + seasonName().toLowerCase());
+    Object.values(FESTIVALS).forEach(f => document.body.classList.remove('fest-' + f.name));
+    if (festival()) document.body.classList.add('fest-' + festival());
     const tint = $('scene').querySelector('svg .season-tint');
     if (!tint) return;
     const [color, outside, inside] = SEASON_TINT[seasonName()];
@@ -1097,7 +1122,7 @@
     ringBell();
     customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
     customers = [];
-    addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(NIGHT_LINES[seasonName()])}`);
+    addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(FESTIVE_NIGHT_LINES[festival()] || NIGHT_LINES[seasonName()])}`);
     deliverOrders();
     // Boxes are only drawn outside. If the van came while the player was inside, step
     // out to meet it so the boxes (and the reason Begin Day is waiting) are in view.
@@ -1134,10 +1159,13 @@
         addLog(`Year ${c.year}. Still here. Still open. Still shelving.`);
       }
       addLog(SEASON_LINES[seasonName()]);
-      applySeasonTint();
     } else {
       addLog(`Day ${c.day}. ${randomFrom(DAY_LINES[seasonName()])}`);
     }
+    // A festive week can begin any morning, so the page's season and holiday classes are
+    // refreshed every day.
+    applySeasonTint();
+    if (festival() && c.day % DAYS_PER_WEEK === 1) addLog(FESTIVAL_LINES[festival()]);
     if (isSnowDay()) addLog('Snow today. The squeaky kind. Everyone is walking like a penguin.');
     weather = [];
     ensureCatalogue();
@@ -2153,6 +2181,8 @@
   // These live behind the building (the .background-life layer) and are not saved.
   let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
   let nextBirdAt = 0, nextCrabAt = 0, nextFoxAt = 0, nextDolphinAt = 0, lastCritterDraw = 0;
+  let nextBatAt = 0, nextWitchAt = 0, witchLogDay = 0;
+  const FLAP = { bird: 9, bat: 16, witch: 2.5 };   // how fast each one's phase turns (wingbeats, the witch's bob)
   const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop pressed its nose to the window.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little. Two pretended not to.'];
   const OUTDOORS = () => state.view !== 'inside';
   function updateWildlife(dt, now) {
@@ -2171,6 +2201,29 @@
         }
         nextBirdAt = now + 18000 + Math.random() * 30000;
       }
+    }
+    // Halloween week: bats flit about from sunset on, and every Halloween night the witch
+    // crosses the far sky, right over the moon: a few seconds after closing, then now and
+    // then again for anyone still up. The journal notes her first pass each night.
+    if (festival() === 'halloween') {
+      if ((night || dayFraction() > 0.72) && now >= nextBatAt) {
+        const dir = Math.random() < 0.5 ? 1 : -1, n = 2 + Math.floor(Math.random() * 3), y = 50 + Math.random() * 110;
+        for (let i = 0; i < n; i++) {
+          critters.push({ kind: 'bat', x: dir === 1 ? -20 - i * 28 : 820 + i * 28, y: y + Math.random() * 40, dir, speed: 70 + Math.random() * 40, scale: 0.75 + Math.random() * 0.4, phase: Math.random() * 6.3, wob: Math.random() * 6.3 });
+        }
+        nextBatAt = now + 12000 + Math.random() * 16000;
+      }
+      if (night) {
+        if (!nextWitchAt) nextWitchAt = now + 5000 + Math.random() * 7000;
+        if (now >= nextWitchAt) {
+          // The moon hangs at the top of its arc all night (see moveSkyBodies).
+          const horizon = Scenes.horizonFor(loc), arc = horizon + 14 - SUN_PEAK_Y[seasonName()];
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          critters.push({ kind: 'witch', x: dir === 1 ? -60 : 860, y: 0, dir, speed: 62, scale: 1.1, phase: 0, moonY: horizon + 14 - arc * 0.92 });
+          if (witchLogDay !== dayIndex()) { witchLogDay = dayIndex(); addLog(randomFrom(WITCH_LINES)); drawLog(); }
+          nextWitchAt = now + 75000 + Math.random() * 60000;
+        }
+      } else nextWitchAt = 0;
     }
     // Crabs: beach only, scuttling along the far sand behind the shop.
     if (loc === 'beach') {
@@ -2212,10 +2265,22 @@
     // Move everyone.
     critters = critters.filter(c => {
       if (c.kind === 'dolphin') { c.t += dt / 1.6; return c.t < 1; }   // one leap takes 1.6 s
-      c.phase += dt * (c.kind === 'bird' ? 9 : 6);
+      c.phase += dt * (FLAP[c.kind] || 6);
       if (c.kind === 'bird') {
         c.x += c.dir * c.speed * dt;
         c.y += Math.sin(c.phase * 0.5) * 6 * dt;
+        return c.x > -80 && c.x < 880;
+      }
+      if (c.kind === 'bat') {   // jittery, swooping up and down as it goes
+        c.x += c.dir * c.speed * dt;
+        c.wob += dt * 2.6;
+        c.y += Math.sin(c.wob) * 38 * dt;
+        return c.x > -40 && c.x < 840;
+      }
+      if (c.kind === 'witch') {   // an arc that tops out just over the moon
+        c.x += c.dir * c.speed * dt;
+        const u = (c.x - 400) / 400;
+        c.y = c.moonY + 4 + u * u * 70 + Math.sin(c.phase) * 1.5;
         return c.x > -80 && c.x < 880;
       }
       if (c.kind === 'crab') {
@@ -2257,14 +2322,23 @@
         </g>`;
       }).join('');
     }
+    // The witch flies in the night sky, behind everything but the moon and stars.
+    const skyGroup = svg.querySelector('.sky-life');
+    if (skyGroup) {
+      skyGroup.innerHTML = critters.filter(c => c.kind === 'witch').map(c =>
+        `<g transform="translate(${c.x.toFixed(1)} ${c.y.toFixed(1)}) scale(${(c.dir * c.scale).toFixed(2)} ${c.scale.toFixed(2)}) rotate(${(Math.sin(c.phase) * 3).toFixed(1)})">${Scenes.witchSvg()}</g>`).join('');
+    }
     const group = svg.querySelector('.background-life');
     if (!group) return;
-    group.innerHTML = extrasSvg() + critters.filter(c => c.kind !== 'dolphin').map(c => {
+    group.innerHTML = extrasSvg() + critters.filter(c => c.kind !== 'dolphin' && c.kind !== 'witch').map(c => {
       const flip = c.dir === -1 ? ' scale(-1 1)' : '';
       if (c.kind === 'bird') {
         const up = Math.sin(c.phase) > 0;
         const wing = up ? 'q8 -7 16 0 q8 -7 16 0' : 'q8 -1.5 16 0 q8 -1.5 16 0';
         return `<g transform="translate(${c.x.toFixed(0)} ${c.y.toFixed(0)}) scale(${c.scale.toFixed(2)})${flip}"><path d="M-16 0 ${wing}" stroke="#7c8a90" stroke-width="2" fill="none" stroke-linecap="round"/></g>`;
+      }
+      if (c.kind === 'bat') {
+        return `<g transform="translate(${c.x.toFixed(0)} ${c.y.toFixed(0)}) scale(${c.scale.toFixed(2)})">${Scenes.batSvg(Math.sin(c.phase) > 0)}</g>`;
       }
       if (c.kind === 'crab') {
         const step = c.state === 'go' ? Math.sin(c.phase * 2) * 0.6 : 0;

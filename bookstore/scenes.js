@@ -705,6 +705,126 @@ const Scenes = (function () {
     }
     return `<g class="autumn-leaves">${leaves}</g><g class="snow-drifts">${drifts}</g><g class="wildflowers">${flowers}</g>`;
   }
+
+  // =========================================================
+  // Holidays
+  // =========================================================
+  // Decorations for the festive weeks. Every outdoor scene is drawn with them, and the
+  // page's stylesheet shows a set only while the game says it is that holiday (the
+  // fest-halloween class on the page). They go where things already stand (doorsteps,
+  // window sills, fence posts, pilings, the churchyard), never on the path customers walk.
+  // Each scene gets two layers: the decorations, in front of the backdrop and night-washed
+  // with it, and a glow layer for whatever gives off light, kept out of the night wash so
+  // it stays bright after dark. game.js fades the glow, and the ghosts, in with the lamps.
+  const fx = (v) => v.toFixed(1);
+
+  // A pumpkin sitting on (x, y), r half its width. carved: a jack-o'-lantern.
+  function pumpkin(x, y, r, carved) {
+    const ry = r * 0.78, cy = y - ry;
+    let s = `<ellipse cx="${fx(x)}" cy="${fx(y)}" rx="${fx(r * 1.05)}" ry="${fx(r * 0.18)}" fill="#000" opacity="0.14"/>`;
+    s += `<g fill="#c8682a" stroke="#7a3f1c" stroke-width="0.8"><ellipse cx="${fx(x - r * 0.42)}" cy="${fx(cy)}" rx="${fx(r * 0.58)}" ry="${fx(ry * 0.95)}"/><ellipse cx="${fx(x + r * 0.42)}" cy="${fx(cy)}" rx="${fx(r * 0.58)}" ry="${fx(ry * 0.95)}"/></g>`;
+    s += `<ellipse cx="${fx(x)}" cy="${fx(cy)}" rx="${fx(r * 0.52)}" ry="${fx(ry)}" fill="#df7f2f" stroke="#7a3f1c" stroke-width="0.8"/>`;
+    s += `<path d="M${fx(x - 1)} ${fx(cy - ry + 1)} q${fx(-r * 0.05)} ${fx(-r * 0.32)} ${fx(r * 0.3)} ${fx(-r * 0.46)} l0.8 1.2 q${fx(-r * 0.2)} ${fx(r * 0.14)} ${fx(-r * 0.16)} ${fx(r * 0.42)} z" fill="#5c6b3a" stroke="#3d4a26" stroke-width="0.6"/>`;
+    s += `<ellipse cx="${fx(x - r * 0.18)}" cy="${fx(cy - ry * 0.42)}" rx="${fx(r * 0.1)}" ry="${fx(ry * 0.32)}" fill="#fff" opacity="0.2"/>`;
+    if (carved) s += `<path d="${jackFace(x, cy, r, ry)}" fill="#3b2416"/>`;
+    return s;
+  }
+  // The carved face: triangle eyes and nose, and a grin with teeth along the top.
+  function jackFace(x, cy, r, ry) {
+    const e = r * 0.2;
+    const eye = (ex) => `M${fx(ex - e)} ${fx(cy - ry * 0.08)} L${fx(ex)} ${fx(cy - ry * 0.48)} L${fx(ex + e)} ${fx(cy - ry * 0.08)} Z`;
+    const nose = `M${fx(x - e * 0.5)} ${fx(cy + ry * 0.12)} L${fx(x)} ${fx(cy - ry * 0.12)} L${fx(x + e * 0.5)} ${fx(cy + ry * 0.12)} Z`;
+    const teeth = [[-0.55, 0.22], [-0.33, 0.38], [-0.17, 0.27], [0, 0.42], [0.17, 0.27], [0.33, 0.38], [0.55, 0.22]];
+    const mouth = `M${teeth.map(([dx, dy]) => `${fx(x + dx * r)} ${fx(cy + dy * ry)}`).join(' L')} Q${fx(x)} ${fx(cy + ry * 0.95)} ${fx(x - 0.55 * r)} ${fx(cy + 0.22 * ry)} Z`;
+    return eye(x - r * 0.3) + eye(x + r * 0.3) + nose + mouth;
+  }
+  // The same face lit from inside, with a warm halo, for the glow layer. It flickers.
+  function jackGlow(x, y, r) {
+    const ry = r * 0.78, cy = y - ry;
+    return `<g class="jack-glow"><circle cx="${fx(x)}" cy="${fx(cy)}" r="${fx(r * 2.4)}" fill="url(#jackGlow)"/><path d="${jackFace(x, cy, r, ry)}" fill="#ffd36a"/></g>`;
+  }
+  // A sheet ghost with its arms up, the bottom of its hem at (x, y). k staggers the bob.
+  function ghost(x, y, s, tilt, k) {
+    return `<g transform="translate(${x} ${y}) rotate(${tilt}) scale(${s})"><g class="ghost-bob" style="animation-delay: ${(-k * 1.3).toFixed(1)}s" opacity="0.92">
+      <path d="M-9.5 -13 q-6 -1.5 -8 -7.5 q4.5 2 8.5 3.5 z M9.5 -13 q6 -1.5 8 -7.5 q-4.5 2 -8.5 3.5 z" fill="#f4f1e8" stroke="#aeb4c0" stroke-width="0.7"/>
+      <path d="M-10 0 q2.5 3.4 5 0 q2.5 -3.4 5 0 q2.5 3.4 5 0 q2.5 -3.4 5 0 L10 -17 A10 10 0 0 0 -10 -17 Z" fill="#f4f1e8" stroke="#aeb4c0" stroke-width="0.8"/>
+      <ellipse cx="-3.7" cy="-18" rx="1.7" ry="2.4" fill="#2b2a28"/><ellipse cx="3.7" cy="-18" rx="1.7" ry="2.4" fill="#2b2a28"/><ellipse cx="0" cy="-12" rx="1.9" ry="2.5" fill="#2b2a28" opacity="0.85"/>
+    </g></g>`;
+  }
+  function ghostGlow(x, y, s, tilt, k) {
+    return `<g transform="translate(${x} ${y}) scale(${s})"><ellipse class="ghost-bob" style="animation-delay: ${(-k * 1.3).toFixed(1)}s" cx="0" cy="-14" rx="20" ry="22" fill="url(#ghostGlow)"/></g>`;
+  }
+  // A bundle of dried corn stalks tied around a street lamp at x, standing on the ground.
+  function cornStalks(cx, ground) {
+    let s = '';
+    [-11, -8, -5, -2, 1, 4, 7, 10].forEach((dx, i) => {
+      const bx = cx + dx * 0.5, tx = cx + dx * 1.7, ty = ground - 74 + Math.abs(dx) * 0.9;
+      s += `<path d="M${fx(bx)} ${ground} Q${fx(cx + dx * 0.3)} ${ground - 26} ${fx(tx)} ${fx(ty)}" stroke="#c9a65a" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      s += `<path d="M${fx(tx)} ${fx(ty)} l${dx < 0 ? -2 : 2} -6 M${fx(tx)} ${fx(ty)} l0 -7 M${fx(tx)} ${fx(ty)} l${dx < 0 ? 2 : -2} -5" stroke="#b8923f" stroke-width="1" stroke-linecap="round"/>`;
+      if (i % 2 === 0 || Math.abs(dx) > 6) {
+        const side = dx < 0 ? -1 : 1, ly = ground - 40 - (i % 3) * 9, lx = cx + dx * 0.9;
+        s += `<path d="M${fx(lx)} ${ly} q${side * 9} -9 ${side * 18} -2 q${side * 3} 3 ${side * 4} 9 q${-side * 6} -9 ${-side * 22} -7 z" fill="#d9bc72" stroke="#a8873e" stroke-width="0.6"/>`;
+      }
+    });
+    s += `<path d="M${cx - 9} ${ground - 24} q9 4 18 0" stroke="#a5443a" stroke-width="3.2" fill="none"/><path d="M${cx} ${ground - 22} l-5 8 m5 -8 l5 8" stroke="#a5443a" stroke-width="2"/>`;
+    return s;
+  }
+  // Halloween in each scene. pumpkins: [x, y, half-width, carved]; ghosts (only where there
+  // are graves): [x, y, size, tilt]; corn: [x, ground] for corn stalks on a street lamp. A
+  // scene can be a function of the building's backdrop options, for things that move with
+  // them (the beach sign). Doorstep pumpkins flank the neighbors' doors; the stage-three
+  // streets also put one on a neighbor's window sill.
+  const HALLOWEEN = {
+    beach: (o) => ({ pumpkins: [[40, 290, 7, 1], [215, 300, 7, 1], [(o.signX || 250) + 38, 250, 6.5, 1]] }),
+    park: { pumpkins: [[52, 395, 7.5, 1], [100, 396, 9, 1], [114, 397, 5.5, 0], [236, 300, 5, 1], [250, 301, 3.8, 0], [268, 299, 4.5, 1]] },
+    street: { pumpkins: [[136, 371, 10, 1], [121, 372, 6, 0], [208, 372, 7, 1], [604, 371, 10, 1], [684, 371, 9, 1], [699, 372, 5.5, 0]], corn: [468, 397] },
+    dock: { pumpkins: [[66, 351, 7, 1], [122, 372, 7.5, 1], [178, 373, 5.5, 0], [527, 330, 8, 1], [236, 340, 6.5, 0], [767, 336, 8, 1]] },
+    street2: { pumpkins: [[50, 371, 8, 1], [114, 371, 8.5, 1], [99, 245, 6, 1], [208, 245, 6, 1]] },
+    street3dutch: { pumpkins: [[48, 371, 8, 1], [103, 371, 7, 0], [128, 332, 6.5, 1], [701, 371, 8, 1], [759, 371, 9, 1], [773, 372, 5, 0]], corn: [602, 397] },
+    street3cape: { pumpkins: [[56, 371, 8, 1], [104, 371, 7, 1], [137, 342, 6.5, 1], [700, 371, 8, 1], [750, 371, 9, 1], [764, 372, 5, 0]], corn: [602, 397] },
+    street3tudor: { pumpkins: [[62, 371, 8, 1], [108, 371, 7, 1], [138, 350, 6.5, 1], [697, 371, 8, 1], [743, 371, 9, 1], [757, 372, 5, 0]], corn: [600, 397] },
+    green: {
+      pumpkins: [[160, 352, 6.5, 1], [126, 366, 7, 1], [86, 367, 5.5, 0], [602, 366, 7, 1], [676, 366, 6, 0], [714, 367, 7.5, 1]],
+      ghosts: [[100, 346, 1.0, -6], [196, 322, 0.85, 5], [640, 344, 1.05, 4], [706, 330, 0.75, -4]]
+    },
+    cliff: { pumpkins: [[118, 340, 6, 1], [134, 341, 4.5, 0], [598, 340, 6, 1], [620, 341, 4.5, 0]] },
+    harbor: { pumpkins: [[37, 336, 8, 1], [126, 344, 7, 1], [763, 336, 8, 1]] }
+  };
+  // The holiday layers for a scene: { decor, glow }. Ghosts sit in an after-dark group so
+  // they appear at sunset and are gone by morning.
+  function festiveLayers(locId, opts) {
+    const h = typeof HALLOWEEN[locId] === 'function' ? HALLOWEEN[locId](opts) : HALLOWEEN[locId];
+    if (!h) return { decor: '', glow: '' };
+    const pumpkins = h.pumpkins || [], ghosts = h.ghosts || [];
+    let decor = pumpkins.map(([x, y, r, c]) => pumpkin(x, y, r, c)).join('');
+    if (h.corn) decor += cornStalks(h.corn[0], h.corn[1]);
+    if (ghosts.length) decor += `<g class="after-dark" opacity="0">${ghosts.map(([x, y, s, t], k) => ghost(x, y, s, t, k)).join('')}</g>`;
+    const glow = ghosts.map(([x, y, s, t], k) => ghostGlow(x, y, s, t, k)).join('') + pumpkins.filter(p => p[3]).map(([x, y, r]) => jackGlow(x, y, r)).join('');
+    return { decor: `<g class="halloween">${decor}</g>`, glow: `<g class="halloween">${glow}</g>` };
+  }
+  // A bat, wings up or down, about 26 units across, centered on (0, 0).
+  function batSvg(up) {
+    const wing = up
+      ? 'M0 -1 C-3 -6 -8 -8 -13 -6.5 C-11.5 -4.5 -11.5 -2.5 -12.5 -0.5 C-10 -1.5 -8.5 -0.5 -7.5 1 C-5.5 -0.3 -3 0 -1 1.5 Z'
+      : 'M0 -1 C-4 -1 -9 1 -13 5.5 C-10.5 4.8 -9.5 5.8 -9 7 C-7.5 5.2 -5.5 5 -4.5 5.8 C-3.5 3.5 -2 2.5 0 2 Z';
+    return `<g fill="#2a2333"><path d="${wing}"/><path d="${wing}" transform="scale(-1 1)"/><ellipse cx="0" cy="0.6" rx="2" ry="3"/><path d="M-1.7 -1.6 l-0.5 -2.6 l1.6 1.5 z M1.7 -1.6 l0.5 -2.6 l-1.6 1.5 z"/></g>`;
+  }
+  // The witch on her broom, facing right, a cat riding behind her. A silhouette against
+  // the night sky, about 56 units from bristles to broom tip, centered on the broom.
+  function witchSvg() {
+    const ink = '#201a2c';
+    return `<g fill="${ink}">
+      <path d="M-21 3 L23 -2.2" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M-19.5 2.4 L-32 -3.5 Q-36 3 -31 9.5 Z"/>
+      <path d="M3 -12 Q-5 -17 -14 -15.5 Q-9 -12.5 -9.5 -9 Q-4 -9.5 0 -6 Z"/>
+      <path d="M-3 1 Q-2 -8 3 -13 Q7.5 -10 6.5 -3 L8.5 1.3 Z"/>
+      <path d="M4 -9 Q9 -6 11.5 -1.8" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M2.5 1 Q5 6.5 9 7 L11.5 6" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="5" cy="-15.5" r="3.1"/><path d="M7.6 -16.4 L11.6 -14.3 L7.7 -13.6 Z"/><path d="M2.8 -16.5 Q-3.5 -15.5 -6.5 -11 Q-1 -13.2 3 -13.2 Z"/>
+      <ellipse cx="4.6" cy="-18.2" rx="7" ry="1.4" transform="rotate(-8 4.6 -18.2)"/><path d="M1 -18.6 L8.2 -19.6 Q5 -24.5 1 -30 Q-1.5 -31.5 -4.5 -29.5 Q-0.5 -27.5 1 -18.6 Z"/>
+      <g transform="translate(-16 2.6)"><ellipse cx="0" cy="-2.8" rx="3.4" ry="2.5"/><circle cx="2.7" cy="-5.6" r="1.9"/><path d="M1.6 -7 l0.1 -2.1 l1.3 1.4 z M3.4 -7.3 l0.9 -1.9 l0.6 2 z"/><path d="M-3 -3 Q-6.5 -7 -4.2 -10.5" stroke="${ink}" stroke-width="1" fill="none" stroke-linecap="round"/></g>
+    </g>`;
+  }
   // The sun and the moon. Drawn right after the sky, in layers of their own (see render),
   // so clouds, gulls, buildings and decor all pass in front. Each is drawn around its own origin;
   // game.js moves them along an arc through the day (applyDaylight) and fades the moon in
@@ -785,6 +905,14 @@ const Scenes = (function () {
       <radialGradient id="windowGlow" cx="0.5" cy="0.5" r="0.5">
         <stop offset="0" stop-color="#f2e6b8" stop-opacity="0.9"/>
         <stop offset="1" stop-color="#f2e6b8" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="jackGlow">
+        <stop offset="0" stop-color="#ffb347" stop-opacity="0.75"/>
+        <stop offset="1" stop-color="#ffb347" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="ghostGlow">
+        <stop offset="0" stop-color="#e6eeff" stop-opacity="0.6"/>
+        <stop offset="1" stop-color="#e6eeff" stop-opacity="0"/>
       </radialGradient>
       <radialGradient id="roundWall" cx="0.5" cy="0.5" r="0.75">
         <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
@@ -2147,14 +2275,17 @@ const Scenes = (function () {
     const backdrop = far.replace(skyRect, '');
     const bldg = building.draw(color, roofColor);
     const front = building.front();
-    // The two .washed groups hold everything in front of the sky; at night game.js gives
-    // them the night-wash filter. The paper grain sits between them, unwashed, as it blends
-    // with whatever is beneath it.
+    const festive = festiveLayers(locId, building.backdropOpts || {});
+    // The .washed groups hold everything in front of the sky; at night game.js gives them
+    // the night-wash filter. Between the backdrop and the building sits the holiday glow,
+    // unwashed so it shines after dark; the paper grain sits after the building, unwashed
+    // too, as it blends with whatever is beneath it. The sky life (the witch) flies in the
+    // night sky, behind everything but the moon and stars.
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
       ${skyRect}
       ${painted('sky-bodies', skyBodies())}
-      <g class="night-sky">${nightSky()}</g>
+      <g class="night-sky">${nightSky()}<g class="sky-life"></g></g>
       <g class="washed">
         ${painted('backdrop', backdrop)}
         <g class="background-life"></g>
@@ -2163,6 +2294,10 @@ const Scenes = (function () {
         ${GROUND[locId]
           ? `<clipPath id="ground-only"><polygon points="${GROUND[locId].outline}"/></clipPath><g clip-path="url(#ground-only)">${painted('seasonal', seasonalLayer(GRASSY.includes(locId), GROUND[locId].edgeX))}</g>`
           : painted('seasonal', seasonalLayer(GRASSY.includes(locId), 800, PATHS[locId]))}
+        ${painted('festive', festive.decor)}
+      </g>
+      <g class="festive-glow" opacity="0">${festive.glow}</g>
+      <g class="washed">
         ${painted('building', bldg)}
         <g class="books"></g>
         ${painted('front', front)}
@@ -2286,5 +2421,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor, batSvg, witchSvg };
 })();
