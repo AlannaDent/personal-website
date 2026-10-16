@@ -633,9 +633,11 @@ body.season-winter .leaf-line { fill: #8a8078; }
 svg .weather, svg .background-life, svg .sea-life, svg .festive-glow, svg .sky-life { pointer-events: none; }
 /* ---- Holidays ----
    Each set of decorations shows only in its festive week; the page carries a fest- class
-   (see festival() in game.js). Ghosts bob, and jack-o'-lanterns flicker. */
-.halloween { display: none; }
-body.fest-halloween .halloween { display: inline; }
+   (see festival() in game.js). Ghosts bob, jack-o'-lanterns flicker, and Christmas lights twinkle. */
+.halloween, .christmas { display: none; }
+body.fest-halloween .halloween, body.fest-christmas .christmas { display: inline; }
+.twinkle { animation: twinkle 1.9s ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: 1; } to { opacity: 0.35; } }
 .ghost-bob { animation: ghostBob 3.2s ease-in-out infinite alternate; }
 @keyframes ghostBob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
 .jack-glow { animation: flicker 2.2s ease-in-out infinite alternate; }
@@ -649,7 +651,7 @@ body.fest-halloween .halloween { display: inline; }
 @keyframes sway { from { transform: translateX(-5px); opacity: 0.65; } to { transform: translateX(5px); opacity: 1; } }
 .foam { animation: lap 4.5s ease-in-out infinite alternate; }
 @keyframes lap { from { transform: translateY(-3px); opacity: 0.3; } to { transform: translateY(3px); opacity: 0.75; } }
-@media (prefers-reduced-motion: reduce) { .cloud, .waves, .foam, .ghost-bob, .jack-glow { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cloud, .waves, .foam, .ghost-bob, .jack-glow, .twinkle { animation: none; } }
 
 /* ---- Sketch mode ----
    Every painted layer holds a color copy (.fills) and an ink copy (.lines).

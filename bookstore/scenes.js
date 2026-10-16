@@ -790,17 +790,148 @@ const Scenes = (function () {
     cliff: { pumpkins: [[118, 340, 6, 1], [134, 341, 4.5, 0], [598, 340, 6, 1], [620, 341, 4.5, 0]] },
     harbor: { pumpkins: [[37, 336, 8, 1], [126, 344, 7, 1], [763, 336, 8, 1]] }
   };
-  // The holiday layers for a scene: { decor, glow }. Ghosts sit in an after-dark group so
+  // Halloween's layers for a scene: { decor, glow }. Ghosts sit in an after-dark group so
   // they appear at sunset and are gone by morning.
-  function festiveLayers(locId, opts) {
-    const h = typeof HALLOWEEN[locId] === 'function' ? HALLOWEEN[locId](opts) : HALLOWEEN[locId];
+  function halloweenLayers(h) {
     if (!h) return { decor: '', glow: '' };
     const pumpkins = h.pumpkins || [], ghosts = h.ghosts || [];
     let decor = pumpkins.map(([x, y, r, c]) => pumpkin(x, y, r, c)).join('');
     if (h.corn) decor += cornStalks(h.corn[0], h.corn[1]);
     if (ghosts.length) decor += `<g class="after-dark" opacity="0">${ghosts.map(([x, y, s, t], k) => ghost(x, y, s, t, k)).join('')}</g>`;
     const glow = ghosts.map(([x, y, s, t], k) => ghostGlow(x, y, s, t, k)).join('') + pumpkins.filter(p => p[3]).map(([x, y, r]) => jackGlow(x, y, r)).join('');
-    return { decor: `<g class="halloween">${decor}</g>`, glow: `<g class="halloween">${glow}</g>` };
+    return { decor, glow };
+  }
+
+  // ---- Christmas ----
+  // Strings of warm white lights. A string is a run of curves, each [x0, y0, cx, cy, x1, y1]
+  // (from, bend, to), with bulbs hung evenly along it. Strings laid along something already
+  // drawn (the dune fence's rope, a sailboat's stays, a roof's edge) leave out the wire.
+  // skip: [x0, x1], a stretch with no bulbs (where a sign post crosses the rope).
+  function sagged(points, sag) {   // curves through the points, each span dipping a little
+    const segs = [];
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x0, y0] = points[i], [x1, y1] = points[i + 1];
+      segs.push([x0, y0, (x0 + x1) / 2, (y0 + y1) / 2 + Math.hypot(x1 - x0, y1 - y0) * sag, x1, y1]);
+    }
+    return segs;
+  }
+  // A string draped under a roofline or along a rail: points every 22 or so units.
+  function eaves(x0, x1, y) {
+    const n = Math.max(1, Math.round((x1 - x0) / 22)), pts = [];
+    for (let i = 0; i <= n; i++) pts.push([x0 + (x1 - x0) * i / n, y]);
+    return { segs: sagged(pts, 0.12) };
+  }
+  // Lights for a bare winter tree drawn by bareBranches(x, y, s): three swags across the
+  // crown following its branches, and a wrap down the trunk (trunkW wide) to wrapTo.
+  const TREE_SWAGS = [
+    [[-46, -36], [-18, -28], [-1.4, -30], [14.4, -32.3], [40, -49]],
+    [[-33, -44], [-3, -55], [27, -51]],
+    [[-35, -63], [-5, -76], [14, -76], [33, -73]]
+  ];
+  function treeLights(x, y, s, trunkW, wrapTo) {
+    const strings = TREE_SWAGS.map(pts => ({ segs: sagged(pts.map(([dx, dy]) => [x + dx * s, y + dy * s]), 0.22), spacing: 6.5 * s }));
+    const wrap = [];
+    for (let yy = y + 6, side = -1; yy <= wrapTo; yy += 11, side *= -1) wrap.push([x + side * trunkW / 2, yy]);
+    strings.push({ segs: sagged(wrap, 0.08), spacing: 5.5 });
+    return strings;
+  }
+  // A wreath of greenery around (x, y), r to the middle of the ring, with berries and a red bow.
+  function wreath(x, y, r) {
+    let s = '';
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      s += `<circle cx="${fx(x + Math.cos(a) * r)}" cy="${fx(y + Math.sin(a) * r)}" r="${fx(r * 0.42)}" fill="${i % 2 ? '#3f6b45' : '#4f7a4a'}"/>`;
+    }
+    [0.7, 2.3, 3.9, 5.2].forEach(a => { s += `<circle cx="${fx(x + Math.cos(a) * r)}" cy="${fx(y + Math.sin(a) * r)}" r="${fx(r * 0.13)}" fill="#b6413a"/>`; });
+    s += `<path d="M${fx(x)} ${fx(y + r)} l${fx(-r * 0.55)} ${fx(-r * 0.3)} l0 ${fx(r * 0.6)} z M${fx(x)} ${fx(y + r)} l${fx(r * 0.55)} ${fx(-r * 0.3)} l0 ${fx(r * 0.6)} z" fill="#b6413a"/>`;
+    s += `<path d="M${fx(x)} ${fx(y + r)} l${fx(-r * 0.3)} ${fx(r * 0.7)} M${fx(x)} ${fx(y + r)} l${fx(r * 0.3)} ${fx(r * 0.7)}" stroke="#b6413a" stroke-width="${fx(r * 0.14)}"/>`;
+    return s;
+  }
+  // Christmas in each scene, always on something already there. trees: [x, y, size, trunk
+  // width, wrap down to] for bare trees drawn with bareBranches; strings: lights along ropes,
+  // rigging, roof edges and rails; evergreens: [x, y, r] small far trees, dotted with lights;
+  // wreaths: [x, y, r] on neighbors' doors, lamp posts, pilings, and the mausoleum gate.
+  const CHRISTMAS = {
+    beach: (o) => {
+      const post = (o.signX || 250) + 3.5;
+      return { strings: [{ segs: [[40, 306, 85, 330, 130, 304], [130, 304, 172, 336, 215, 316]], wire: false, skip: [post - 8, post + 8] }] };
+    },
+    park: { trees: [[81, 250, 1, 22, 352]] },
+    street: { strings: [eaves(0, 215, 156), eaves(480, 800, 176)], wreaths: [[173, 321, 9], [278, 346, 6.5], [643, 334, 9], [468.5, 214, 7]] },
+    dock: {
+      strings: [{ segs: [[659, 64, 624.5, 197, 590, 330]], wire: false, spacing: 9 }, { segs: [[659, 64, 699.5, 195, 740, 326]], wire: false, spacing: 9 },
+        { segs: [[12, 262, 63.5, 232, 115, 202], [115, 202, 166.5, 232, 218, 262]], wire: false, spacing: 8 }],
+      wreaths: [[150, 327, 8]]
+    },
+    street2: { trees: [[721, 240, 0.85, 18, 330]], strings: [eaves(0, 240, 176)], evergreens: [[640, 320, 13]], wreaths: [[83, 334, 9]] },
+    street3dutch: { strings: [eaves(0, 200, 264), eaves(618, 800, 264)], wreaths: [[75, 344, 7.5], [730, 344, 7.5], [602.5, 300, 6.5]] },
+    street3cape: { strings: [eaves(0, 200, 287), eaves(618, 800, 287)], wreaths: [[80, 342, 7], [725, 342, 7], [602.5, 300, 6.5]] },
+    street3tudor: { strings: [eaves(0, 210, 251), eaves(616, 800, 251)], wreaths: [[85, 352, 7], [720, 352, 7], [600.5, 300, 6.5]] },
+    green: { trees: [[70, 240, 1.05, 24, 352], [730, 245, 1.05, 24, 352]], wreaths: [[160, 332, 6.5]] },
+    cliff: { strings: [eaves(40, 250, 379)] },   // the lighthouse's own wreath is drawn with the tower
+    harbor: { strings: [{ segs: [[44, 350, 90, 372, 126, 356]], wire: false }], wreaths: [[37, 354, 6], [763, 352, 6]] }
+  };
+  function christmasLayers(c) {
+    if (!c) return { decor: '', glow: '' };
+    const strings = [];
+    (c.trees || []).forEach(([x, y, s, w, to]) => strings.push(...treeLights(x, y, s, w, to)));
+    (c.strings || []).forEach(st => strings.push(st));
+    (c.evergreens || []).forEach(([x, y, r]) => strings.push({ segs: sagged([[x - r * 0.7, y - r * 0.45], [x + r * 0.6, y - r * 0.1], [x - r * 0.6, y + r * 0.3], [x + r * 0.7, y + r * 0.6]], 0.05), wire: false, spacing: 4, size: 0.8 }));
+    let decor = '', glow = '', k = 0;
+    strings.forEach(({ segs, wire, spacing = 6.5, size = 1.5, skip }) => {
+      if (wire !== false) decor += `<path d="${segs.map(([x0, y0, cx, cy, x1, y1]) => `M${fx(x0)} ${fx(y0)} Q${fx(cx)} ${fx(cy)} ${fx(x1)} ${fx(y1)}`).join(' ')}" stroke="#3a3f34" stroke-width="0.8" fill="none"/>`;
+      segs.forEach(([x0, y0, cx, cy, x1, y1]) => {
+        const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / spacing));
+        for (let j = 0; j < n; j++) {
+          const t = (j + 0.5) / n, u = 1 - t;
+          const bx = u * u * x0 + 2 * u * t * cx + t * t * x1, by = u * u * y0 + 2 * u * t * cy + t * t * y1 + size * 0.7;
+          if (skip && bx > skip[0] && bx < skip[1]) continue;
+          decor += `<ellipse cx="${fx(bx)}" cy="${fx(by)}" rx="${fx(size * 0.75)}" ry="${fx(size)}" fill="#efe4c4" stroke="#a8986e" stroke-width="0.4"/>`;
+          // every third bulb twinkles, each a little out of step
+          const tw = k++ % 3 === 1 ? ` class="twinkle" style="animation-delay: -${(k % 7 * 0.37).toFixed(2)}s"` : '';
+          glow += `<g${tw}><circle cx="${fx(bx)}" cy="${fx(by)}" r="${fx(size * 3.4)}" fill="#ffd98a" opacity="0.35"/><ellipse cx="${fx(bx)}" cy="${fx(by)}" rx="${fx(size * 0.75)}" ry="${fx(size)}" fill="#fff6dc"/></g>`;
+        }
+      });
+    });
+    decor += (c.wreaths || []).map(([x, y, r]) => wreath(x, y, r)).join('');
+    return { decor, glow };
+  }
+  // Santa's sleigh and four pairs of reindeer, facing right, as a silhouette against the
+  // night sky; the lead reindeer's nose glows red and sparkles trail behind. About 115 units
+  // from the sparkles to the lead's nose, centered on the sleigh.
+  function sleighSvg() {
+    const ink = '#201a2c';
+    const deer = (x, y, fill) => `<g transform="translate(${fx(x)} ${fx(y)})" fill="${fill}">
+      <ellipse cx="0" cy="0" rx="6" ry="2.5"/><path d="M3.8 -1 L7.6 -6 L9.6 -5.2 L7 0.2 Z"/>
+      <ellipse cx="9.8" cy="-6.2" rx="2.5" ry="1.4" transform="rotate(14 9.8 -6.2)"/>
+      <path d="M8 -7 L6.6 -11 L5 -12.6 M6.9 -9.4 L5 -9.6 M8.8 -7.3 L9.6 -11.6 L11.2 -12.7 M9.3 -9.6 L10.9 -10" stroke="${fill}" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+      <path d="M4 0.8 L8.6 3 M3.2 1.4 L7.4 4.6 M-4 0.8 L-9 2.6 M-4.8 1.3 L-8.8 4.6" stroke="${fill}" stroke-width="0.95" stroke-linecap="round"/>
+      <path d="M-5.6 -1.2 l-2 -1.6 l0.6 2.2 z"/></g>`;
+    let team = '';
+    for (let i = 0; i < 4; i++) team += deer(38 + i * 16, -8.8 - i * 2.6, '#3a3150') + deer(36 + i * 16, -6 - i * 2.6, ink);
+    const sparkles = [[-24, 2, 1.6], [-34, 5, 1.2], [-44, 6, 1.4], [-55, 9, 1], [-66, 10, 0.9]]
+      .map(([x, y, r], i) => `<path d="${starPath(x, y, r * 2.2, r * 0.6, 4)}" fill="#f8e6a8" opacity="${fx(0.9 - i * 0.15)}"/>`).join('');
+    return `<g>${sparkles}<path d="M5 -6.5 Q20 -4 30 -6.5" stroke="${ink}" stroke-width="0.6" fill="none"/>${team}
+      <g fill="${ink}">
+        <path d="M-17 7 L10 7 Q16 7 17.5 2" stroke="${ink}" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M-10 3 V7 M5 3 V7" stroke="${ink}" stroke-width="1.2"/>
+        <path d="M-14 -7 Q-18 -14 -12.5 -17.5 L-11.5 -19.5 L-9.5 -17.5 Q-4.5 -14 -8 -7 Z"/>
+        <ellipse cx="-2.5" cy="-6" rx="5" ry="5.5"/><circle cx="-1" cy="-13" r="2.8"/>
+        <path d="M-3.6 -14.6 Q-2 -19.5 -6.5 -20.5" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="-7.6" cy="-20.4" r="1.4"/>
+        <path d="M0 -8 L5 -6.5" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M-17.5 -8.5 L-13 -8.5 L-12 -1 L5 -1 Q11 -1 12 -6 Q13 -10.5 17.5 -10.5 Q14.8 -8 15.2 -4 Q14.2 3.6 6 3.6 L-14 3.6 Q-17.5 3 -17.5 -8.5 Z"/>
+      </g>
+      <circle cx="96.3" cy="-19.3" r="4" fill="#ff5a4a" opacity="0.4"/><circle cx="96.3" cy="-19.3" r="1.1" fill="#ff4d3d"/></g>`;
+  }
+
+  // The holiday layers for a scene, { decor, glow }: each holiday's set in a group of its
+  // own, which the stylesheet shows only during that holiday.
+  function festiveLayers(locId, opts) {
+    const pick = (table) => typeof table[locId] === 'function' ? table[locId](opts) : table[locId];
+    const sets = [['halloween', halloweenLayers(pick(HALLOWEEN))], ['christmas', christmasLayers(pick(CHRISTMAS))]];
+    return {
+      decor: sets.map(([name, l]) => `<g class="${name}">${l.decor}</g>`).join(''),
+      glow: sets.map(([name, l]) => `<g class="${name}">${l.glow}</g>`).join('')
+    };
   }
   // A bat, wings up or down, about 26 units across, centered on (0, 0).
   function batSvg(up) {
@@ -2139,6 +2270,8 @@ const Scenes = (function () {
       s += `<path d="M308 66 Q330 40 352 66 z" fill="#2b2a28"/><circle cx="330" cy="40" r="4" fill="#2b2a28"/>`;
       s += `<circle cx="330" cy="88" r="9" fill="#fff" opacity="0.9"/>`;
       s += `<rect x="318" y="220" width="14" height="22" rx="7" fill="#3a3f44"/><rect x="322" y="300" width="14" height="22" rx="7" fill="#3a3f44"/>`;
+      // a holiday wreath on the tower, a Cape tradition (shown in Christmas week only)
+      s += `<g class="christmas">${wreath(330, 172, 11)}</g>`;
       // keeper's house with the shop door open. Weathered tan until the player paints; then it
       // takes the same coat as the tower, with a slate roof if the paint matches the red one.
       // The player's shingles, if any, go on its roof.
@@ -2421,5 +2554,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor, batSvg, witchSvg };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor, batSvg, witchSvg, sleighSvg };
 })();

@@ -33,9 +33,10 @@
   const DAYS_PER_WEEK = 3;
   const DAYS_PER_SEASON = 4 * DAYS_PER_WEEK;   // four weeks of three days
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
-  // The festive weeks, by season and week of the season: Halloween is autumn's last week.
-  // While one is on, the page carries a fest- class and scenes.js's decorations show.
-  const FESTIVALS = { Autumn: { name: 'halloween', week: 4 } };
+  // The festive weeks, by season and week of the season: Halloween is autumn's last week,
+  // Christmas winter's. While one is on, the page carries a fest- class and scenes.js's
+  // decorations show.
+  const FESTIVALS = { Autumn: { name: 'halloween', week: 4 }, Winter: { name: 'christmas', week: 4 } };
   // A gentle wash of color over the scene for each season (color, opacity outside, opacity inside).
   const SEASON_TINT = {
     Spring: ['#ffffff', 0, 0],
@@ -221,14 +222,22 @@
   // The journal on the first morning of a festive week, and at closing time during one
   // (in place of the season's night lines). Plain first row, quippy second.
   const FESTIVAL_LINES = {
-    halloween: 'Pumpkins on every doorstep in town. Somebody carved one to look like a book. Good likeness.'
+    halloween: 'Pumpkins on every doorstep in town. Somebody carved one to look like a book. Good likeness.',
+    christmas: 'Lights strung in the bare trees and wreaths on the doors all over town. Even the gulls look festive.'
   };
   const FESTIVE_NIGHT_LINES = {
     halloween: ['Jack-o’-lanterns lit all over town.', 'Trick-or-treaters came by. Handed out bookmarks.', 'Something rustling in the leaves.',
-      'Jack-o’-lanterns lit all over town. One of them is winking. Nobody carved it that way.', 'Trick-or-treaters came by. Handed out bookmarks. Reviews were mixed.', 'Something rustling in the leaves. Probably the wind. Probably.']
+      'Jack-o’-lanterns lit all over town. One of them is winking. Nobody carved it that way.', 'Trick-or-treaters came by. Handed out bookmarks. Reviews were mixed.', 'Something rustling in the leaves. Probably the wind. Probably.'],
+    christmas: ['Lights on in the trees.', 'Carolers on the corner.', 'Wrapped the last of the gift orders.',
+      'Lights on in every bare tree in town. The whole street is glowing.', 'Carolers on the corner. Mostly in tune. One very much not.', 'Wrapped the last of the gift orders. Ran out of tape twice.']
   };
-  const WITCH_LINES = ['Something crossed the moon on a broomstick. The cat riding behind her looked unimpressed.',
-    'A witch flew over, low and in no hurry. Nobody mentioned it. Everybody saw it.', 'A shape on a broom, right across the moon. A very determined gull, surely. Surely.'];
+  // What the journal says the first time each night that someone flies across the moon.
+  const FLYER_LINES = {
+    witch: ['Something crossed the moon on a broomstick. The cat riding behind her looked unimpressed.',
+      'A witch flew over, low and in no hurry. Nobody mentioned it. Everybody saw it.', 'A shape on a broom, right across the moon. A very determined gull, surely. Surely.'],
+    sleigh: ['Something crossed the moon. Something with antlers. Nobody in town is sleeping tonight.',
+      'Sleigh bells, very faint and very high up. The whole shop went quiet to listen.', 'A tiny red light raced across the sky. Probably a plane. Planes don’t have antlers.']
+  };
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
@@ -2181,8 +2190,8 @@
   // These live behind the building (the .background-life layer) and are not saved.
   let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
   let nextBirdAt = 0, nextCrabAt = 0, nextFoxAt = 0, nextDolphinAt = 0, lastCritterDraw = 0;
-  let nextBatAt = 0, nextWitchAt = 0, witchLogDay = 0;
-  const FLAP = { bird: 9, bat: 16, witch: 2.5 };   // how fast each one's phase turns (wingbeats, the witch's bob)
+  let nextBatAt = 0, nextFlyerAt = 0, flyerLogDay = 0;
+  const FLAP = { bird: 9, bat: 16, witch: 2.5, sleigh: 2 };   // how fast each one's phase turns (wingbeats, a flier's bob)
   const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop pressed its nose to the window.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little. Two pretended not to.'];
   const OUTDOORS = () => state.view !== 'inside';
   function updateWildlife(dt, now) {
@@ -2202,29 +2211,30 @@
         nextBirdAt = now + 18000 + Math.random() * 30000;
       }
     }
-    // Halloween week: bats flit about from sunset on, and every Halloween night the witch
-    // crosses the far sky, right over the moon: a few seconds after closing, then now and
-    // then again for anyone still up. The journal notes her first pass each night.
-    if (festival() === 'halloween') {
-      if ((night || dayFraction() > 0.72) && now >= nextBatAt) {
-        const dir = Math.random() < 0.5 ? 1 : -1, n = 2 + Math.floor(Math.random() * 3), y = 50 + Math.random() * 110;
-        for (let i = 0; i < n; i++) {
-          critters.push({ kind: 'bat', x: dir === 1 ? -20 - i * 28 : 820 + i * 28, y: y + Math.random() * 40, dir, speed: 70 + Math.random() * 40, scale: 0.75 + Math.random() * 0.4, phase: Math.random() * 6.3, wob: Math.random() * 6.3 });
-        }
-        nextBatAt = now + 12000 + Math.random() * 16000;
+    // Halloween week: bats flit about from sunset on.
+    if (festival() === 'halloween' && (night || dayFraction() > 0.72) && now >= nextBatAt) {
+      const dir = Math.random() < 0.5 ? 1 : -1, n = 2 + Math.floor(Math.random() * 3), y = 50 + Math.random() * 110;
+      for (let i = 0; i < n; i++) {
+        critters.push({ kind: 'bat', x: dir === 1 ? -20 - i * 28 : 820 + i * 28, y: y + Math.random() * 40, dir, speed: 70 + Math.random() * 40, scale: 0.75 + Math.random() * 0.4, phase: Math.random() * 6.3, wob: Math.random() * 6.3 });
       }
-      if (night) {
-        if (!nextWitchAt) nextWitchAt = now + 5000 + Math.random() * 7000;
-        if (now >= nextWitchAt) {
-          // The moon hangs at the top of its arc all night (see moveSkyBodies).
-          const horizon = Scenes.horizonFor(loc), arc = horizon + 14 - SUN_PEAK_Y[seasonName()];
-          const dir = Math.random() < 0.5 ? 1 : -1;
-          critters.push({ kind: 'witch', x: dir === 1 ? -60 : 860, y: 0, dir, speed: 62, scale: 1.1, phase: 0, moonY: horizon + 14 - arc * 0.92 });
-          if (witchLogDay !== dayIndex()) { witchLogDay = dayIndex(); addLog(randomFrom(WITCH_LINES)); drawLog(); }
-          nextWitchAt = now + 75000 + Math.random() * 60000;
-        }
-      } else nextWitchAt = 0;
+      nextBatAt = now + 12000 + Math.random() * 16000;
     }
+    // A night flier crosses the far sky, right over the moon: the witch on Halloween nights,
+    // Santa's sleigh on the two nights before New Year's Eve (the last night of winter is
+    // New Year's own). A few seconds after closing, then now and then again for anyone
+    // still up. The journal notes the first pass each night.
+    const flyer = festival() === 'halloween' ? 'witch' : (festival() === 'christmas' && state.clock.day < DAYS_PER_SEASON) ? 'sleigh' : null;
+    if (flyer && night) {
+      if (!nextFlyerAt) nextFlyerAt = now + 5000 + Math.random() * 7000;
+      if (now >= nextFlyerAt) {
+        // The moon hangs at the top of its arc all night (see moveSkyBodies).
+        const horizon = Scenes.horizonFor(loc), arc = horizon + 14 - SUN_PEAK_Y[seasonName()];
+        const dir = Math.random() < 0.5 ? 1 : -1, sleigh = flyer === 'sleigh';
+        critters.push({ kind: flyer, x: dir === 1 ? -100 : 900, y: 0, dir, speed: sleigh ? 75 : 62, scale: sleigh ? 0.85 : 1.1, phase: 0, moonY: horizon + 14 - arc * 0.92 });
+        if (flyerLogDay !== dayIndex()) { flyerLogDay = dayIndex(); addLog(randomFrom(FLYER_LINES[flyer])); drawLog(); }
+        nextFlyerAt = now + 75000 + Math.random() * 60000;
+      }
+    } else if (!night) nextFlyerAt = 0;
     // Crabs: beach only, scuttling along the far sand behind the shop.
     if (loc === 'beach') {
       if (!nextCrabAt) nextCrabAt = now + 6000 + Math.random() * 20000;
@@ -2277,11 +2287,11 @@
         c.y += Math.sin(c.wob) * 38 * dt;
         return c.x > -40 && c.x < 840;
       }
-      if (c.kind === 'witch') {   // an arc that tops out just over the moon
+      if (c.kind === 'witch' || c.kind === 'sleigh') {   // an arc that tops out just over the moon
         c.x += c.dir * c.speed * dt;
         const u = (c.x - 400) / 400;
         c.y = c.moonY + 4 + u * u * 70 + Math.sin(c.phase) * 1.5;
-        return c.x > -80 && c.x < 880;
+        return c.dir === 1 ? c.x < 920 : c.x > -120;
       }
       if (c.kind === 'crab') {
         // Scuttle in bursts: go, pause, go.
@@ -2322,15 +2332,16 @@
         </g>`;
       }).join('');
     }
-    // The witch flies in the night sky, behind everything but the moon and stars.
+    // Night fliers cross the night sky, behind everything but the moon and stars.
+    const FLIERS = ['witch', 'sleigh'];
     const skyGroup = svg.querySelector('.sky-life');
     if (skyGroup) {
-      skyGroup.innerHTML = critters.filter(c => c.kind === 'witch').map(c =>
-        `<g transform="translate(${c.x.toFixed(1)} ${c.y.toFixed(1)}) scale(${(c.dir * c.scale).toFixed(2)} ${c.scale.toFixed(2)}) rotate(${(Math.sin(c.phase) * 3).toFixed(1)})">${Scenes.witchSvg()}</g>`).join('');
+      skyGroup.innerHTML = critters.filter(c => FLIERS.includes(c.kind)).map(c =>
+        `<g transform="translate(${c.x.toFixed(1)} ${c.y.toFixed(1)}) scale(${(c.dir * c.scale).toFixed(2)} ${c.scale.toFixed(2)}) rotate(${(Math.sin(c.phase) * 3).toFixed(1)})">${c.kind === 'witch' ? Scenes.witchSvg() : Scenes.sleighSvg()}</g>`).join('');
     }
     const group = svg.querySelector('.background-life');
     if (!group) return;
-    group.innerHTML = extrasSvg() + critters.filter(c => c.kind !== 'dolphin' && c.kind !== 'witch').map(c => {
+    group.innerHTML = extrasSvg() + critters.filter(c => c.kind !== 'dolphin' && !FLIERS.includes(c.kind)).map(c => {
       const flip = c.dir === -1 ? ' scale(-1 1)' : '';
       if (c.kind === 'bird') {
         const up = Math.sin(c.phase) > 0;
