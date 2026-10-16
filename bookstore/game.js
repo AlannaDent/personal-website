@@ -238,6 +238,9 @@
     sleigh: ['Something crossed the moon. Something with antlers. Nobody in town is sleeping tonight.',
       'Sleigh bells, very faint and very high up. The whole shop went quiet to listen.', 'A tiny red light raced across the sky. Probably a plane. Planes don’t have antlers.']
   };
+  // Closing time on New Year's Eve, in place of the usual night line.
+  const NEW_YEAR_LINES = ['Fireworks over town. Happy New Year from all of us at the bookshop.',
+    'The whole town came out for the fireworks. Even the gulls stayed up.', 'Fireworks at closing time, which is basically midnight around here. Happy New Year.'];
 
   // What each stage is saving toward. "next" is the stage the upgrade leads to.
   const GOALS = {
@@ -624,6 +627,8 @@
     const f = FESTIVALS[seasonName()];
     return f && Math.ceil(state.clock.day / DAYS_PER_WEEK) === f.week ? f.name : null;
   };
+  // The last day of winter, whose night is New Year's Eve: fireworks, and no Santa.
+  const isNewYearsEve = () => seasonName() === 'Winter' && state.clock.day === DAYS_PER_SEASON;
   const dateText = () => `Year ${state.clock.year} \u00b7 ${seasonName()} \u00b7 Day ${state.clock.day}`;
 
   // ---- Lifetime counters: every shop ever opened on this device ----
@@ -898,7 +903,7 @@
     document.querySelector('.dateline').classList.toggle('night', night);
     const button = $('next-day-button');
     if (night) {
-      button.textContent = `Begin Day ${state.clock.day % DAYS_PER_SEASON + 1}`;
+      button.textContent = isNewYearsEve() ? 'Begin the New Year' : `Begin Day ${state.clock.day % DAYS_PER_SEASON + 1}`;
       // Boxes on the step must be opened before the day begins.
       const waiting = (state.deliveries || []).length > 0;
       button.disabled = waiting;
@@ -1131,12 +1136,13 @@
     ringBell();
     customers.forEach(c => { const el = document.getElementById(c.id); if (el) el.remove(); });
     customers = [];
-    addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(FESTIVE_NIGHT_LINES[festival()] || NIGHT_LINES[seasonName()])}`);
+    addLog(`${randomFrom(CLOSING_OPENERS)} ${randomFrom(isNewYearsEve() ? NEW_YEAR_LINES : FESTIVE_NIGHT_LINES[festival()] || NIGHT_LINES[seasonName()])}`);
     deliverOrders();
     // Boxes are only drawn outside. If the van came while the player was inside, step
-    // out to meet it so the boxes (and the reason Begin Day is waiting) are in view.
-    if (state.view === 'inside' && state.deliveries.length) {
-      addLog('Stepped outside to meet the van, like a dog hearing the mail.');
+    // out to meet it so the boxes (and the reason Begin Day is waiting) are in view. On
+    // New Year's Eve, step out for the fireworks.
+    if (state.view === 'inside' && (state.deliveries.length || isNewYearsEve())) {
+      addLog(state.deliveries.length ? 'Stepped outside to meet the van, like a dog hearing the mail.' : 'Stepped outside to watch the fireworks. The books can mind themselves for one night.');
       state.view = 'outside';
       switchView();
     }
@@ -2368,6 +2374,79 @@
     }).join('');
   }
 
+  // ---- New Year's Eve: fireworks on the last night of the year ----
+  // From closing time on the last night of winter until the player begins the new year.
+  // A spark climbs from the horizon and bursts in the far sky (in the night sky, behind
+  // the buildings and trees like the moon), opens out, droops and fades; now and then a
+  // whole volley goes up. Where there is open water, each burst's colors shimmer on it.
+  const FIREWORK_COLORS = [['#ffd56b', '#ff8fab'], ['#ff8fab', '#fff6dc'], ['#7ee0d2', '#ffd56b'], ['#c4a3ff', '#fff6dc'],
+    ['#fff6dc', '#ffd56b'], ['#ff6b5b', '#ffd56b'], ['#9be08a', '#fff6dc']];
+  const FIREWORK_RISE = 0.8, FIREWORK_LIFE = 2.2;   // seconds climbing, then seconds from burst to gone
+  let fireworks = [], nextFireworkAt = 0, lastFireworkDraw = 0;
+  function newFirework(delay) {
+    const horizon = Scenes.horizonFor(state.location);
+    const r = 20 + Math.random() * 26;
+    let x = 70 + Math.random() * 660;
+    const y = 45 + Math.random() * Math.max(10, Math.min(130, horizon - r - 70));
+    if (Math.abs(x - 400) < 60 && y < 130) x += x < 400 ? -90 : 90;   // keep clear of the moon
+    const [c1, c2] = randomFrom(FIREWORK_COLORS);
+    return { x, y, r, c1, c2, rays: 10 + Math.floor(Math.random() * 7), turn: Math.random() * 6.3, willow: Math.random() < 0.3, t: -delay, fromY: horizon };
+  }
+  function updateFireworks(dt, now) {
+    const svg = $('scene').querySelector('svg');
+    if (!svg) return;
+    if (!(OUTDOORS() && state.clock.night && isNewYearsEve())) {
+      if (fireworks.length) {
+        fireworks = [];
+        svg.querySelectorAll('.fireworks, .reflections').forEach(g => { g.innerHTML = ''; });
+      }
+      return;
+    }
+    if (now >= nextFireworkAt) {
+      const volley = Math.random() < 0.18 ? 3 + Math.floor(Math.random() * 3) : 1;
+      for (let i = 0; i < volley; i++) fireworks.push(newFirework(i * 0.25));
+      nextFireworkAt = now + 900 + Math.random() * 1500 + (volley > 1 ? 1500 : 0);
+    }
+    fireworks = fireworks.filter(f => { f.t += dt; return f.t < FIREWORK_RISE + FIREWORK_LIFE; });
+    if (now - lastFireworkDraw < 40) return;   // about 25 frames a second
+    lastFireworkDraw = now;
+    const water = Scenes.reflectFor(state.location);
+    let sky = '', shimmer = '';
+    fireworks.forEach(f => {
+      if (f.t < 0) return;
+      if (f.t < FIREWORK_RISE) {   // the rocket: a spark easing upward, a short fading trail behind
+        const p = f.t / FIREWORK_RISE, y = f.fromY + (f.y - f.fromY) * (1 - (1 - p) * (1 - p));
+        for (let i = 0; i < 6; i++) sky += `<circle cx="${(f.x + Math.sin(i + f.t * 9) * 0.7).toFixed(1)}" cy="${(y + i * 5).toFixed(1)}" r="${(1.7 - i * 0.22).toFixed(2)}" fill="${f.c1}" opacity="${(1 - i * 0.16).toFixed(2)}"/>`;
+        return;
+      }
+      const u = f.t - FIREWORK_RISE;   // seconds since the burst
+      const grow = Math.min(1, u / 0.45), R = f.r * (1 - Math.pow(1 - grow, 3));
+      const fade = Math.max(0, 1 - Math.max(0, u - 0.5) / (FIREWORK_LIFE - 0.5)), drop = 10 * u * u;
+      sky += `<g opacity="${fade.toFixed(2)}">`;
+      if (u < 0.25) sky += `<circle cx="${f.x.toFixed(1)}" cy="${f.y.toFixed(1)}" r="${(6 + 30 * u).toFixed(1)}" fill="#fffbe8" opacity="${(0.8 - u * 3).toFixed(2)}"/>`;
+      sky += `<circle cx="${f.x.toFixed(1)}" cy="${f.y.toFixed(1)}" r="${(R * 1.2).toFixed(1)}" fill="${f.c1}" opacity="0.08"/>`;
+      for (let i = 0; i < f.rays; i++) {
+        const a = f.turn + i / f.rays * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+        const x2 = f.x + c * R, y2 = f.y + s * R + drop;
+        sky += `<line x1="${(f.x + c * R * 0.3).toFixed(1)}" y1="${(f.y + s * R * 0.3 + drop * 0.3).toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${f.c1}" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/><circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="1.9" fill="${f.c1}"/>`;
+        if (f.willow) for (let k = 1; k <= 3; k++) sky += `<circle cx="${x2.toFixed(1)}" cy="${(y2 + k * 5 * grow).toFixed(1)}" r="${(1.5 - k * 0.3).toFixed(2)}" fill="${f.c1}" opacity="${(0.8 - k * 0.22).toFixed(2)}"/>`;
+        const b = a + Math.PI / f.rays;
+        sky += `<circle cx="${(f.x + Math.cos(b) * R * 0.58).toFixed(1)}" cy="${(f.y + Math.sin(b) * R * 0.58 + drop * 0.6).toFixed(1)}" r="1.5" fill="${f.c2}"/>`;
+      }
+      sky += '</g>';
+      // On the water: short wavering streaks of the burst's color, brightest nearest the shore.
+      if (water && f.x >= water.x[0] && f.x <= water.x[1]) {
+        for (let y = water.y[0], i = 0; y < water.y[1]; y += 3.2, i++) {
+          const w = 3 + ((i * 7) % 5) * 2.2, dx = Math.sin(i * 2.3 + f.t * 3) * 4;
+          shimmer += `<ellipse cx="${(f.x + dx).toFixed(1)}" cy="${y.toFixed(1)}" rx="${w.toFixed(1)}" ry="0.9" fill="${f.c1}" opacity="${(Math.max(0.05, 0.42 - i * 0.022) * fade).toFixed(2)}"/>`;
+        }
+      }
+    });
+    const skyGroup = svg.querySelector('.fireworks'), waterGroup = svg.querySelector('.reflections');
+    if (skyGroup) skyGroup.innerHTML = sky;
+    if (waterGroup) waterGroup.innerHTML = shimmer;
+  }
+
   // The loop. The browser calls this about 60 times a second.
   function tick(now) {
     if (!running) return;
@@ -2378,6 +2457,7 @@
     updateWeather(dt, now);
     updateExtras(dt, now);
     updateWildlife(dt, now);
+    updateFireworks(dt, now);
     turnBeam(now);
     swingBell(now);
     bobShip(now);

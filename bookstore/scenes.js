@@ -1499,6 +1499,17 @@ const Scenes = (function () {
     park: { surface: 214, spans: [[190, 290], [720, 790]], scale: 0.42 }   // the far bay: tiny
   };
   const seaFor = (locationId) => SEA[locationId] || null;
+  // Open water in plain view, where New Year's fireworks shimmer: [x0, x1] across and
+  // [y0, y1] down. Kept clear of anything in the backdrop that stands in the water (the
+  // bait shop, pilings, the dune fence); the shop itself is drawn in front anyway.
+  const REFLECT = {
+    beach: { x: [0, 800], y: [242, 286] },
+    dock: { x: [225, 560], y: [248, 328] },
+    harbor: { x: [0, 800], y: [246, 330] },
+    cliff: { x: [560, 800], y: [242, 322] },
+    park: { x: [220, 560], y: [204, 232] }
+  };
+  const reflectFor = (locationId) => REFLECT[locationId] || null;
   // The horizon line the sun rises from and sets behind, per scene: the far water in the
   // park and by the sea, the distant bay behind the town streets, the tree line elsewhere.
   const HORIZON = { beach: 235, park: 200, dock: 230, harbor: 228, cliff: 236, street: 262, street2: 262, street3dutch: 262, street3cape: 262, street3tudor: 262, green: 300 };
@@ -2410,15 +2421,16 @@ const Scenes = (function () {
     const front = building.front();
     const festive = festiveLayers(locId, building.backdropOpts || {});
     // The .washed groups hold everything in front of the sky; at night game.js gives them
-    // the night-wash filter. Between the backdrop and the building sits the holiday glow,
-    // unwashed so it shines after dark; the paper grain sits after the building, unwashed
-    // too, as it blends with whatever is beneath it. The sky life (the witch) flies in the
-    // night sky, behind everything but the moon and stars.
+    // the night-wash filter. Between the backdrop and the building sits the holiday glow
+    // (and New Year's reflections on the water), unwashed so it shines after dark; the paper
+    // grain sits after the building, unwashed too, as it blends with whatever is beneath it.
+    // The fireworks and the sky life (the witch, Santa) are in the night sky, behind
+    // everything but the moon and stars.
     return `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg" role="img">
       ${defs(skyTop, skyBottom)}
       ${skyRect}
       ${painted('sky-bodies', skyBodies())}
-      <g class="night-sky">${nightSky()}<g class="sky-life"></g></g>
+      <g class="night-sky">${nightSky()}<g class="fireworks"></g><g class="sky-life"></g></g>
       <g class="washed">
         ${painted('backdrop', backdrop)}
         <g class="background-life"></g>
@@ -2429,7 +2441,7 @@ const Scenes = (function () {
           : painted('seasonal', seasonalLayer(GRASSY.includes(locId), 800, PATHS[locId]))}
         ${painted('festive', festive.decor)}
       </g>
-      <g class="festive-glow" opacity="0">${festive.glow}</g>
+      <g class="festive-glow" opacity="0"><g class="reflections"></g>${festive.glow}</g>
       <g class="washed">
         ${painted('building', bldg)}
         <g class="books"></g>
@@ -2554,5 +2566,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, extrasFor, horizonFor, batSvg, witchSvg, sleighSvg };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, reflectFor, extrasFor, horizonFor, batSvg, witchSvg, sleighSvg };
 })();
