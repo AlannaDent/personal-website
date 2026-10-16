@@ -57,16 +57,18 @@ website and, along the way, learn GitHub and the basics of pushing code in a han
   (three-minute days, twelve days a season: four weeks of three), decor the player buys
   and drags into spots out front, pets, a hand-written journal, a living background
   (clouds, waves, gulls, a fox, a rare dolphin, neighbors, weather), festive weeks
-  (Halloween in autumn's last week: pumpkins, churchyard ghosts, bats, and a witch), and a
+  (Halloween in autumn's last week: pumpkins, churchyard ghosts, bats, and a witch;
+  Christmas in winter's last week: warm white lights, wreaths, and Santa's sleigh), and a
   Stats card.
 - Holidays: `festival()` in `game.js` says which festive week it is and puts a `fest-`
-  class on the page; `HALLOWEEN` in `scenes.js` lists where each scene's decorations go.
-  Decorations only go where things already stand (doorsteps, sills, posts, trees), never
-  on the path customers walk. Planned next: Christmas (winter's last week; Santa on the
-  nights of days 10 and 11), New Year's fireworks (the night of winter day 12 on its own),
-  and Easter (spring's third week).
+  class on the page; `HALLOWEEN` and `CHRISTMAS` in `scenes.js` list where each scene's
+  decorations go. Decorations only go where things already stand (doorsteps, sills, posts,
+  trees, roof edges), never on the path customers walk. Santa flies only on the nights of
+  winter days 10 and 11. Planned next: New Year's fireworks (the night of winter day 12,
+  its own event) and Easter (spring's third week).
 - Testing note: the game reports to the live Stats counters even from localhost, so a
-  planted test shop counts as a real player. Keep planted shops' "sold" low.
+  planted test shop counts as a real player. In the test tab, run `GLOBAL_STATS.url = ''`
+  before "Pick up where you left off" to send nothing, and keep planted shops' "sold" low.
 
 ### Where things live
 - `index.html`, `style.css`: the home page and the shared look (colors, fonts, cards, tabs).
