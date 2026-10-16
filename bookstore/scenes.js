@@ -923,15 +923,114 @@ const Scenes = (function () {
       <circle cx="96.3" cy="-19.3" r="4" fill="#ff5a4a" opacity="0.4"/><circle cx="96.3" cy="-19.3" r="1.1" fill="#ff4d3d"/></g>`;
   }
 
-  // The holiday layers for a scene, { decor, glow }: each holiday's set in a group of its
-  // own, which the stylesheet shows only during that holiday.
+  // ---- Easter ----
+  // Painted eggs, pastel with a zigzag, two stripes or dots. (x, y) is the middle, r half
+  // its height; n picks the color and pattern.
+  const EGG_COLORS = [['#f2b8c6', '#ffffff'], ['#f4dd8a', '#e59a8c'], ['#b8d4ef', '#ffffff'], ['#cdb8e6', '#f4dd8a'], ['#bfe3c9', '#d98c9c'], ['#f6c9a8', '#ffffff']];
+  function egg(x, y, r, n, rot) {
+    const [c, band] = EGG_COLORS[n % EGG_COLORS.length], rx = r * 0.76;
+    let s = `<g transform="translate(${fx(x)} ${fx(y)}) rotate(${rot || 0})">`;
+    s += `<path d="M0 ${fx(-r)} C${fx(rx * 0.95)} ${fx(-r)} ${fx(rx * 1.12)} ${fx(r * 0.62)} 0 ${fx(r)} C${fx(-rx * 1.12)} ${fx(r * 0.62)} ${fx(-rx * 0.95)} ${fx(-r)} 0 ${fx(-r)} Z" fill="${c}" stroke="#8a7f92" stroke-width="0.6"/>`;
+    const pat = n % 3;
+    if (pat === 0) {   // a zigzag band around the middle
+      let d = `M${fx(-rx * 0.86)} ${fx(r * 0.02)}`;
+      for (let i = 0; i < 6; i++) d += ` l${fx(rx * 0.29)} ${fx(i % 2 ? r * 0.2 : -r * 0.2)}`;
+      s += `<path d="${d}" stroke="${band}" stroke-width="1" fill="none"/>`;
+    } else if (pat === 1) s += `<g stroke="${band}" stroke-width="1"><line x1="${fx(-rx * 0.82)}" y1="${fx(-r * 0.25)}" x2="${fx(rx * 0.82)}" y2="${fx(-r * 0.25)}"/><line x1="${fx(-rx * 0.9)}" y1="${fx(r * 0.2)}" x2="${fx(rx * 0.9)}" y2="${fx(r * 0.2)}"/></g>`;
+    else s += `<g fill="${band}"><circle cx="${fx(-rx * 0.4)}" cy="${fx(-r * 0.15)}" r="${fx(r * 0.13)}"/><circle cx="${fx(rx * 0.35)}" cy="${fx(-r * 0.3)}" r="${fx(r * 0.13)}"/><circle cx="${fx(rx * 0.1)}" cy="${fx(r * 0.3)}" r="${fx(r * 0.13)}"/></g>`;
+    s += `<ellipse cx="${fx(-rx * 0.35)}" cy="${fx(-r * 0.5)}" rx="${fx(rx * 0.18)}" ry="${fx(r * 0.22)}" fill="#fff" opacity="0.55"/>`;
+    return s + '</g>';
+  }
+  // Easter in each scene, only in what is already there (Alanna's rule: no new greenery,
+  // nothing where customers walk). eggs: [x, y, r, rot] tucked in a tree's leaves, on a
+  // piling, in the mailbox; hang: [x, y] eggs hanging from a tree on a ribbon; boxes:
+  // [x, boxX, boxY, boxW, boxH, color] an egg sitting in a neighbor's window box (the box's
+  // front is painted back over its bottom); garlands: [x0, x1, y] paper eggs strung inside
+  // a window; tufts: [x, y] an egg in a far grass tuft (dunes and clifftop), drawn behind the
+  // background people.
+  const easterTree = (cx, cy) => ({   // a tree drawn as green()'s are: crown around (cx, cy)
+    hang: [[cx - 50, cy + 90], [cx - 12, cy + 76], [cx + 30, cy + 83], [cx + 62, cy + 85]],
+    eggs: [[cx - 20, cy - 20, 5.2, -12], [cx + 25, cy + 10, 5, 10], [cx - 45, cy + 35, 5, 6], [cx + 50, cy + 40, 5.2, -8]]
+  });
+  const EASTER = {
+    beach: { tufts: [[95, 302], [560, 308], [700, 302]] },
+    park: { hang: [[30, 287], [66, 277], [104, 280], [140, 283]], eggs: [[60, 215, 5.4, -10], [100, 192, 5.2, 12], [132, 238, 5, 6], [38, 248, 5, -8]] },
+    street: {
+      boxes: [[45, 26, 228, 58, 8, '#3f5f5b'], [165, 126, 228, 58, 8, '#3f5f5b'], [635, 616, 244, 54, 7, '#6d4a42'], [765, 726, 244, 54, 7, '#6d4a42']],
+      garlands: [[512, 554, 196]]
+    },
+    dock: { garlands: [[42, 90, 316]], eggs: [[527, 324, 5, 0]] },
+    street2: {
+      boxes: [[97, 56, 244, 54, 7, '#6d4a42'], [184, 166, 244, 54, 7, '#6d4a42'], [207, 166, 244, 54, 7, '#6d4a42']],
+      garlands: [[62, 104, 196]],
+      hang: [[672, 253], [700, 259], [733, 255], [766, 257]],
+      eggs: [[702, 206, 5.4, -14], [746, 222, 5.2, 12], [724, 172, 5.2, 8], [664, 226, 5, -6], [243, 366, 4, 80]]
+    },
+    street3dutch: { garlands: [[104, 151, 297], [641, 689, 297]] },
+    street3cape: { garlands: [[113, 161, 305], [635, 686, 305]] },
+    street3tudor: { garlands: [[101, 175, 315], [627, 703, 315]] },
+    green: { hang: [...easterTree(70, 200).hang, ...easterTree(730, 205).hang], eggs: [...easterTree(70, 200).eggs, ...easterTree(730, 205).eggs] },
+    cliff: { tufts: [[90, 336], [230, 336], [640, 336]] },
+    harbor: { eggs: [[37, 331, 5, -6], [763, 331, 5, 8]] }
+  };
+  function easterLayers(e) {
+    if (!e) return { far: '', decor: '' };
+    let n = 0, decor = '', far = '';
+    (e.hang || []).forEach(([x, y]) => { decor += `<line x1="${x}" y1="${y - 13}" x2="${x}" y2="${y - 4}" stroke="#d98c9c" stroke-width="0.9"/>` + egg(x, y, 5.6, n++, 0); });
+    (e.eggs || []).forEach(([x, y, r, rot]) => { decor += egg(x, y, r, n++, rot); });
+    (e.boxes || []).forEach(([x, bx, by, bw, bh, color], i) => { decor += egg(x, by - 2.5, 5, n++, i % 2 ? 8 : -8) + `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="${color}"/>`; });
+    (e.garlands || []).forEach(([x0, x1, y]) => {
+      const span = x1 - x0, count = Math.max(3, Math.round(span / 10)), sag = span * 0.12;
+      decor += `<path d="M${x0} ${y} Q${fx((x0 + x1) / 2)} ${fx(y + sag * 2)} ${x1} ${y}" stroke="#8a7f92" stroke-width="0.7" fill="none"/>`;
+      for (let i = 0; i < count; i++) {
+        const t = (i + 0.5) / count, ex = x0 + span * t, ey = y + 4 * t * (1 - t) * sag;   // on the string's curve
+        decor += egg(ex, ey + 4.5, 3.8, n++, i % 2 ? 6 : -6);
+      }
+    });
+    (e.tufts || []).forEach(([x, y]) => { far += egg(x + 4, y - 4.5, 5.4, n++, 14) + grassTuft(x, y); });
+    return { far, decor };
+  }
+  // Where cottontails hop by day in Easter week: x from end to end (they appear and go at
+  // the ends, behind a tree, a building or the edge of the picture) and y along a strip of
+  // far grass or dune, where nothing nearer stands for them to pass in front of. Most of
+  // the town has no such strip, and nor does the churchyard.
+  const BUNNY_FIELDS = {
+    park: { x: [96, 820], y: [304, 326], scale: 0.7 },     // out from behind the big tree
+    street2: { x: [598, 708], y: [333, 339], scale: 0.6 }, // between the garage and the tree
+    beach: { x: [-20, 820], y: [298, 310], scale: 0.55 },  // the far dunes
+    cliff: { x: [-20, 300], y: [333, 341], scale: 0.6 }    // the clifftop, left of the tower
+  };
+  const bunnyFieldFor = (locationId) => BUNNY_FIELDS[locationId] || null;
+  // A cottontail facing right, feet at (0, 0): sitting, or stretched out mid-hop.
+  function bunnySvg(pose) {
+    const body = '#9c8068', dark = '#836a55';
+    const inner = pose === 'hop'
+      ? `<g transform="translate(0 -2) rotate(-14)">
+          <ellipse cx="-8" cy="-1" rx="4.6" ry="1.3" fill="${dark}" transform="rotate(28 -8 -1)"/>
+          <ellipse cx="-1" cy="-4.5" rx="7.4" ry="4" fill="${body}"/><circle cx="-7.8" cy="-5" r="2" fill="#f4f1e8"/>
+          <ellipse cx="5.6" cy="-1.2" rx="1.8" ry="0.9" fill="${dark}" transform="rotate(30 5.6 -1.2)"/>
+          <circle cx="6" cy="-7.4" r="3.1" fill="${body}"/>
+          <ellipse cx="3.2" cy="-12" rx="1.2" ry="3.9" fill="${dark}" transform="rotate(-48 3.2 -12)"/><ellipse cx="4.6" cy="-12.6" rx="1.3" ry="4" fill="${body}" transform="rotate(-36 4.6 -12.6)"/>
+          <circle cx="7.4" cy="-7.9" r="0.7" fill="#2b2a28"/><circle cx="9" cy="-6.7" r="0.6" fill="#c98a8a"/>
+        </g>`
+      : `<ellipse cx="-1.5" cy="-5.2" rx="6.2" ry="5" fill="${body}"/><circle cx="-3.6" cy="-4.4" r="4" fill="${dark}"/>
+        <ellipse cx="-2.5" cy="-0.9" rx="3.8" ry="1.1" fill="${dark}"/><circle cx="-7.4" cy="-5.6" r="2.1" fill="#f4f1e8"/>
+        <ellipse cx="2.2" cy="-5" rx="2.3" ry="2.8" fill="#cdb9a0" opacity="0.7"/><ellipse cx="3.6" cy="-0.8" rx="1.6" ry="0.9" fill="${dark}"/>
+        <circle cx="4.2" cy="-9.2" r="3.3" fill="${body}"/>
+        <ellipse cx="2.9" cy="-14.3" rx="1.2" ry="3.9" fill="${dark}" transform="rotate(-18 2.9 -14.3)"/><ellipse cx="4.6" cy="-14.6" rx="1.3" ry="4.1" fill="${body}" transform="rotate(-6 4.6 -14.6)"/>
+        <ellipse cx="4.75" cy="-14.4" rx="0.55" ry="2.8" fill="#d9a3a3" transform="rotate(-6 4.75 -14.4)"/>
+        <circle cx="5.6" cy="-9.6" r="0.7" fill="#2b2a28"/><circle cx="7.4" cy="-8.4" r="0.6" fill="#c98a8a"/>`;
+    return `<ellipse cx="0" cy="0" rx="7.5" ry="1.1" fill="#000" opacity="0.13"/>${inner}`;
+  }
+
+  // The holiday layers for a scene, { far, decor, glow }: each holiday's set in a group of
+  // its own, which the stylesheet shows only during that holiday. far is drawn just after
+  // the backdrop, behind the background people (eggs in the far dune grass).
   function festiveLayers(locId, opts) {
     const pick = (table) => typeof table[locId] === 'function' ? table[locId](opts) : table[locId];
-    const sets = [['halloween', halloweenLayers(pick(HALLOWEEN))], ['christmas', christmasLayers(pick(CHRISTMAS))]];
-    return {
-      decor: sets.map(([name, l]) => `<g class="${name}">${l.decor}</g>`).join(''),
-      glow: sets.map(([name, l]) => `<g class="${name}">${l.glow}</g>`).join('')
-    };
+    const sets = [['halloween', halloweenLayers(pick(HALLOWEEN))], ['christmas', christmasLayers(pick(CHRISTMAS))], ['easter', easterLayers(pick(EASTER))]];
+    const layer = (part) => sets.map(([name, l]) => l[part] ? `<g class="${name}">${l[part]}</g>` : '').join('');
+    return { far: layer('far'), decor: layer('decor'), glow: layer('glow') };
   }
   // A bat, wings up or down, about 26 units across, centered on (0, 0).
   function batSvg(up) {
@@ -2433,6 +2532,7 @@ const Scenes = (function () {
       <g class="night-sky">${nightSky()}<g class="fireworks"></g><g class="sky-life"></g></g>
       <g class="washed">
         ${painted('backdrop', backdrop)}
+        ${festive.far ? painted('festive-far', festive.far) : ''}
         <g class="background-life"></g>
         ${SEA[locId] ? `<clipPath id="sea-surface"><rect x="0" y="0" width="${VIEW.width}" height="${SEA[locId].surface}"/></clipPath><g class="sea-life" clip-path="url(#sea-surface)"></g>` : ''}
         ${near ? painted('backdrop-near', near) : ''}
@@ -2566,5 +2666,5 @@ const Scenes = (function () {
   }
 
   // Only these names are visible to game.js.
-  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, reflectFor, extrasFor, horizonFor, batSvg, witchSvg, sleighSvg };
+  return { LOCATIONS, BUILDINGS, UPGRADES, VIEW, GROUND_Y, render, shelvesFor, stopsFor, sidesFor, doorFor, personScaleFor, deliveryXFor, deliveryBox, decorSlotsFor, leftSlotsFor, entranceFor, interiorDecorSlotsFor, wallSlotsFor, petRangeFor, chalkboard, plant, indoorItem, wallItem, bench, adirondack, lamppost, petSvg, PET_COLORS, seaFor, reflectFor, extrasFor, horizonFor, batSvg, witchSvg, sleighSvg, bunnySvg, bunnyFieldFor };
 })();

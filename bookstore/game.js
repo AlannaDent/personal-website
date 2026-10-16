@@ -33,10 +33,10 @@
   const DAYS_PER_WEEK = 3;
   const DAYS_PER_SEASON = 4 * DAYS_PER_WEEK;   // four weeks of three days
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];   // the game begins in Spring
-  // The festive weeks, by season and week of the season: Halloween is autumn's last week,
-  // Christmas winter's. While one is on, the page carries a fest- class and scenes.js's
-  // decorations show.
-  const FESTIVALS = { Autumn: { name: 'halloween', week: 4 }, Winter: { name: 'christmas', week: 4 } };
+  // The festive weeks, by season and week of the season: Easter is spring's third week,
+  // Halloween autumn's last, Christmas winter's last. While one is on, the page carries a
+  // fest- class and scenes.js's decorations show.
+  const FESTIVALS = { Spring: { name: 'easter', week: 3 }, Autumn: { name: 'halloween', week: 4 }, Winter: { name: 'christmas', week: 4 } };
   // A gentle wash of color over the scene for each season (color, opacity outside, opacity inside).
   const SEASON_TINT = {
     Spring: ['#ffffff', 0, 0],
@@ -222,10 +222,13 @@
   // The journal on the first morning of a festive week, and at closing time during one
   // (in place of the season's night lines). Plain first row, quippy second.
   const FESTIVAL_LINES = {
+    easter: 'Painted eggs turned up all over town overnight: in the window boxes, up in the trees. Nobody is admitting anything.',
     halloween: 'Pumpkins on every doorstep in town. Somebody carved one to look like a book. Good likeness.',
     christmas: 'Lights strung in the bare trees and wreaths on the doors all over town. Even the gulls look festive.'
   };
   const FESTIVE_NIGHT_LINES = {
+    easter: ['Counted the eggs we can see from the step.', 'Peepers loud in the marsh.', 'Left a carrot out by the door.',
+      'Counted the eggs we can see from the step. Eleven. There are definitely more.', 'The peepers are loud in the marsh. They would like to discuss the eggs.', 'Left a carrot out by the door. For research.'],
     halloween: ['Jack-o’-lanterns lit all over town.', 'Trick-or-treaters came by. Handed out bookmarks.', 'Something rustling in the leaves.',
       'Jack-o’-lanterns lit all over town. One of them is winking. Nobody carved it that way.', 'Trick-or-treaters came by. Handed out bookmarks. Reviews were mixed.', 'Something rustling in the leaves. Probably the wind. Probably.'],
     christmas: ['Lights on in the trees.', 'Carolers on the corner.', 'Wrapped the last of the gift orders.',
@@ -238,6 +241,9 @@
     sleigh: ['Something crossed the moon. Something with antlers. Nobody in town is sleeping tonight.',
       'Sleigh bells, very faint and very high up. The whole shop went quiet to listen.', 'A tiny red light raced across the sky. Probably a plane. Planes don’t have antlers.']
   };
+  // The first cottontail of the day in Easter week.
+  const BUNNY_LINES = ['A cottontail out on the grass. It looked at the eggs, then at us, and said nothing.',
+    'A rabbit hopped by, stopped to nibble, and hopped off again. Busy schedule.', 'Bunny sighting. Two customers forgot what they came in for.'];
   // Closing time on New Year's Eve, in place of the usual night line.
   const NEW_YEAR_LINES = ['Fireworks over town. Happy New Year from all of us at the bookshop.',
     'The whole town came out for the fireworks. Even the gulls stayed up.', 'Fireworks at closing time, which is basically midnight around here. Happy New Year.'];
@@ -2196,7 +2202,7 @@
   // These live behind the building (the .background-life layer) and are not saved.
   let critters = [];             // { kind, x, y, dir, speed, scale, phase, state, until }
   let nextBirdAt = 0, nextCrabAt = 0, nextFoxAt = 0, nextDolphinAt = 0, lastCritterDraw = 0;
-  let nextBatAt = 0, nextFlyerAt = 0, flyerLogDay = 0;
+  let nextBatAt = 0, nextFlyerAt = 0, flyerLogDay = 0, nextBunnyAt = 0, bunnyLogDay = 0;
   const FLAP = { bird: 9, bat: 16, witch: 2.5, sleigh: 2 };   // how fast each one's phase turns (wingbeats, a flier's bob)
   const DOLPHIN_LINES = ['A dolphin! Out past the swell. The whole shop pressed its nose to the window.', 'Something silver leapt clear of the water. A dolphin, surely. Nobody bought anything for a full minute.', 'A dolphin, arcing out beyond the buoys. One customer cried a little. Two pretended not to.'];
   const OUTDOORS = () => state.view !== 'inside';
@@ -2241,6 +2247,19 @@
         nextFlyerAt = now + 75000 + Math.random() * 60000;
       }
     } else if (!night) nextFlyerAt = 0;
+    // Easter week: now and then by day a cottontail hops along a strip of far grass or dune,
+    // stops to nibble, and goes, coming and going behind a tree, a building or the edge of
+    // the picture (Scenes.bunnyFieldFor). The journal notes the first one each day.
+    const field = festival() === 'easter' && !night ? Scenes.bunnyFieldFor(loc) : null;
+    if (field) {
+      if (!nextBunnyAt) nextBunnyAt = now + 4000 + Math.random() * 12000;
+      if (now >= nextBunnyAt) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        critters.push({ kind: 'bunny', x: dir === 1 ? field.x[0] : field.x[1], y: field.y[0] + Math.random() * (field.y[1] - field.y[0]), dir, scale: field.scale, field, state: 'hop', t: 0, until: 0, phase: 0 });
+        if (bunnyLogDay !== dayIndex()) { bunnyLogDay = dayIndex(); addLog(randomFrom(BUNNY_LINES)); drawLog(); }
+        nextBunnyAt = now + 25000 + Math.random() * 35000;
+      }
+    }
     // Crabs: beach only, scuttling along the far sand behind the shop.
     if (loc === 'beach') {
       if (!nextCrabAt) nextCrabAt = now + 6000 + Math.random() * 20000;
@@ -2292,6 +2311,14 @@
         c.wob += dt * 2.6;
         c.y += Math.sin(c.wob) * 38 * dt;
         return c.x > -40 && c.x < 840;
+      }
+      if (c.kind === 'bunny') {   // little hops, and every so often a sit to nibble
+        if (c.state === 'hop') {
+          c.t += dt / 0.38;                                   // one hop takes 0.38 s
+          c.x += c.dir * (13 * c.scale / 0.38) * dt;          // and covers 13 units at full size
+          if (c.t >= 1) { c.t = 0; if (Math.random() < 0.25) { c.state = 'sit'; c.until = now + 1500 + Math.random() * 2500; } }
+        } else if (now >= c.until) c.state = 'hop';
+        return c.x >= c.field.x[0] - 1 && c.x <= c.field.x[1] + 1;
       }
       if (c.kind === 'witch' || c.kind === 'sleigh') {   // an arc that tops out just over the moon
         c.x += c.dir * c.speed * dt;
@@ -2356,6 +2383,10 @@
       }
       if (c.kind === 'bat') {
         return `<g transform="translate(${c.x.toFixed(0)} ${c.y.toFixed(0)}) scale(${c.scale.toFixed(2)})">${Scenes.batSvg(Math.sin(c.phase) > 0)}</g>`;
+      }
+      if (c.kind === 'bunny') {
+        const air = c.state === 'hop' ? Math.sin(Math.PI * c.t) : 0;
+        return `<g transform="translate(${c.x.toFixed(1)} ${(c.y - air * 7 * c.scale).toFixed(1)}) scale(${(c.dir * c.scale).toFixed(2)} ${c.scale.toFixed(2)})">${Scenes.bunnySvg(air > 0.15 ? 'hop' : 'sit')}</g>`;
       }
       if (c.kind === 'crab') {
         const step = c.state === 'go' ? Math.sin(c.phase * 2) * 0.6 : 0;
