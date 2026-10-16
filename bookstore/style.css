@@ -634,8 +634,8 @@ svg .weather, svg .background-life, svg .sea-life, svg .festive-glow, svg .sky-l
 /* ---- Holidays ----
    Each set of decorations shows only in its festive week; the page carries a fest- class
    (see festival() in game.js). Ghosts bob, jack-o'-lanterns flicker, and Christmas lights twinkle. */
-.halloween, .christmas { display: none; }
-body.fest-halloween .halloween, body.fest-christmas .christmas { display: inline; }
+.halloween, .christmas, .easter { display: none; }
+body.fest-halloween .halloween, body.fest-christmas .christmas, body.fest-easter .easter { display: inline; }
 .twinkle { animation: twinkle 1.9s ease-in-out infinite alternate; }
 @keyframes twinkle { from { opacity: 1; } to { opacity: 0.35; } }
 .ghost-bob { animation: ghostBob 3.2s ease-in-out infinite alternate; }
